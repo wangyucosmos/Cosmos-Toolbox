@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct Cosmos_ToolboxApp: App {
+
     var body: some Scene {
+
         WindowGroup {
+
             DashboardView()
+                .task {
+                    #if DEBUG
+                    await DeepSeekHarnessAdapter.runSelfTest()
+                    #endif
+                }
         }
     }
 }
