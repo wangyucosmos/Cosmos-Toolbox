@@ -57,11 +57,11 @@ struct ZhuowangCampaignDetailView: View {
                                 }
 
                             case .workflow:
-
                                 ZhuowangWorkflowView(
                                     store: workflowStore,
-                                    campaignID: campaign.id,
-                                    campaignName: campaign.name
+                                    campaign: campaign,
+                                    province: province,
+                                    module: module
                                 )
 
                             case .artifacts:

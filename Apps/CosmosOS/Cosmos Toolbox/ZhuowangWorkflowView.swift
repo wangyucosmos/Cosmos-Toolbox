@@ -4,10 +4,19 @@ struct ZhuowangWorkflowView: View {
 
     @ObservedObject var store: ZhuowangWorkflowStore
 
-    let campaignID: UUID
-    let campaignName: String
+    let campaign: ZhuowangCampaign
+    let province: ZhuowangProvince?
+    let module: ZhuowangModule?
+
+    @StateObject
+    private var connectionStore =
+        ZhuowangAIConnectionStore()
 
     @State private var expandedStepID: UUID?
+
+    @State private var previewTaskPackage: ZhuowangAITaskPackage?
+    @State private var previewProvider: ZhuowangAIProvider?
+    @State private var previewConnection: ZhuowangAIConnection?
 
     var body: some View {
         VStack(
@@ -28,6 +37,14 @@ struct ZhuowangWorkflowView: View {
         }
         .onAppear {
             ensureWorkflowExists()
+        }
+        .sheet(item: $previewTaskPackage) { taskPackage in
+
+            ZhuowangTaskPackagePreviewView(
+                taskPackage: taskPackage,
+                provider: previewProvider,
+                connection: previewConnection
+            )
         }
     }
 
@@ -621,9 +638,10 @@ struct ZhuowangWorkflowView: View {
 
                 Button {
 
-                    // 后续：
-                    // 这里将进入 Task Package /
-                    // AI 执行流程。
+                    prepareTask(
+                        workflow: workflow,
+                        step: step
+                    )
 
                 } label: {
 
@@ -961,7 +979,40 @@ struct ZhuowangWorkflowView: View {
         )
     }
 
+    // MARK: - Prepare Task
 
+    private func prepareTask(
+        workflow: ZhuowangCampaignWorkflow,
+        step: ZhuowangWorkflowStep
+    ) {
+
+        let provider =
+            selectedProvider(
+                for: step
+            )
+
+        let connection =
+            provider.flatMap {
+                connectionStore
+                    .recommendedConnection(
+                        forProviderID: $0.id
+                    )
+            }
+
+        let taskPackage =
+            ZhuowangTaskPackageBuilder.build(
+                campaign: campaign,
+                province: province,
+                module: module,
+                workflow: workflow,
+                step: step,
+                provider: provider
+            )
+
+        previewProvider = provider
+        previewConnection = connection
+        previewTaskPackage = taskPackage
+    }
     // MARK: - Data
 
     private var workflow:
@@ -969,7 +1020,7 @@ struct ZhuowangWorkflowView: View {
 
         store.workflow(
             forCampaignID:
-                campaignID
+                campaign.id
         )
     }
 
@@ -979,7 +1030,7 @@ struct ZhuowangWorkflowView: View {
         _ =
             store.getOrCreateWorkflow(
                 forCampaignID:
-                    campaignID
+                    campaign.id
             )
     }
 
