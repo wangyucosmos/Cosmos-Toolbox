@@ -12,6 +12,20 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     @State private var copied = false
 
+    // MARK: - Execution State
+
+    @State private var showExecutionResult = false
+
+    @State private var executionState:
+        ZhuowangAIExecutionViewState = .running
+
+    @State private var executionResultText = ""
+
+    @State private var executionErrorText = ""
+
+    @State private var currentRevisionFeedback = ""
+
+
     var body: some View {
 
         VStack(spacing: 0) {
@@ -59,6 +73,45 @@ struct ZhuowangTaskPackagePreviewView: View {
             minWidth: 780,
             minHeight: 720
         )
+        .sheet(
+            isPresented:
+                $showExecutionResult
+        ) {
+
+            ZhuowangAIExecutionResultView(
+                taskPackage:
+                    taskPackage,
+                provider:
+                    provider,
+                connection:
+                    connection,
+                resultText:
+                    executionResultText,
+                errorText:
+                    executionErrorText,
+                state:
+                    executionState,
+                onAdopt: {
+
+                    showExecutionResult =
+                        false
+
+                    dismiss()
+                },
+                onRequestRevision: {
+                    feedback in
+
+                    runRevision(
+                        feedback:
+                            feedback
+                    )
+                },
+                onRegenerate: {
+
+                    runSelectedConnection()
+                }
+            )
+        }
     }
 
 
@@ -449,19 +502,49 @@ struct ZhuowangTaskPackagePreviewView: View {
                         .fontWeight(.medium)
                 }
 
-                if connection == nil {
+                Divider()
 
-                    Divider()
-
-                    Label(
-                        "当前还没有绑定具体 Connection。下一阶段会根据 Provider 自动匹配 ChatGPT Subscription、Codex Local、DeepSeek Harness、Claude Desktop 等执行方式。",
-                        systemImage: "info.circle"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
+                connectionNotice
             }
             .font(.callout)
+        }
+    }
+
+
+    // MARK: - Connection Notice
+
+    @ViewBuilder
+    private var connectionNotice:
+        some View {
+
+        if connection == nil {
+
+            Label(
+                "当前还没有绑定具体 Connection。",
+                systemImage: "info.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        } else if isDeepSeekHarnessConnection {
+
+            Label(
+                "该任务可以由 Cosmos OS 直接调用本机 DeepSeek Harness 执行，并在完成后自动返回结果。",
+                systemImage:
+                    "checkmark.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        } else {
+
+            Label(
+                "当前连接已识别，但该执行器尚未接入自动执行。ChatGPT、Codex、Claude 等连接将在后续阶段接入。",
+                systemImage:
+                    "info.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -565,26 +648,20 @@ struct ZhuowangTaskPackagePreviewView: View {
 
             Button {
 
-                // 下一阶段：
-                // 根据 Connection 决定：
-                // - ChatGPT Subscription
-                // - Codex Local
-                // - DeepSeek Harness
-                // - Claude Desktop
-                // - Figma
-                //
-                // 当前先不真正执行。
+                runSelectedConnection()
 
             } label: {
 
                 Label(
-                    "确认并继续",
+                    confirmationButtonTitle,
                     systemImage:
                         "arrow.right"
                 )
             }
             .buttonStyle(.borderedProminent)
-            .disabled(provider == nil)
+            .disabled(
+                !canContinue
+            )
         }
         .padding(
             .horizontal,
@@ -594,6 +671,187 @@ struct ZhuowangTaskPackagePreviewView: View {
             .vertical,
             CosmosDesign.spacingM
         )
+    }
+
+
+    // MARK: - Execute Selected Connection
+
+    private func runSelectedConnection() {
+
+        guard
+            provider != nil,
+            connection != nil
+        else {
+            return
+        }
+
+        executionResultText = ""
+        executionErrorText = ""
+        currentRevisionFeedback = ""
+        executionState = .running
+        showExecutionResult = true
+
+        guard isDeepSeekHarnessConnection else {
+
+            executionState = .failed
+            executionErrorText =
+                """
+                当前 Connection 已经被 Cosmos OS 识别，但尚未接入自动执行器。
+
+                当前连接：\(connectionDisplayName)
+
+                目前第一条已经接通的自动执行链是 DeepSeek Harness。
+                ChatGPT、Codex、Claude Work、Claude Code 和 Figma 会在后续阶段分别接入适合它们的执行方式。
+                """
+
+            return
+        }
+
+        Task {
+
+            do {
+
+                let result =
+                    try await
+                    DeepSeekHarnessAdapter
+                    .shared
+                    .execute(
+                        taskPackage:
+                            taskPackage
+                    )
+
+                await MainActor.run {
+
+                    executionResultText =
+                        result.output
+
+                    executionErrorText =
+                        result.errorOutput
+
+                    executionState =
+                        .succeeded
+                }
+
+            } catch {
+
+                await MainActor.run {
+
+                    executionResultText = ""
+
+                    executionErrorText =
+                        error.localizedDescription
+
+                    executionState =
+                        .failed
+                }
+            }
+        }
+    }
+
+
+    // MARK: - Revision Execution
+
+    private func runRevision(
+        feedback: String
+    ) {
+
+        let cleanFeedback =
+            feedback
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+
+        guard
+            !cleanFeedback.isEmpty
+        else {
+            return
+        }
+
+        guard isDeepSeekHarnessConnection else {
+
+            executionState = .failed
+            executionErrorText =
+                "当前连接暂不支持自动修改任务。"
+
+            return
+        }
+
+        currentRevisionFeedback =
+            cleanFeedback
+
+        let previousResult =
+            executionResultText
+            .trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+
+        executionState = .running
+        executionErrorText = ""
+
+        let revisionTask =
+            """
+            \(taskPackage.title)
+
+            你正在修改上一轮 AI 生成结果。
+
+            【原始任务】
+            \(taskPackage.instruction)
+
+            【上一轮结果】
+            \(previousResult.isEmpty ? "暂无上一轮可用结果。" : previousResult)
+
+            【用户修改意见】
+            \(cleanFeedback)
+
+            【参考上下文】
+            \(taskPackage.contextReferences.joined(separator: "\n"))
+
+            【预期输出】
+            \(taskPackage.expectedOutputs.joined(separator: "\n"))
+
+            请严格根据用户修改意见重新生成完整结果。
+            不要只解释如何修改，直接输出修改后的完整版本。
+            """
+
+        Task {
+
+            do {
+
+                let result =
+                    try await
+                    DeepSeekHarnessAdapter
+                    .shared
+                    .execute(
+                        task:
+                            revisionTask
+                    )
+
+                await MainActor.run {
+
+                    executionResultText =
+                        result.output
+
+                    executionErrorText =
+                        result.errorOutput
+
+                    executionState =
+                        .succeeded
+                }
+
+            } catch {
+
+                await MainActor.run {
+
+                    executionErrorText =
+                        error.localizedDescription
+
+                    executionState =
+                        .failed
+                }
+            }
+        }
     }
 
 
@@ -634,9 +892,56 @@ struct ZhuowangTaskPackagePreviewView: View {
     }
 
 
+    // MARK: - Execution Helpers
+
+    private var isDeepSeekHarnessConnection:
+        Bool {
+
+        if provider?.kind
+            == .deepSeekHarness {
+
+            return true
+        }
+
+        if connection?
+            .adapterIdentifier
+            == "deepseek-harness" {
+
+            return true
+        }
+
+        return false
+    }
+
+
+    private var canContinue: Bool {
+
+        guard
+            provider != nil,
+            connection != nil
+        else {
+            return false
+        }
+
+        return true
+    }
+
+
+    private var confirmationButtonTitle:
+        String {
+
+        if isDeepSeekHarnessConnection {
+            return "确认并执行"
+        }
+
+        return "确认并继续"
+    }
+
+
     // MARK: - Connection Text
 
-    private var connectionDisplayName: String {
+    private var connectionDisplayName:
+        String {
 
         guard let connection else {
             return "待选择"
@@ -646,7 +951,8 @@ struct ZhuowangTaskPackagePreviewView: View {
     }
 
 
-    private var executionStyleText: String {
+    private var executionStyleText:
+        String {
 
         guard let connection else {
             return "待确定"
@@ -671,3 +977,4 @@ struct ZhuowangTaskPackagePreviewView: View {
         }
     }
 }
+

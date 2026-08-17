@@ -382,33 +382,3 @@ final class DeepSeekHarnessAdapter {
         """
     }
 }
-#if DEBUG
-
-extension DeepSeekHarnessAdapter {
-
-    static func runSelfTest() async {
-        do {
-            let result =
-                try await DeepSeekHarnessAdapter.shared.execute(
-                    task: "只回复这一句话：Cosmos Adapter OK"
-                )
-
-            print("=== Cosmos DSH Adapter Self Test ===")
-            print("Exit Code:", result.exitCode)
-            print("Output:", result.output)
-
-            if !result.errorOutput.isEmpty {
-                print("Error Output:", result.errorOutput)
-            }
-
-            print("===================================")
-
-        } catch {
-            print("=== Cosmos DSH Adapter Self Test FAILED ===")
-            print(error.localizedDescription)
-            print("==========================================")
-        }
-    }
-}
-
-#endif

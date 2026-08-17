@@ -15,11 +15,6 @@ struct Cosmos_ToolboxApp: App {
         WindowGroup {
 
             DashboardView()
-                .task {
-                    #if DEBUG
-                    await DeepSeekHarnessAdapter.runSelfTest()
-                    #endif
-                }
         }
     }
 }

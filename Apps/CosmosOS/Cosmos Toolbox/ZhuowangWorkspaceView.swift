@@ -11,6 +11,7 @@ struct ZhuowangWorkspaceView: View {
     @State private var selectedCategoryID = "overview"
     @State private var showManager = false
 
+
     var body: some View {
 
         HSplitView {
@@ -29,9 +30,29 @@ struct ZhuowangWorkspaceView: View {
                     maxHeight: .infinity
                 )
         }
-        .background(
-            Color(nsColor: .windowBackgroundColor)
-        )
+        .background {
+
+            ZStack {
+
+                Color(
+                    nsColor:
+                        .windowBackgroundColor
+                )
+
+                LinearGradient(
+                    colors: [
+                        Color.accentColor
+                            .opacity(0.055),
+                        Color.clear,
+                        Color.primary
+                            .opacity(0.015)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            }
+        }
         .onAppear {
             prepareInitialSelection()
         }
@@ -77,9 +98,19 @@ struct ZhuowangWorkspaceView: View {
             maxHeight: .infinity
         )
         .background(
-            Color(nsColor: .controlBackgroundColor)
-                .opacity(0.42)
+            .ultraThinMaterial
         )
+        .overlay(
+            alignment: .trailing
+        ) {
+
+            Rectangle()
+                .fill(
+                    Color.primary
+                        .opacity(0.045)
+                )
+                .frame(width: 1)
+        }
     }
 
 
@@ -193,22 +224,11 @@ struct ZhuowangWorkspaceView: View {
                         == .province(province.id)
                 ) {
 
-                    withAnimation(
-                        .easeInOut(
-                            duration:
-                                CosmosDesign
-                                .animationNormal
+                    selectNavigation(
+                        .province(
+                            province.id
                         )
-                    ) {
-
-                        selectedNavigation =
-                            .province(
-                                province.id
-                            )
-
-                        selectedCategoryID =
-                            "overview"
-                    }
+                    )
                 }
             }
         }
@@ -244,22 +264,11 @@ struct ZhuowangWorkspaceView: View {
                         == .module(module.id)
                 ) {
 
-                    withAnimation(
-                        .easeInOut(
-                            duration:
-                                CosmosDesign
-                                .animationNormal
+                    selectNavigation(
+                        .module(
+                            module.id
                         )
-                    ) {
-
-                        selectedNavigation =
-                            .module(
-                                module.id
-                            )
-
-                        selectedCategoryID =
-                            "overview"
-                    }
+                    )
                 }
             }
         }
@@ -296,6 +305,30 @@ struct ZhuowangWorkspaceView: View {
 
     private var workspaceDetail: some View {
 
+        ZStack {
+
+            LinearGradient(
+                colors: [
+                    Color.accentColor
+                        .opacity(0.025),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .center
+            )
+
+            workspaceDetailContent
+        }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
+    }
+
+
+    private var workspaceDetailContent: some View {
+
         ScrollView {
 
             VStack(
@@ -308,7 +341,7 @@ struct ZhuowangWorkspaceView: View {
                 categoryTabs
 
                 Divider()
-                    .opacity(0.45)
+                    .opacity(0.35)
 
                 if selectedCategoryID == "overview" {
 
@@ -353,31 +386,92 @@ struct ZhuowangWorkspaceView: View {
     private var detailHeader: some View {
 
         HStack(
-            alignment: .top,
+            alignment: .center,
             spacing: CosmosDesign.spacingXL
         ) {
 
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingS
+            HStack(
+                spacing: 16
             ) {
 
-                Text(currentWorkspaceTitle)
-                    .font(
-                        .system(
-                            size: 30,
-                            weight: .semibold
-                        )
+                ZStack {
+
+                    RoundedRectangle(
+                        cornerRadius: 14,
+                        style: .continuous
+                    )
+                    .fill(
+                        Color.accentColor
+                            .opacity(0.10)
+                    )
+                    .frame(
+                        width: 48,
+                        height: 48
                     )
 
-                Text(currentWorkspaceSubtitle)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    Image(
+                        systemName:
+                            selectedProvince != nil
+                            ? "mappin.and.ellipse"
+                            : "square.grid.2x2"
+                    )
+                    .font(
+                        .system(
+                            size: 20,
+                            weight: .medium
+                        )
+                    )
+                    .foregroundStyle(
+                        Color.accentColor
+                    )
+                }
 
-                Text(currentWorkspaceDescription)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
+                VStack(
+                    alignment: .leading,
+                    spacing: 5
+                ) {
+
+                    Text(currentWorkspaceTitle)
+                        .font(
+                            .system(
+                                size: 28,
+                                weight: .semibold,
+                                design: .rounded
+                            )
+                        )
+
+                    HStack(
+                        spacing: 8
+                    ) {
+
+                        Text(
+                            currentWorkspaceSubtitle
+                        )
+                        .font(.callout)
+                        .foregroundStyle(
+                            .secondary
+                        )
+
+                        Circle()
+                            .fill(
+                                Color.secondary
+                                    .opacity(0.5)
+                            )
+                            .frame(
+                                width: 3,
+                                height: 3
+                            )
+
+                        Text(
+                            currentWorkspaceDescription
+                        )
+                        .font(.caption)
+                        .foregroundStyle(
+                            .secondary
+                        )
+                        .lineLimit(1)
+                    }
+                }
             }
 
             Spacer()
@@ -400,107 +494,409 @@ struct ZhuowangWorkspaceView: View {
                         systemImage: "plus"
                     )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(
+                    .borderedProminent
+                )
             }
         }
+        .padding(
+            20
+        )
+        .background(
+            .thinMaterial
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign
+                    .cornerRadiusLarge,
+                style: .continuous
+            )
+        )
+        .overlay {
+
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign
+                    .cornerRadiusLarge,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary
+                    .opacity(0.055),
+                lineWidth: 1
+            )
+        }
+        .shadow(
+            color:
+                Color.black
+                .opacity(0.035),
+            radius: 14,
+            x: 0,
+            y: 6
+        )
     }
 
 
-    // MARK: Category Tabs
+    // MARK: - Category Tabs
 
     private var categoryTabs: some View {
 
-        ScrollView(
-            .horizontal,
-            showsIndicators: false
+        HStack(
+            spacing: CosmosDesign.spacingS
         ) {
 
-            HStack(
-                spacing: CosmosDesign.spacingS
-            ) {
+            // 常用分类固定显示
+            ForEach(primaryCategories) { category in
 
-                ForEach(store.categories) { category in
+                categoryTabButton(
+                    category
+                )
+            }
 
-                    Button {
 
-                        withAnimation(
-                            .easeOut(
-                                duration:
-                                    CosmosDesign
-                                    .animationFast
+            // 如果当前选择的是“更多”里的分类，
+            // 自动把它临时显示在主导航中，
+            // 让用户始终知道自己当前在哪里。
+            if let selectedExtraCategory {
+
+                categoryTabButton(
+                    selectedExtraCategory
+                )
+            }
+
+
+            // 更多分类
+            if !extraCategories.isEmpty {
+
+                Menu {
+
+                    ForEach(extraCategories) { category in
+
+                        Button {
+
+                            selectCategory(
+                                category
                             )
-                        ) {
 
-                            selectedCategoryID =
-                                category.id
-                        }
+                        } label: {
 
-                    } label: {
-
-                        HStack(
-                            spacing: 7
-                        ) {
-
-                            Image(
-                                systemName:
+                            Label(
+                                category.name,
+                                systemImage:
                                     category.icon
                             )
+                        }
+                    }
 
-                            Text(category.name)
+                } label: {
 
-                            Text(
-                                category.englishName
+                    HStack(spacing: 7) {
+
+                        Image(
+                            systemName:
+                                "ellipsis"
+                        )
+
+                        Text("更多")
+                            .lineLimit(1)
+                            .fixedSize(
+                                horizontal: true,
+                                vertical: false
                             )
+
+                        Text("More")
                             .font(.caption)
                             .foregroundStyle(
                                 .secondary
                             )
-                        }
-                        .padding(
-                            .horizontal,
-                            13
-                        )
-                        .padding(
-                            .vertical,
-                            8
-                        )
-                        .background(
-                            selectedCategoryID
-                            == category.id
-                            ? Color.accentColor
-                                .opacity(0.12)
-                            : Color.clear
-                        )
-                        .foregroundStyle(
-                            selectedCategoryID
-                            == category.id
-                            ? Color.accentColor
-                            : Color.primary
-                        )
-                        .clipShape(
-                            Capsule()
-                        )
-                        .overlay {
+                            .lineLimit(1)
+                            .fixedSize(
+                                horizontal: true,
+                                vertical: false
+                            )
 
-                            Capsule()
-                                .stroke(
-                                    selectedCategoryID
-                                    == category.id
-                                    ? Color.accentColor
-                                        .opacity(0.25)
-                                    : Color.primary
-                                        .opacity(0.07),
-                                    lineWidth: 1
-                                )
-                        }
+                        Image(
+                            systemName:
+                                "chevron.down"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(
+                            .secondary
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .lineLimit(1)
+                    .fixedSize(
+                        horizontal: true,
+                        vertical: false
+                    )
+                    .padding(
+                        .horizontal,
+                        13
+                    )
+                    .padding(
+                        .vertical,
+                        8
+                    )
+                    .foregroundStyle(
+                        Color.primary
+                    )
+                    .background(
+                        Color.primary
+                            .opacity(0.025)
+                    )
+                    .clipShape(
+                        Capsule()
+                    )
+                    .overlay {
+
+                        Capsule()
+                            .stroke(
+                                Color.primary
+                                    .opacity(0.07),
+                                lineWidth: 1
+                            )
+                    }
                 }
+                .menuStyle(
+                    .borderlessButton
+                )
             }
-            .padding(.vertical, 2)
+
+
+            Spacer(
+                minLength: 0
+            )
+        }
+        .padding(
+            .horizontal,
+            10
+        )
+        .padding(
+            .vertical,
+            8
+        )
+        .background(
+            Color.primary
+                .opacity(0.025)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign
+                    .cornerRadiusMedium,
+                style: .continuous
+            )
+        )
+        .overlay {
+
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign
+                    .cornerRadiusMedium,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary
+                    .opacity(0.045),
+                lineWidth: 1
+            )
         }
     }
 
+
+    // MARK: - Primary Categories
+
+    private var primaryCategoryIDs: [String] {
+
+        [
+            "overview",
+            "campaign",
+            "popup",
+            "banner",
+            "faq"
+        ]
+    }
+
+
+    private var primaryCategories:
+        [ZhuowangCategory] {
+
+        primaryCategoryIDs.compactMap { id in
+
+            store.categories.first {
+                $0.id == id
+            }
+        }
+    }
+
+
+    // MARK: - Extra Categories
+
+    private var extraCategories:
+        [ZhuowangCategory] {
+
+        store.categories.filter { category in
+
+            !primaryCategoryIDs.contains(
+                category.id
+            )
+        }
+    }
+
+
+    private var selectedExtraCategory:
+        ZhuowangCategory? {
+
+        guard
+            !primaryCategoryIDs.contains(
+                selectedCategoryID
+            )
+        else {
+            return nil
+        }
+
+        return extraCategories.first {
+            $0.id == selectedCategoryID
+        }
+    }
+
+
+    // MARK: - Category Button
+
+    private func categoryTabButton(
+        _ category: ZhuowangCategory
+    ) -> some View {
+
+        let isSelected =
+            selectedCategoryID
+            == category.id
+
+        return Button {
+
+            selectCategory(
+                category
+            )
+
+        } label: {
+
+            HStack(spacing: 7) {
+
+                Image(
+                    systemName:
+                        category.icon
+                )
+                .fixedSize(
+                    horizontal: true,
+                    vertical: false
+                )
+
+                Text(
+                    category.name
+                )
+                .lineLimit(1)
+                .fixedSize(
+                    horizontal: true,
+                    vertical: false
+                )
+
+                if !category
+                    .englishName
+                    .isEmpty {
+
+                    Text(
+                        category.englishName
+                    )
+                    .font(.caption)
+                    .foregroundStyle(
+                        isSelected
+                        ? Color.accentColor
+                            .opacity(0.72)
+                        : Color.secondary
+                    )
+                    .lineLimit(1)
+                    .fixedSize(
+                        horizontal: true,
+                        vertical: false
+                    )
+                }
+            }
+            .lineLimit(1)
+            .fixedSize(
+                horizontal: true,
+                vertical: false
+            )
+            .font(
+                .system(
+                    size: 13,
+                    weight:
+                        isSelected
+                        ? .semibold
+                        : .medium
+                )
+            )
+            .padding(
+                .horizontal,
+                13
+            )
+            .padding(
+                .vertical,
+                8
+            )
+            .foregroundStyle(
+                isSelected
+                ? Color.accentColor
+                : Color.primary
+            )
+            .background(
+                isSelected
+                ? Color.accentColor
+                    .opacity(0.10)
+                : Color.clear
+            )
+            .clipShape(
+                Capsule()
+            )
+            .overlay {
+
+                Capsule()
+                    .stroke(
+                        isSelected
+                        ? Color.accentColor
+                            .opacity(0.24)
+                        : Color.primary
+                            .opacity(0.065),
+                        lineWidth: 1
+                    )
+            }
+        }
+        .buttonStyle(
+            .plain
+        )
+        .fixedSize(
+            horizontal: true,
+            vertical: false
+        )
+    }
+
+
+    // MARK: - Select Category
+
+    private func selectCategory(
+        _ category: ZhuowangCategory
+    ) {
+
+        withAnimation(
+            .easeOut(
+                duration:
+                    CosmosDesign.animationFast
+            )
+        ) {
+
+            selectedCategoryID =
+                category.id
+        }
+    }
 
     // MARK: - Overview
 
@@ -951,6 +1347,31 @@ struct ZhuowangWorkspaceView: View {
     }
 
 
+    private func selectNavigation(
+        _ navigation: ZhuowangNavigationItem
+    ) {
+
+        guard
+            selectedNavigation != navigation
+        else {
+            return
+        }
+
+        withAnimation(
+            .easeOut(
+                duration: 0.16
+            )
+        ) {
+
+            selectedNavigation =
+                navigation
+        }
+
+        selectedCategoryID =
+            "overview"
+    }
+
+
     private func prepareInitialSelection() {
 
         guard selectedNavigation == nil
@@ -1183,14 +1604,32 @@ struct ZhuowangMetricCard: View {
             spacing: CosmosDesign.spacingM
         ) {
 
-            Image(systemName: icon)
-                .font(
-                    .system(
-                        size: 17,
-                        weight: .medium
-                    )
+            ZStack {
+
+                RoundedRectangle(
+                    cornerRadius: 10,
+                    style: .continuous
                 )
-                .foregroundStyle(.secondary)
+                .fill(
+                    Color.accentColor
+                        .opacity(0.08)
+                )
+                .frame(
+                    width: 34,
+                    height: 34
+                )
+
+                Image(systemName: icon)
+                    .font(
+                        .system(
+                            size: 15,
+                            weight: .medium
+                        )
+                    )
+                    .foregroundStyle(
+                        Color.accentColor
+                    )
+            }
 
             Text(value)
                 .font(
@@ -1764,3 +2203,4 @@ struct ZhuowangWorkspaceManagerView: View {
             height: 820
         )
 }
+
