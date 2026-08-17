@@ -18,6 +18,9 @@ struct ZhuowangWorkflowView: View {
     @State private var previewProvider: ZhuowangAIProvider?
     @State private var previewConnection: ZhuowangAIConnection?
 
+    @State private var previewWorkflowID: UUID?
+    @State private var previewStepID: UUID?
+
     var body: some View {
         VStack(
             alignment: .leading,
@@ -43,7 +46,17 @@ struct ZhuowangWorkflowView: View {
             ZhuowangTaskPackagePreviewView(
                 taskPackage: taskPackage,
                 provider: previewProvider,
-                connection: previewConnection
+                connection: previewConnection,
+                onAdoptResult: {
+                    resultText in
+
+                    adoptPreviewResult(
+                        taskPackage:
+                            taskPackage,
+                        resultText:
+                            resultText
+                    )
+                }
             )
         }
     }
@@ -653,7 +666,12 @@ struct ZhuowangWorkflowView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(
-                    step.selectedProviderID
+                    currentProviderID(
+                        workflowID:
+                            workflow.id,
+                        stepID:
+                            step.id
+                    )
                     == nil
                 )
             }
@@ -741,7 +759,12 @@ struct ZhuowangWorkflowView: View {
 
                 if let provider =
                     selectedProvider(
-                        for: step
+                        workflowID:
+                            workflow.id,
+                        stepID:
+                            step.id,
+                        fallback:
+                            step
                     ) {
 
                     Image(
@@ -986,9 +1009,18 @@ struct ZhuowangWorkflowView: View {
         step: ZhuowangWorkflowStep
     ) {
 
+        let latestStep =
+            store.step(
+                workflowID:
+                    workflow.id,
+                stepID:
+                    step.id
+            )
+            ?? step
+
         let provider =
             selectedProvider(
-                for: step
+                for: latestStep
             )
 
         let connection =
@@ -999,20 +1031,100 @@ struct ZhuowangWorkflowView: View {
                     )
             }
 
+        let latestWorkflow =
+            store.workflow(
+                forCampaignID:
+                    campaign.id
+            )
+            ?? workflow
+
         let taskPackage =
             ZhuowangTaskPackageBuilder.build(
                 campaign: campaign,
                 province: province,
                 module: module,
-                workflow: workflow,
-                step: step,
+                workflow: latestWorkflow,
+                step: latestStep,
                 provider: provider
             )
 
         previewProvider = provider
         previewConnection = connection
-        previewTaskPackage = taskPackage
+        previewWorkflowID =
+            latestWorkflow.id
+        previewStepID =
+            latestStep.id
+        previewTaskPackage =
+            taskPackage
     }
+
+
+    // MARK: - Adopt Preview Result
+
+    private func adoptPreviewResult(
+        taskPackage: ZhuowangAITaskPackage,
+        resultText: String
+    ) {
+
+        guard
+            let workflowID =
+                previewWorkflowID,
+            let stepID =
+                previewStepID,
+            let providerID =
+                previewProvider?.id,
+            let currentStep =
+                store.step(
+                    workflowID:
+                        workflowID,
+                    stepID:
+                        stepID
+                )
+        else {
+            return
+        }
+
+        let inputText =
+            """
+            \(taskPackage.title)
+
+            \(taskPackage.instruction)
+
+            【参考上下文】
+            \(taskPackage.contextReferences.joined(separator: "\n"))
+
+            【预期输出】
+            \(taskPackage.expectedOutputs.joined(separator: "\n"))
+            """
+
+        let artifactName =
+            "\(currentStep.title) · AI 采用结果"
+
+        let adopted =
+            store.adoptAIResult(
+                workflowID:
+                    workflowID,
+                campaignID:
+                    campaign.id,
+                stepID:
+                    stepID,
+                providerID:
+                    providerID,
+                inputText:
+                    inputText,
+                outputText:
+                    resultText,
+                artifactName:
+                    artifactName
+            )
+
+        if adopted {
+            expandedStepID =
+                stepID
+        }
+    }
+
+
     // MARK: - Data
 
     private var workflow:
@@ -1073,6 +1185,40 @@ struct ZhuowangWorkflowView: View {
 
         return store.provider(
             id: providerID
+        )
+    }
+
+
+    private func currentProviderID(
+        workflowID: UUID,
+        stepID: UUID
+    ) -> UUID? {
+
+        store.step(
+            workflowID: workflowID,
+            stepID: stepID
+        )?
+        .selectedProviderID
+    }
+
+
+    private func selectedProvider(
+        workflowID: UUID,
+        stepID: UUID,
+        fallback: ZhuowangWorkflowStep
+    ) -> ZhuowangAIProvider? {
+
+        let latestStep =
+            store.step(
+                workflowID:
+                    workflowID,
+                stepID:
+                    stepID
+            )
+            ?? fallback
+
+        return selectedProvider(
+            for: latestStep
         )
     }
 
@@ -1274,3 +1420,4 @@ struct ZhuowangWorkflowView: View {
         }
     }
 }
+

@@ -445,6 +445,10 @@ struct ZhuowangArtifact:
     /// GitHub URL, etc.
     var location: String
 
+    /// Text content stored directly inside Cosmos OS.
+    /// Optional for backward compatibility with older saved artifacts.
+    var content: String?
+
     var version: Int
 
     /// Whether this artifact has been confirmed
@@ -462,6 +466,7 @@ struct ZhuowangArtifact:
         name: String,
         type: ZhuowangArtifactType,
         location: String = "",
+        content: String? = nil,
         version: Int = 1,
         isApprovedVersion: Bool = false,
         createdAt: Date = Date(),
@@ -474,6 +479,7 @@ struct ZhuowangArtifact:
         self.name = name
         self.type = type
         self.location = location
+        self.content = content
         self.version = version
         self.isApprovedVersion = isApprovedVersion
         self.createdAt = createdAt
@@ -595,3 +601,4 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
+

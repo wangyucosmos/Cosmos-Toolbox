@@ -7,6 +7,8 @@ struct ZhuowangTaskPackagePreviewView: View {
     let provider: ZhuowangAIProvider?
     let connection: ZhuowangAIConnection?
 
+    let onAdoptResult: (String) -> Void
+
     @Environment(\.dismiss)
     private var dismiss
 
@@ -92,6 +94,10 @@ struct ZhuowangTaskPackagePreviewView: View {
                 state:
                     executionState,
                 onAdopt: {
+
+                    onAdoptResult(
+                        executionResultText
+                    )
 
                     showExecutionResult =
                         false
@@ -679,9 +685,14 @@ struct ZhuowangTaskPackagePreviewView: View {
     private func runSelectedConnection() {
 
         guard
-            provider != nil,
-            connection != nil
+            provider != nil
         else {
+            return
+        }
+
+        if connection == nil
+            && !isDeepSeekHarnessConnection {
+
             return
         }
 
@@ -916,14 +927,18 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var canContinue: Bool {
 
-        guard
-            provider != nil,
-            connection != nil
-        else {
+        guard provider != nil else {
             return false
         }
 
-        return true
+        // DeepSeek Harness is already a direct local executor.
+        // A temporarily missing rehydrated Connection must not
+        // force the user to re-select the AI.
+        if isDeepSeekHarnessConnection {
+            return true
+        }
+
+        return connection != nil
     }
 
 
@@ -944,6 +959,13 @@ struct ZhuowangTaskPackagePreviewView: View {
         String {
 
         guard let connection else {
+
+            if provider?.kind
+                == .deepSeekHarness {
+
+                return "DeepSeek Harness · 本地 Agent"
+            }
+
             return "待选择"
         }
 

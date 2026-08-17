@@ -30,6 +30,8 @@ final class ZhuowangWorkflowStore: ObservableObject {
         if providers.isEmpty {
             providers = Self.defaultProviders
             saveProviders()
+        } else {
+            normalizeBuiltInProviderIDs()
         }
     }
 
@@ -968,6 +970,233 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Adopt AI Result
+
+    /// Atomically adopts one AI result into the workflow.
+    ///
+    /// This creates a succeeded AI run, records the approval,
+    /// stores the result as an approved Markdown artifact,
+    /// marks the current step approved, remembers the provider,
+    /// and unlocks the next workflow step.
+    @discardableResult
+    func adoptAIResult(
+        workflowID: UUID,
+        campaignID: UUID,
+        stepID: UUID,
+        providerID: UUID,
+        inputText: String,
+        outputText: String,
+        artifactName: String
+    ) -> Bool {
+
+        let cleanOutput =
+            outputText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !cleanOutput.isEmpty else {
+            return false
+        }
+
+        guard
+            let workflowIndex =
+                workflows.firstIndex(
+                    where: {
+                        $0.id == workflowID
+                    }
+                ),
+            let stepIndex =
+                workflows[workflowIndex]
+                    .steps
+                    .firstIndex(
+                        where: {
+                            $0.id == stepID
+                        }
+                    ),
+            let provider =
+                provider(
+                    id: providerID
+                )
+        else {
+            return false
+        }
+
+        // Avoid creating duplicate records when the button is clicked twice.
+        if let existingRun =
+            workflows[workflowIndex]
+                .aiRuns
+                .last(
+                    where: {
+                        $0.stepID == stepID
+                        && $0.providerID == providerID
+                        && $0.status == .succeeded
+                        && $0.outputText == cleanOutput
+                    }
+                ),
+           workflows[workflowIndex]
+                .approvals
+                .contains(
+                    where: {
+                        $0.runID == existingRun.id
+                        && $0.decision == .approved
+                    }
+                ) {
+
+            workflows[workflowIndex]
+                .steps[stepIndex]
+                .selectedProviderID =
+                providerID
+
+            workflows[workflowIndex]
+                .steps[stepIndex]
+                .status =
+                .approved
+
+            unlockNextStep(
+                workflowIndex: workflowIndex,
+                afterStepID: stepID
+            )
+
+            workflows[workflowIndex]
+                .updatedAt = Date()
+
+            saveWorkflows()
+
+            return true
+        }
+
+        let runVersion =
+            (
+                workflows[workflowIndex]
+                    .aiRuns
+                    .filter {
+                        $0.stepID == stepID
+                    }
+                    .map(\.version)
+                    .max()
+                ?? 0
+            ) + 1
+
+        let run =
+            ZhuowangAIRun(
+                stepID: stepID,
+                providerID: providerID,
+                modelName: provider.modelName,
+                status: .succeeded,
+                inputText: inputText,
+                outputText: cleanOutput,
+                version: runVersion,
+                startedAt: Date(),
+                completedAt: Date()
+            )
+
+        workflows[workflowIndex]
+            .aiRuns
+            .append(
+                run
+            )
+
+        let approval =
+            ZhuowangApproval(
+                stepID: stepID,
+                runID: run.id,
+                decision: .approved,
+                feedback: "",
+                createdAt: Date(),
+                decidedAt: Date()
+            )
+
+        workflows[workflowIndex]
+            .approvals
+            .append(
+                approval
+            )
+
+        let cleanArtifactName =
+            artifactName
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let finalArtifactName =
+            cleanArtifactName.isEmpty
+            ? "AI 结果"
+            : cleanArtifactName
+
+        let artifactVersion =
+            (
+                workflows[workflowIndex]
+                    .artifacts
+                    .filter {
+                        $0.name == finalArtifactName
+                    }
+                    .map(\.version)
+                    .max()
+                ?? 0
+            ) + 1
+
+        for artifactIndex
+            in workflows[workflowIndex]
+                .artifacts.indices {
+
+            if workflows[workflowIndex]
+                .artifacts[artifactIndex]
+                .name == finalArtifactName {
+
+                workflows[workflowIndex]
+                    .artifacts[artifactIndex]
+                    .isApprovedVersion =
+                    false
+            }
+        }
+
+        let artifact =
+            ZhuowangArtifact(
+                campaignID: campaignID,
+                stepID: stepID,
+                runID: run.id,
+                name: finalArtifactName,
+                type: .markdown,
+                location: "",
+                content: cleanOutput,
+                version: artifactVersion,
+                isApprovedVersion: true
+            )
+
+        workflows[workflowIndex]
+            .artifacts
+            .append(
+                artifact
+            )
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .selectedProviderID =
+            providerID
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .status =
+            .approved
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .updatedAt = Date()
+
+        unlockNextStep(
+            workflowIndex: workflowIndex,
+            afterStepID: stepID
+        )
+
+        workflows[workflowIndex]
+            .updatedAt = Date()
+
+        saveWorkflows()
+
+        return true
+    }
+
+
     // MARK: - Artifacts
 
     func addArtifact(
@@ -978,6 +1207,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         name: String,
         type: ZhuowangArtifactType,
         location: String = "",
+        content: String? = nil,
         isApprovedVersion: Bool = false
     ) {
 
@@ -1041,6 +1271,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 name: cleanName,
                 type: type,
                 location: location,
+                content: content,
                 version: nextVersion,
                 isApprovedVersion:
                     isApprovedVersion
@@ -1320,6 +1551,130 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Normalize Built-in Provider IDs
+
+    /// Older Cosmos OS builds could save built-in providers with random UUIDs.
+    /// Connections use stable provider UUIDs, so a stale provider ID can make
+    /// a previously selected AI appear to have no Connection.
+    ///
+    /// This migration keeps user-facing provider settings while moving the
+    /// built-in providers and all workflow references to the canonical IDs.
+    private func normalizeBuiltInProviderIDs() {
+
+        var didChange = false
+
+        for canonical
+            in Self.defaultProviders {
+
+            guard
+                let identifier =
+                    canonical.configurationIdentifier,
+                let existingIndex =
+                    providers.firstIndex(
+                        where: {
+                            $0.configurationIdentifier
+                                == identifier
+                        }
+                    )
+            else {
+
+                if let identifier =
+                    canonical.configurationIdentifier,
+                   !providers.contains(
+                        where: {
+                            $0.configurationIdentifier
+                                == identifier
+                        }
+                   ) {
+
+                    providers.append(
+                        canonical
+                    )
+
+                    didChange = true
+                }
+
+                continue
+            }
+
+            let existing =
+                providers[existingIndex]
+
+            guard
+                existing.id
+                    != canonical.id
+            else {
+                continue
+            }
+
+            let oldID =
+                existing.id
+
+            providers[existingIndex] =
+                ZhuowangAIProvider(
+                    id: canonical.id,
+                    name: existing.name,
+                    kind: canonical.kind,
+                    modelName:
+                        existing.modelName,
+                    isEnabled:
+                        existing.isEnabled,
+                    isVisible:
+                        existing.isVisible,
+                    configurationIdentifier:
+                        identifier,
+                    createdAt:
+                        existing.createdAt,
+                    updatedAt:
+                        Date()
+                )
+
+            for workflowIndex
+                in workflows.indices {
+
+                for stepIndex
+                    in workflows[workflowIndex]
+                        .steps.indices {
+
+                    if workflows[workflowIndex]
+                        .steps[stepIndex]
+                        .selectedProviderID
+                        == oldID {
+
+                        workflows[workflowIndex]
+                            .steps[stepIndex]
+                            .selectedProviderID =
+                            canonical.id
+                    }
+                }
+
+                for runIndex
+                    in workflows[workflowIndex]
+                        .aiRuns.indices {
+
+                    if workflows[workflowIndex]
+                        .aiRuns[runIndex]
+                        .providerID
+                        == oldID {
+
+                        workflows[workflowIndex]
+                            .aiRuns[runIndex]
+                            .providerID =
+                            canonical.id
+                    }
+                }
+            }
+
+            didChange = true
+        }
+
+        if didChange {
+            saveProviders()
+            saveWorkflows()
+        }
+    }
+
+
     // MARK: - Default Providers
 
     private static let defaultProviders: [
@@ -1397,3 +1752,4 @@ final class ZhuowangWorkflowStore: ObservableObject {
         )
     ]
 }
+
