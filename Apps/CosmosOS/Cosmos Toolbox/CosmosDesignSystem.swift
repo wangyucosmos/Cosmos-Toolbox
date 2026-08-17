@@ -20,9 +20,9 @@ enum CosmosDesign {
 
     // MARK: - Animation
 
-    static let animationFast: Double = 0.16
-    static let animationNormal: Double = 0.22
-    static let animationSlow: Double = 0.32
+    static let animationFast: Double = 0.18
+    static let animationNormal: Double = 0.34
+    static let animationSlow: Double = 0.45
 
     // MARK: - Card
 

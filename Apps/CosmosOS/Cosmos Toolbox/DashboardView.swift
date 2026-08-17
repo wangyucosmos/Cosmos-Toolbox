@@ -39,12 +39,52 @@ struct DashboardView: View {
 
         } detail: {
 
-            if selection == .dashboard {
-                DashboardHomeView()
+            ZStack {
+                if selection == .dashboard {
+                    DashboardHomeView()
+                        .id(SidebarItem.dashboard)
+                        .transition(
+                            .asymmetric(
+                                insertion:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: 18, y: 0)
+                                    ),
+                                removal:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: -8, y: 0)
+                                    )
+                            )
+                        )
 
-            } else if let selection {
-                PlaceholderView(item: selection)
+                } else if let selection {
+                    PlaceholderView(item: selection)
+                        .id(selection)
+                        .transition(
+                            .asymmetric(
+                                insertion:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: 18, y: 0)
+                                    ),
+                                removal:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: -8, y: 0)
+                                    )
+                            )
+                        )
+                }
             }
+            .animation(
+                .spring(
+                    response: 0.42,
+                    dampingFraction: 0.88,
+                    blendDuration: 0.12
+                ),
+                value: selection
+            )
         }
     }
 
