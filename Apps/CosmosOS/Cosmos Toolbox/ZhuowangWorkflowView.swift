@@ -1,5 +1,24 @@
 import SwiftUI
 
+private struct ZhuowangTaskPreviewContext:
+    Identifiable {
+
+    let id = UUID()
+
+    let taskPackage:
+        ZhuowangAITaskPackage
+
+    let provider:
+        ZhuowangAIProvider?
+
+    let connection:
+        ZhuowangAIConnection?
+
+    let workflowID: UUID
+    let stepID: UUID
+}
+
+
 struct ZhuowangWorkflowView: View {
 
     @ObservedObject var store: ZhuowangWorkflowStore
@@ -14,12 +33,9 @@ struct ZhuowangWorkflowView: View {
 
     @State private var expandedStepID: UUID?
 
-    @State private var previewTaskPackage: ZhuowangAITaskPackage?
-    @State private var previewProvider: ZhuowangAIProvider?
-    @State private var previewConnection: ZhuowangAIConnection?
-
-    @State private var previewWorkflowID: UUID?
-    @State private var previewStepID: UUID?
+    @State
+    private var previewContext:
+        ZhuowangTaskPreviewContext?
 
     var body: some View {
         VStack(
@@ -41,18 +57,22 @@ struct ZhuowangWorkflowView: View {
         .onAppear {
             ensureWorkflowExists()
         }
-        .sheet(item: $previewTaskPackage) { taskPackage in
+        .sheet(item: $previewContext) {
+            context in
 
             ZhuowangTaskPackagePreviewView(
-                taskPackage: taskPackage,
-                provider: previewProvider,
-                connection: previewConnection,
+                taskPackage:
+                    context.taskPackage,
+                provider:
+                    context.provider,
+                connection:
+                    context.connection,
                 onAdoptResult: {
                     resultText in
 
                     adoptPreviewResult(
-                        taskPackage:
-                            taskPackage,
+                        context:
+                            context,
                         resultText:
                             resultText
                     )
@@ -1048,37 +1068,38 @@ struct ZhuowangWorkflowView: View {
                 provider: provider
             )
 
-        previewProvider = provider
-        previewConnection = connection
-        previewWorkflowID =
-            latestWorkflow.id
-        previewStepID =
-            latestStep.id
-        previewTaskPackage =
-            taskPackage
+        previewContext =
+            ZhuowangTaskPreviewContext(
+                taskPackage:
+                    taskPackage,
+                provider:
+                    provider,
+                connection:
+                    connection,
+                workflowID:
+                    latestWorkflow.id,
+                stepID:
+                    latestStep.id
+            )
     }
 
 
     // MARK: - Adopt Preview Result
 
     private func adoptPreviewResult(
-        taskPackage: ZhuowangAITaskPackage,
+        context: ZhuowangTaskPreviewContext,
         resultText: String
     ) {
 
         guard
-            let workflowID =
-                previewWorkflowID,
-            let stepID =
-                previewStepID,
             let providerID =
-                previewProvider?.id,
+                context.provider?.id,
             let currentStep =
                 store.step(
                     workflowID:
-                        workflowID,
+                        context.workflowID,
                     stepID:
-                        stepID
+                        context.stepID
                 )
         else {
             return
@@ -1086,15 +1107,15 @@ struct ZhuowangWorkflowView: View {
 
         let inputText =
             """
-            \(taskPackage.title)
+            \(context.taskPackage.title)
 
-            \(taskPackage.instruction)
+            \(context.taskPackage.instruction)
 
             【参考上下文】
-            \(taskPackage.contextReferences.joined(separator: "\n"))
+            \(context.taskPackage.contextReferences.joined(separator: "\n"))
 
             【预期输出】
-            \(taskPackage.expectedOutputs.joined(separator: "\n"))
+            \(context.taskPackage.expectedOutputs.joined(separator: "\n"))
             """
 
         let artifactName =
@@ -1103,11 +1124,11 @@ struct ZhuowangWorkflowView: View {
         let adopted =
             store.adoptAIResult(
                 workflowID:
-                    workflowID,
+                    context.workflowID,
                 campaignID:
                     campaign.id,
                 stepID:
-                    stepID,
+                    context.stepID,
                 providerID:
                     providerID,
                 inputText:
@@ -1120,7 +1141,7 @@ struct ZhuowangWorkflowView: View {
 
         if adopted {
             expandedStepID =
-                stepID
+                context.stepID
         }
     }
 
