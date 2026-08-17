@@ -5,22 +5,34 @@ struct DashboardView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarItem.allCases, selection: $selection) { item in
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.chineseName)
+            List(selection: $selection) {
 
-                        Text(item.englishName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: item.icon)
+                Section("首页 · Home") {
+                    sidebarRow(.dashboard)
                 }
-                .tag(item)
+
+                Section("工作 · Work") {
+                    sidebarRow(.zhuowang)
+                    sidebarRow(.projects)
+                    sidebarRow(.knowledgeBase)
+                }
+
+                Section("AI") {
+                    sidebarRow(.aiWorkspace)
+                    sidebarRow(.promptVault)
+                }
+
+                Section("学习 · Learning") {
+                    sidebarRow(.learningCenter)
+                }
+
+                Section("系统 · System") {
+                    sidebarRow(.macOptimizer)
+                    sidebarRow(.settings)
+                }
             }
             .navigationTitle("Cosmos OS")
-            .navigationSplitViewColumnWidth(min: 220, ideal: 240)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 250)
         } detail: {
             if let selection {
                 VStack(spacing: 12) {
@@ -39,6 +51,22 @@ struct DashboardView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    @ViewBuilder
+    private func sidebarRow(_ item: SidebarItem) -> some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.chineseName)
+
+                Text(item.englishName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: item.icon)
+        }
+        .tag(item)
     }
 }
 
