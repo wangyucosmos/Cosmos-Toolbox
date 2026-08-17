@@ -41,6 +41,7 @@ struct DashboardView: View {
 
             ZStack {
                 if selection == .dashboard {
+
                     DashboardHomeView()
                         .id(SidebarItem.dashboard)
                         .transition(
@@ -58,7 +59,27 @@ struct DashboardView: View {
                             )
                         )
 
+                } else if selection == .zhuowang {
+
+                    ZhuowangWorkspaceView()
+                        .id(SidebarItem.zhuowang)
+                        .transition(
+                            .asymmetric(
+                                insertion:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: 18, y: 0)
+                                    ),
+                                removal:
+                                    .opacity
+                                    .combined(
+                                        with: .offset(x: -8, y: 0)
+                                    )
+                            )
+                        )
+
                 } else if let selection {
+
                     PlaceholderView(item: selection)
                         .id(selection)
                         .transition(
