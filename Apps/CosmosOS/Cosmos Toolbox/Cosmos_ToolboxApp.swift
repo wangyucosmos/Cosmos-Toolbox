@@ -11,7 +11,7 @@ import SwiftUI
 struct Cosmos_ToolboxApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DashboardView()
         }
     }
 }
