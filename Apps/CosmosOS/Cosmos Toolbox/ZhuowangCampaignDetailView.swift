@@ -100,6 +100,7 @@ struct ZhuowangCampaignDetailView: View {
         )
         .onAppear {
             loadDraft()
+            migrateLegacyArtifactsIfNeeded()
         }
         .confirmationDialog(
             "删除这个活动？",
@@ -409,9 +410,22 @@ struct ZhuowangCampaignDetailView: View {
 
                 Spacer()
 
-                Text("\(campaignArtifacts.count) 项")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+
+                    Text("\(artifactGroups.count) 项")
+
+                    if campaignArtifacts.count
+                        != artifactGroups.count {
+
+                        Text("·")
+
+                        Text(
+                            "\(campaignArtifacts.count) 个版本"
+                        )
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             if campaignArtifacts.isEmpty {
@@ -487,14 +501,17 @@ struct ZhuowangCampaignDetailView: View {
 
                     ForEach(
                         Array(
-                            campaignArtifacts.enumerated()
+                            artifactGroups.enumerated()
                         ),
                         id: \.element.id
-                    ) { index, artifact in
+                    ) { index, group in
+
+                        let artifact =
+                            group.currentArtifact
 
                         Button {
                             openArtifactWindow(
-                                artifact
+                                group
                             )
                         } label: {
                             HStack(
@@ -554,6 +571,29 @@ struct ZhuowangCampaignDetailView: View {
                                             Text("已采用")
                                                 .foregroundStyle(.green)
                                         }
+
+                                        Text("·")
+
+                                        if artifactFileExists(
+                                            artifact
+                                        ) {
+
+                                            Label(
+                                                "已落盘",
+                                                systemImage:
+                                                    "checkmark.circle.fill"
+                                            )
+                                            .foregroundStyle(.green)
+
+                                        } else {
+
+                                            Label(
+                                                "未落盘",
+                                                systemImage:
+                                                    "exclamationmark.circle"
+                                            )
+                                            .foregroundStyle(.orange)
+                                        }
                                     }
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -587,7 +627,7 @@ struct ZhuowangCampaignDetailView: View {
                         .help("查看工作产物")
 
                         if index
-                            < campaignArtifacts.count - 1 {
+                            < artifactGroups.count - 1 {
 
                             Divider()
                                 .padding(.leading, 72)
@@ -628,85 +668,92 @@ struct ZhuowangCampaignDetailView: View {
     }
 
 
+    private var artifactGroups:
+        [ZhuowangArtifactVersionGroup] {
+
+        let grouped =
+            Dictionary(
+                grouping:
+                    campaignArtifacts
+            ) {
+                $0.name
+            }
+
+        return grouped
+            .compactMap {
+                name,
+                artifacts
+                -> ZhuowangArtifactVersionGroup?
+                in
+
+                let versions =
+                    artifacts.sorted {
+                        $0.version
+                            > $1.version
+                    }
+
+                guard
+                    let current =
+                        versions.first(
+                            where: {
+                                $0.isApprovedVersion
+                            }
+                        )
+                        ?? versions.first
+                else {
+                    return nil
+                }
+
+                return ZhuowangArtifactVersionGroup(
+                    name: name,
+                    currentArtifact:
+                        current,
+                    versions:
+                        versions
+                )
+            }
+            .sorted {
+                $0.currentArtifact.updatedAt
+                    > $1.currentArtifact.updatedAt
+            }
+    }
+
+
     private func openArtifactWindow(
-        _ artifact: ZhuowangArtifact
+        _ group: ZhuowangArtifactVersionGroup
     ) {
 
         ZhuowangArtifactWindowManager.shared.open(
-            artifact: artifact,
-            sourceStepName:
-                artifactSourceStepName(
-                    artifact
-                ),
-            sourceAIName:
-                artifactSourceAIName(
-                    artifact
-                )
+            artifactName:
+                group.name,
+            initialArtifactID:
+                group.currentArtifact.id,
+            campaignID:
+                campaignID,
+            workflowStore:
+                workflowStore
         )
     }
 
 
-    private func artifactSourceStepName(
+    private func artifactFileExists(
         _ artifact: ZhuowangArtifact
-    ) -> String {
+    ) -> Bool {
 
-        guard
-            let stepID = artifact.stepID,
-            let workflow =
-                workflowStore.workflow(
-                    forCampaignID: campaignID
-                ),
-            let step =
-                workflow.steps.first(
-                    where: {
-                        $0.id == stepID
-                    }
-                )
-        else {
-            return "未关联"
-        }
-
-        return step.title
-    }
-
-
-    private func artifactSourceAIName(
-        _ artifact: ZhuowangArtifact
-    ) -> String {
-
-        guard
-            let runID = artifact.runID,
-            let workflow =
-                workflowStore.workflow(
-                    forCampaignID: campaignID
-                ),
-            let run =
-                workflow.aiRuns.first(
-                    where: {
-                        $0.id == runID
-                    }
-                )
-        else {
-            return "未记录"
-        }
-
-        if let provider =
-            workflowStore.provider(
-                id: run.providerID
-            ) {
-
-            return provider.name
-        }
-
-        let modelName =
-            run.modelName
+        let path =
+            artifact.location
                 .trimmingCharacters(
                     in: .whitespacesAndNewlines
                 )
 
-        return modelName.isEmpty
-            ? "未记录"
-            : modelName
+        guard !path.isEmpty else {
+            return false
+        }
+
+        return FileManager.default
+            .fileExists(
+                atPath: path
+            )
     }
 
 
@@ -1342,6 +1389,23 @@ struct ZhuowangCampaignDetailView: View {
     }
 
 
+    private func migrateLegacyArtifactsIfNeeded() {
+
+        guard let campaign else {
+            return
+        }
+
+        _ =
+            workflowStore
+                .migrateLegacyArtifactsToLocalFiles(
+                    campaign:
+                        campaign,
+                    provinceName:
+                        province?.name
+                )
+    }
+
+
     private func loadDraft() {
 
         guard let campaign else {
@@ -1536,19 +1600,60 @@ struct ZhuowangCampaignDetailView: View {
 }
 
 
+
+// MARK: - Artifact Version Group
+
+private struct ZhuowangArtifactVersionGroup:
+    Identifiable {
+
+    let name: String
+    let currentArtifact: ZhuowangArtifact
+    let versions: [ZhuowangArtifact]
+
+    var id: String {
+        name
+    }
+}
+
 // MARK: - Artifact Detail
 
 private struct ZhuowangArtifactDetailView: View {
 
-    let artifact: ZhuowangArtifact
-    let sourceStepName: String
-    let sourceAIName: String
+    @ObservedObject
+    var workflowStore: ZhuowangWorkflowStore
 
-    @Environment(\.dismiss)
-    private var dismiss
+    let campaignID: UUID
+    let artifactName: String
+
+    @State
+    private var selectedArtifactID: UUID
 
     @State
     private var copied = false
+
+    init(
+        workflowStore: ZhuowangWorkflowStore,
+        campaignID: UUID,
+        artifactName: String,
+        initialArtifactID: UUID
+    ) {
+
+        self.workflowStore =
+            workflowStore
+
+        self.campaignID =
+            campaignID
+
+        self.artifactName =
+            artifactName
+
+        _selectedArtifactID =
+            State(
+                initialValue:
+                    initialArtifactID
+            )
+    }
+
 
     var body: some View {
 
@@ -1565,6 +1670,11 @@ private struct ZhuowangArtifactDetailView: View {
                 ) {
 
                     summaryCard
+
+                    if versions.count > 1 {
+                        versionHistorySection
+                    }
+
                     contentSection
                 }
                 .padding(
@@ -1576,7 +1686,7 @@ private struct ZhuowangArtifactDetailView: View {
                     CosmosDesign.spacingXL
                 )
                 .frame(
-                    maxWidth: 860,
+                    maxWidth: 900,
                     alignment: .leading
                 )
             }
@@ -1585,8 +1695,8 @@ private struct ZhuowangArtifactDetailView: View {
             footer
         }
         .frame(
-            minWidth: 760,
-            minHeight: 650
+            minWidth: 820,
+            minHeight: 680
         )
     }
 
@@ -1612,7 +1722,8 @@ private struct ZhuowangArtifactDetailView: View {
                 )
 
                 Image(
-                    systemName: artifactSystemImage
+                    systemName:
+                        artifactSystemImage
                 )
                 .font(
                     .system(
@@ -1628,16 +1739,37 @@ private struct ZhuowangArtifactDetailView: View {
                 spacing: 3
             ) {
 
-                Text(artifact.name)
+                Text(artifactName)
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text("Artifact Detail · 独立窗口")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    versions.count > 1
+                    ? "Artifact Detail · \(versions.count) Versions"
+                    : "Artifact Detail · 独立窗口"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
+
+            if let artifact,
+               !artifact.isApprovedVersion {
+
+                Button {
+                    setSelectedAsCurrent()
+                } label: {
+                    Label(
+                        "设为当前版本",
+                        systemImage:
+                            "checkmark.seal"
+                    )
+                }
+                .buttonStyle(
+                    .borderedProminent
+                )
+            }
         }
         .padding(
             .horizontal,
@@ -1664,22 +1796,38 @@ private struct ZhuowangArtifactDetailView: View {
 
                 meta(
                     title: "文件类型",
-                    value: artifact.type.title
+                    value:
+                        artifact?.type.title
+                        ?? "—"
                 )
 
                 meta(
                     title: "版本",
-                    value: "V\(artifact.version)"
+                    value:
+                        artifact.map {
+                            "V\($0.version)"
+                        }
+                        ?? "—"
                 )
 
                 meta(
                     title: "来源步骤",
-                    value: sourceStepName
+                    value:
+                        sourceStepName
                 )
 
                 meta(
                     title: "来源 AI",
-                    value: sourceAIName
+                    value:
+                        sourceAIName
+                )
+
+                meta(
+                    title: "本地文件",
+                    value:
+                        localFileExists
+                        ? "已落盘"
+                        : "未落盘"
                 )
 
                 Spacer()
@@ -1689,23 +1837,37 @@ private struct ZhuowangArtifactDetailView: View {
 
             HStack(spacing: 10) {
 
-                if artifact.isApprovedVersion {
+                if let artifact {
 
-                    Label(
-                        "当前采用版本",
-                        systemImage: "checkmark.seal.fill"
+                    if artifact.isApprovedVersion {
+
+                        Label(
+                            "当前采用版本",
+                            systemImage:
+                                "checkmark.seal.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.green)
+
+                    } else {
+
+                        Label(
+                            "历史版本",
+                            systemImage:
+                                "clock.arrow.circlepath"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    Text(
+                        formattedDateTime(
+                            artifact.createdAt
+                        )
                     )
                     .font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.secondary)
                 }
-
-                Text(
-                    formattedDateTime(
-                        artifact.createdAt
-                    )
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
             }
         }
         .padding(CosmosDesign.cardPadding)
@@ -1732,6 +1894,195 @@ private struct ZhuowangArtifactDetailView: View {
     }
 
 
+    private var versionHistorySection:
+        some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingM
+        ) {
+
+            CosmosSectionTitle(
+                title: "版本历史",
+                subtitle: "Version History"
+            )
+
+            VStack(spacing: 0) {
+
+                ForEach(
+                    Array(
+                        versions.enumerated()
+                    ),
+                    id: \.element.id
+                ) { index, version in
+
+                    Button {
+                        selectedArtifactID =
+                            version.id
+                    } label: {
+
+                        HStack(
+                            spacing:
+                                CosmosDesign.spacingM
+                        ) {
+
+                            ZStack {
+
+                                Circle()
+                                    .fill(
+                                        selectedArtifactID
+                                            == version.id
+                                        ? Color.accentColor
+                                            .opacity(0.12)
+                                        : Color.primary
+                                            .opacity(0.04)
+                                    )
+                                    .frame(
+                                        width: 34,
+                                        height: 34
+                                    )
+
+                                Text(
+                                    "V\(version.version)"
+                                )
+                                .font(
+                                    .system(
+                                        size: 12,
+                                        weight:
+                                            .semibold,
+                                        design:
+                                            .rounded
+                                    )
+                                )
+                                .foregroundStyle(
+                                    selectedArtifactID
+                                        == version.id
+                                    ? Color.accentColor
+                                    : Color.secondary
+                                )
+                            }
+
+                            VStack(
+                                alignment: .leading,
+                                spacing: 3
+                            ) {
+
+                                HStack(
+                                    spacing: 7
+                                ) {
+
+                                    Text(
+                                        "版本 V\(version.version)"
+                                    )
+                                    .fontWeight(.medium)
+
+                                    if version.isApprovedVersion {
+
+                                        Text("当前采用")
+                                            .font(.caption)
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+
+                                HStack(
+                                    spacing: 6
+                                ) {
+
+                                    Text(
+                                        sourceAIName(
+                                            for: version
+                                        )
+                                    )
+
+                                    Text("·")
+
+                                    Text(
+                                        formattedDateTime(
+                                            version.createdAt
+                                        )
+                                    )
+
+                                    Text("·")
+
+                                    Text(
+                                        fileExists(
+                                            version
+                                        )
+                                        ? "已落盘"
+                                        : "未落盘"
+                                    )
+                                    .foregroundStyle(
+                                        fileExists(
+                                            version
+                                        )
+                                        ? Color.green
+                                        : Color.orange
+                                    )
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if selectedArtifactID
+                                == version.id {
+
+                                Image(
+                                    systemName:
+                                        "checkmark.circle.fill"
+                                )
+                                .foregroundStyle(.tint)
+                            }
+                        }
+                        .padding(
+                            .horizontal,
+                            CosmosDesign.spacingL
+                        )
+                        .padding(
+                            .vertical,
+                            CosmosDesign.spacingM
+                        )
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if index
+                        < versions.count - 1 {
+
+                        Divider()
+                            .padding(.leading, 64)
+                    }
+                }
+            }
+            .background(.thinMaterial)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius:
+                        CosmosDesign.cornerRadiusLarge,
+                    style: .continuous
+                )
+            )
+            .overlay {
+
+                RoundedRectangle(
+                    cornerRadius:
+                        CosmosDesign.cornerRadiusLarge,
+                    style: .continuous
+                )
+                .stroke(
+                    Color.primary.opacity(0.06),
+                    lineWidth: 1
+                )
+            }
+        }
+    }
+
+
     private var contentSection: some View {
 
         VStack(
@@ -1749,7 +2100,8 @@ private struct ZhuowangArtifactDetailView: View {
                 if cleanContent.isEmpty {
 
                     VStack(
-                        spacing: CosmosDesign.spacingM
+                        spacing:
+                            CosmosDesign.spacingM
                     ) {
 
                         Image(
@@ -1764,12 +2116,14 @@ private struct ZhuowangArtifactDetailView: View {
                         )
                         .foregroundStyle(.secondary)
 
-                        Text("这个工作产物暂时没有可显示的正文")
-                            .font(.headline)
+                        Text(
+                            "这个版本暂时没有可显示的正文"
+                        )
+                        .font(.headline)
 
-                        if !artifact.location.isEmpty {
+                        if !cleanLocation.isEmpty {
 
-                            Text(artifact.location)
+                            Text(cleanLocation)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .textSelection(.enabled)
@@ -1824,15 +2178,59 @@ private struct ZhuowangArtifactDetailView: View {
             spacing: CosmosDesign.spacingM
         ) {
 
-            if !artifact.location.isEmpty {
+            if !cleanLocation.isEmpty {
 
-                Text(artifact.location)
+                VStack(
+                    alignment: .leading,
+                    spacing: 3
+                ) {
+
+                    Text(
+                        localFileExists
+                        ? "已落盘 · 当前查看 V\(artifact?.version ?? 0)"
+                        : "本地文件不可用"
+                    )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .fontWeight(.medium)
+                    .foregroundStyle(
+                        localFileExists
+                        ? Color.green
+                        : Color.orange
+                    )
+
+                    Text(cleanLocation)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .textSelection(.enabled)
+                }
             }
 
             Spacer()
+
+            if localFileExists {
+
+                Button {
+                    revealInFinder()
+                } label: {
+                    Label(
+                        "Finder 中显示",
+                        systemImage: "folder"
+                    )
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    openLocalFile()
+                } label: {
+                    Label(
+                        "打开文件",
+                        systemImage:
+                            "arrow.up.right.square"
+                    )
+                }
+                .buttonStyle(.bordered)
+            }
 
             Button {
                 copyContent()
@@ -1862,39 +2260,240 @@ private struct ZhuowangArtifactDetailView: View {
     }
 
 
-    private func meta(
-        title: String,
-        value: String
-    ) -> some View {
+    private var versions:
+        [ZhuowangArtifact] {
 
-        VStack(
-            alignment: .leading,
-            spacing: 5
-        ) {
+        workflowStore
+            .artifacts(
+                forCampaignID:
+                    campaignID
+            )
+            .filter {
+                $0.name == artifactName
+            }
+            .sorted {
+                $0.version > $1.version
+            }
+    }
 
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
-            Text(value)
-                .font(.callout)
-                .fontWeight(.medium)
-                .lineLimit(2)
+    private var artifact:
+        ZhuowangArtifact? {
+
+        versions.first {
+            $0.id == selectedArtifactID
         }
-        .frame(
-            minWidth: 105,
-            alignment: .leading
+        ?? currentApprovedArtifact
+        ?? versions.first
+    }
+
+
+    private var currentApprovedArtifact:
+        ZhuowangArtifact? {
+
+        versions.first {
+            $0.isApprovedVersion
+        }
+    }
+
+
+    private var workflow:
+        ZhuowangCampaignWorkflow? {
+
+        workflowStore.workflow(
+            forCampaignID:
+                campaignID
         )
+    }
+
+
+    private var sourceStepName: String {
+
+        guard
+            let artifact,
+            let stepID =
+                artifact.stepID,
+            let step =
+                workflow?
+                    .steps.first(
+                        where: {
+                            $0.id == stepID
+                        }
+                    )
+        else {
+            return "未关联"
+        }
+
+        return step.title
+    }
+
+
+    private var sourceAIName: String {
+
+        guard let artifact else {
+            return "未记录"
+        }
+
+        return sourceAIName(
+            for: artifact
+        )
+    }
+
+
+    private func sourceAIName(
+        for artifact:
+            ZhuowangArtifact
+    ) -> String {
+
+        guard
+            let runID =
+                artifact.runID,
+            let run =
+                workflow?
+                    .aiRuns.first(
+                        where: {
+                            $0.id == runID
+                        }
+                    )
+        else {
+            return "未记录"
+        }
+
+        if let provider =
+            workflowStore.provider(
+                id: run.providerID
+            ) {
+
+            return provider.name
+        }
+
+        let modelName =
+            run.modelName
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        return modelName.isEmpty
+            ? "未记录"
+            : modelName
+    }
+
+
+    private var cleanLocation: String {
+
+        artifact?
+            .location
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        ?? ""
+    }
+
+
+    private var localFileURL: URL? {
+
+        guard !cleanLocation.isEmpty else {
+            return nil
+        }
+
+        return URL(
+            fileURLWithPath:
+                cleanLocation
+        )
+    }
+
+
+    private var localFileExists: Bool {
+
+        guard let artifact else {
+            return false
+        }
+
+        return fileExists(
+            artifact
+        )
+    }
+
+
+    private func fileExists(
+        _ artifact:
+            ZhuowangArtifact
+    ) -> Bool {
+
+        let path =
+            artifact.location
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        guard !path.isEmpty else {
+            return false
+        }
+
+        return FileManager.default
+            .fileExists(
+                atPath: path
+            )
     }
 
 
     private var cleanContent: String {
 
-        artifact.content?
+        artifact?
+            .content?
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
         ?? ""
+    }
+
+
+    private func setSelectedAsCurrent() {
+
+        guard
+            let artifact,
+            let workflow
+        else {
+            return
+        }
+
+        workflowStore.approveArtifact(
+            workflowID:
+                workflow.id,
+            artifactID:
+                artifact.id
+        )
+    }
+
+
+    private func openLocalFile() {
+
+        guard
+            let localFileURL,
+            localFileExists
+        else {
+            return
+        }
+
+        NSWorkspace.shared.open(
+            localFileURL
+        )
+    }
+
+
+    private func revealInFinder() {
+
+        guard
+            let localFileURL,
+            localFileExists
+        else {
+            return
+        }
+
+        NSWorkspace.shared
+            .activateFileViewerSelecting(
+                [localFileURL]
+            )
     }
 
 
@@ -1921,6 +2520,32 @@ private struct ZhuowangArtifactDetailView: View {
     }
 
 
+    private func meta(
+        title: String,
+        value: String
+    ) -> some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: 5
+        ) {
+
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(value)
+                .font(.callout)
+                .fontWeight(.medium)
+                .lineLimit(2)
+        }
+        .frame(
+            minWidth: 105,
+            alignment: .leading
+        )
+    }
+
+
     private func formattedDateTime(
         _ date: Date
     ) -> String {
@@ -1942,9 +2567,11 @@ private struct ZhuowangArtifactDetailView: View {
     }
 
 
-    private var artifactSystemImage: String {
+    private var artifactSystemImage:
+        String {
 
-        switch artifact.type {
+        switch artifact?.type
+            ?? .other {
 
         case .markdown:
             return "doc.text"
@@ -1993,7 +2620,7 @@ private final class ZhuowangArtifactWindowManager:
         ZhuowangArtifactWindowManager()
 
     private var controllers:
-        [UUID: NSWindowController] = [:]
+        [String: NSWindowController] = [:]
 
     private override init() {
         super.init()
@@ -2001,13 +2628,19 @@ private final class ZhuowangArtifactWindowManager:
 
 
     func open(
-        artifact: ZhuowangArtifact,
-        sourceStepName: String,
-        sourceAIName: String
+        artifactName: String,
+        initialArtifactID: UUID,
+        campaignID: UUID,
+        workflowStore: ZhuowangWorkflowStore
     ) {
 
+        let windowKey =
+            campaignID.uuidString
+            + "::"
+            + artifactName
+
         if let existing =
-            controllers[artifact.id] {
+            controllers[windowKey] {
 
             existing.window?
                 .makeKeyAndOrderFront(nil)
@@ -2021,11 +2654,14 @@ private final class ZhuowangArtifactWindowManager:
 
         let rootView =
             ZhuowangArtifactDetailView(
-                artifact: artifact,
-                sourceStepName:
-                    sourceStepName,
-                sourceAIName:
-                    sourceAIName
+                workflowStore:
+                    workflowStore,
+                campaignID:
+                    campaignID,
+                artifactName:
+                    artifactName,
+                initialArtifactID:
+                    initialArtifactID
             )
 
         let hostingController =
@@ -2039,8 +2675,8 @@ private final class ZhuowangArtifactWindowManager:
                     NSRect(
                         x: 0,
                         y: 0,
-                        width: 900,
-                        height: 760
+                        width: 960,
+                        height: 780
                     ),
                 styleMask: [
                     .titled,
@@ -2053,7 +2689,7 @@ private final class ZhuowangArtifactWindowManager:
             )
 
         window.title =
-            artifact.name
+            artifactName
 
         window.titleVisibility =
             .visible
@@ -2061,13 +2697,10 @@ private final class ZhuowangArtifactWindowManager:
         window.titlebarAppearsTransparent =
             false
 
-        window.isMovableByWindowBackground =
-            false
-
         window.minSize =
             NSSize(
-                width: 700,
-                height: 560
+                width: 760,
+                height: 620
             )
 
         window.contentViewController =
@@ -2075,20 +2708,20 @@ private final class ZhuowangArtifactWindowManager:
 
         window.delegate = self
 
-        window.center()
+        window.identifier =
+            NSUserInterfaceItemIdentifier(
+                windowKey
+            )
 
         let controller =
             NSWindowController(
                 window: window
             )
 
-        controllers[artifact.id] =
+        controllers[windowKey] =
             controller
 
-        window.identifier =
-            NSUserInterfaceItemIdentifier(
-                artifact.id.uuidString
-            )
+        window.center()
 
         controller.showWindow(nil)
 
@@ -2108,22 +2741,20 @@ private final class ZhuowangArtifactWindowManager:
             let window =
                 notification.object
                     as? NSWindow,
-            let rawID =
+            let windowKey =
                 window.identifier?
-                    .rawValue,
-            let artifactID =
-                UUID(
-                    uuidString: rawID
-                )
+                    .rawValue
         else {
             return
         }
 
         controllers.removeValue(
-            forKey: artifactID
+            forKey:
+                windowKey
         )
     }
 }
+
 
 // MARK: - Detail Tab
 

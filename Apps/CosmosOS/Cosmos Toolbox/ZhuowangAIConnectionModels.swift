@@ -116,7 +116,17 @@ enum ZhuowangAICapability: String, Codable, CaseIterable, Identifiable {
     case documentGeneration
     case spreadsheet
     case imageGeneration
+    /// General prototype creation capability.
+    /// Not limited to Figma. Examples:
+    /// Figma, Pixso, HTML prototype, custom design tools.
     case prototypeDesign
+
+    /// AI can operate or automate a prototype creation workflow.
+    /// The actual tool is selected separately through integrations.
+    case prototypeAutomation
+
+    /// Figma-specific editing capability.
+    /// Kept as a specialized capability, not the default prototype route.
     case figmaEditing
     case browser
     case automation
@@ -150,6 +160,8 @@ enum ZhuowangAICapability: String, Codable, CaseIterable, Identifiable {
             return "图片生成"
         case .prototypeDesign:
             return "原型设计"
+        case .prototypeAutomation:
+            return "原型自动化"
         case .figmaEditing:
             return "Figma 编辑"
         case .browser:
@@ -291,6 +303,204 @@ struct ZhuowangAIConnection:
         self.endpointOrPath = endpointOrPath
         self.configuration = configuration
         self.isEnabled = isEnabled
+        self.notes = notes
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+
+// MARK: - External Tool Kind
+
+enum ZhuowangExternalToolKind:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case figma
+    case github
+    case finder
+    case browser
+    case custom
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .figma: return "Figma"
+        case .github: return "GitHub"
+        case .finder: return "Finder"
+        case .browser: return "浏览器"
+        case .custom: return "自定义"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .figma: return "square.on.square"
+        case .github: return "chevron.left.forwardslash.chevron.right"
+        case .finder: return "folder"
+        case .browser: return "globe"
+        case .custom: return "puzzlepiece.extension"
+        }
+    }
+}
+
+
+// MARK: - Tool Integration Status
+
+enum ZhuowangToolIntegrationStatus:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case available
+    case needsSetup
+    case unavailable
+    case disabled
+    case error
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .available: return "可用"
+        case .needsSetup: return "需要配置"
+        case .unavailable: return "不可用"
+        case .disabled: return "已停用"
+        case .error: return "异常"
+        }
+    }
+}
+
+
+// MARK: - Tool Execution Mode
+
+enum ZhuowangToolExecutionMode:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case direct
+    case agentManaged
+    case assisted
+    case custom
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .direct: return "直接执行"
+        case .agentManaged: return "由 AI 连接执行"
+        case .assisted: return "辅助执行"
+        case .custom: return "自定义"
+        }
+    }
+}
+
+
+// MARK: - External Tool Integration
+
+struct ZhuowangExternalToolIntegration:
+    Identifiable,
+    Codable,
+    Hashable {
+
+    let id: UUID
+    var kind: ZhuowangExternalToolKind
+    var name: String
+    var status: ZhuowangToolIntegrationStatus
+    var mode: ZhuowangAIConnectionMode
+    var adapterIdentifier: String?
+    var endpointOrPath: String?
+    var configuration: [String: String]
+    var isEnabled: Bool
+    var notes: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: UUID = UUID(),
+        kind: ZhuowangExternalToolKind,
+        name: String,
+        status: ZhuowangToolIntegrationStatus = .needsSetup,
+        mode: ZhuowangAIConnectionMode = .connector,
+        adapterIdentifier: String? = nil,
+        endpointOrPath: String? = nil,
+        configuration: [String: String] = [:],
+        isEnabled: Bool = true,
+        notes: String = "",
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.kind = kind
+        self.name = name
+        self.status = status
+        self.mode = mode
+        self.adapterIdentifier = adapterIdentifier
+        self.endpointOrPath = endpointOrPath
+        self.configuration = configuration
+        self.isEnabled = isEnabled
+        self.notes = notes
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+
+// MARK: - Agent + Tool Route
+
+struct ZhuowangAgentToolRoute:
+    Identifiable,
+    Codable,
+    Hashable {
+
+    let id: UUID
+    var connectionID: UUID
+    var toolIntegrationID: UUID
+    var status: ZhuowangToolIntegrationStatus
+    var executionMode: ZhuowangToolExecutionMode
+    var supportsDirectExecution: Bool
+    var supportsAutomaticResultReturn: Bool
+    var adapterIdentifier: String?
+    var configuration: [String: String]
+    var notes: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: UUID = UUID(),
+        connectionID: UUID,
+        toolIntegrationID: UUID,
+        status: ZhuowangToolIntegrationStatus = .needsSetup,
+        executionMode: ZhuowangToolExecutionMode = .agentManaged,
+        supportsDirectExecution: Bool = false,
+        supportsAutomaticResultReturn: Bool = false,
+        adapterIdentifier: String? = nil,
+        configuration: [String: String] = [:],
+        notes: String = "",
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.connectionID = connectionID
+        self.toolIntegrationID = toolIntegrationID
+        self.status = status
+        self.executionMode = executionMode
+        self.supportsDirectExecution = supportsDirectExecution
+        self.supportsAutomaticResultReturn = supportsAutomaticResultReturn
+        self.adapterIdentifier = adapterIdentifier
+        self.configuration = configuration
         self.notes = notes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -449,3 +659,5 @@ struct ZhuowangAITaskPackage:
         self.createdAt = createdAt
     }
 }
+
+

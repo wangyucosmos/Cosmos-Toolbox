@@ -343,6 +343,52 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Select Tools For Step
+
+    /// 保存当前 Workflow Step 选择的工具。
+    /// Tool 与 Agent 分离：
+    /// Step 可以拥有多个可选工具，但本次执行路径保存用户实际选择的工具。
+
+    func selectTools(
+        workflowID: UUID,
+        stepID: UUID,
+        toolIDs: [UUID]
+    ) {
+
+        guard
+            let workflowIndex =
+                workflows.firstIndex(
+                    where: {
+                        $0.id == workflowID
+                    }
+                ),
+            let stepIndex =
+                workflows[workflowIndex]
+                    .steps
+                    .firstIndex(
+                        where: {
+                            $0.id == stepID
+                        }
+                    )
+        else {
+            return
+        }
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .selectedToolIDs = toolIDs
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .updatedAt = Date()
+
+        workflows[workflowIndex]
+            .updatedAt = Date()
+
+        saveWorkflows()
+    }
+
+
     // MARK: - Enable / Disable Step
 
     func setStepEnabled(
@@ -1294,6 +1340,124 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Legacy Artifact Migration
+
+    @discardableResult
+    func migrateLegacyArtifactsToLocalFiles(
+        campaign: ZhuowangCampaign,
+        provinceName: String?
+    ) -> Int {
+
+        guard
+            let workflowIndex =
+                workflows.firstIndex(
+                    where: {
+                        $0.campaignID
+                            == campaign.id
+                    }
+                )
+        else {
+            return 0
+        }
+
+        var migratedCount = 0
+
+        for artifactIndex
+            in workflows[workflowIndex]
+                .artifacts.indices {
+
+            let artifact =
+                workflows[workflowIndex]
+                    .artifacts[artifactIndex]
+
+            let currentLocation =
+                artifact.location
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+
+            if !currentLocation.isEmpty,
+               FileManager.default
+                .fileExists(
+                    atPath:
+                        currentLocation
+                ) {
+
+                continue
+            }
+
+            guard
+                let stepID =
+                    artifact.stepID,
+                let step =
+                    workflows[workflowIndex]
+                        .steps.first(
+                            where: {
+                                $0.id == stepID
+                            }
+                        ),
+                let content =
+                    artifact.content?
+                        .trimmingCharacters(
+                            in:
+                                .whitespacesAndNewlines
+                        ),
+                !content.isEmpty
+            else {
+                continue
+            }
+
+            do {
+
+                let fileURL =
+                    try ZhuowangWorkspaceFileManager
+                        .shared
+                        .writeMarkdownArtifact(
+                            provinceName:
+                                provinceName,
+                            campaignName:
+                                campaign.name,
+                            stepKind:
+                                step.kind,
+                            artifactName:
+                                artifact.name,
+                            version:
+                                artifact.version,
+                            content:
+                                content
+                        )
+
+                workflows[workflowIndex]
+                    .artifacts[artifactIndex]
+                    .location =
+                    fileURL.path
+
+                workflows[workflowIndex]
+                    .artifacts[artifactIndex]
+                    .updatedAt =
+                    Date()
+
+                migratedCount += 1
+
+            } catch {
+
+                continue
+            }
+        }
+
+        if migratedCount > 0 {
+
+            workflows[workflowIndex]
+                .updatedAt =
+                Date()
+
+            saveWorkflows()
+        }
+
+        return migratedCount
+    }
+
+
     // MARK: - Artifacts
 
     func addArtifact(
@@ -1849,5 +2013,6 @@ final class ZhuowangWorkflowStore: ObservableObject {
         )
     ]
 }
+
 
 

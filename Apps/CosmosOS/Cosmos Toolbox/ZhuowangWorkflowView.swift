@@ -600,6 +600,60 @@ struct ZhuowangWorkflowView: View {
                         CosmosDesign.spacingS
                 ) {
 
+                    Text("所需能力")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+
+                    Text(
+                        capabilitySummary(
+                            for: step
+                        )
+                    )
+                    .font(.callout)
+                }
+                .frame(
+                    maxWidth: 220,
+                    alignment: .leading
+                )
+
+                VStack(
+                    alignment: .leading,
+                    spacing:
+                        CosmosDesign.spacingS
+                ) {
+
+                    Text("使用工具")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+
+                    Text(
+                        selectedToolSummary(
+                            for: step
+                        )
+                    )
+                    .font(.callout)
+
+                    if !step.requiredCapabilities.isEmpty {
+
+                        toolPicker(
+                            workflow: workflow,
+                            step: step
+                        )
+                    }
+                }
+                .frame(
+                    maxWidth: 220,
+                    alignment: .leading
+                )
+
+                VStack(
+                    alignment: .leading,
+                    spacing:
+                        CosmosDesign.spacingS
+                ) {
+
                     Text("执行方式")
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -708,6 +762,90 @@ struct ZhuowangWorkflowView: View {
             .bottom,
             CosmosDesign.spacingL
         )
+    }
+
+
+
+    // MARK: - Tool Picker
+
+    private func toolPicker(
+        workflow: ZhuowangCampaignWorkflow,
+        step: ZhuowangWorkflowStep
+    ) -> some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: 8
+        ) {
+
+            Text("选择工具")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Menu {
+
+                // 下一阶段直接读取 AIConnectionStore 的 Tool Registry。
+                // 当前先使用已注册工具作为展示入口。
+                ForEach(
+                    connectionStore.enabledToolIntegrations()
+                ) { tool in
+
+                    Button {
+
+                        store.selectTools(
+                            workflowID: workflow.id,
+                            stepID: step.id,
+                            toolIDs: [tool.id]
+                        )
+
+                    } label: {
+
+                        Label(
+                            tool.name,
+                            systemImage:
+                                "wrench.and.screwdriver"
+                        )
+                    }
+                }
+
+            } label: {
+
+                HStack(spacing: 8) {
+
+                    Image(
+                        systemName:
+                            "wrench.and.screwdriver"
+                    )
+
+                    Text(
+                        selectedToolSummary(
+                            for: step
+                        )
+                    )
+                    .lineLimit(1)
+
+                    Spacer()
+
+                    Image(
+                        systemName:
+                            "chevron.down"
+                    )
+                    .font(.caption2)
+                }
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    Color.primary.opacity(0.035)
+                )
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 8,
+                        style: .continuous
+                    )
+                )
+            }
+        }
     }
 
 
@@ -1407,6 +1545,58 @@ struct ZhuowangWorkflowView: View {
     }
 
 
+    // MARK: - Capability & Tool Summary
+
+    private func capabilitySummary(
+        for step: ZhuowangWorkflowStep
+    ) -> String {
+
+        if step.requiredCapabilities.isEmpty {
+            return "无需指定"
+        }
+
+        return step.requiredCapabilities
+            .map {
+                String(describing: $0)
+            }
+            .joined(separator: "、")
+    }
+
+
+    private func toolSummary(
+        for step: ZhuowangWorkflowStep
+    ) -> String {
+
+        if step.requiredCapabilities.isEmpty {
+            return "由 AI 自行选择"
+        }
+
+        if step.requiredCapabilities.contains(where: {
+            String(describing: $0)
+                .lowercased()
+                .contains("prototype")
+        }) {
+
+            return "根据已连接工具自动匹配"
+        }
+
+        return "根据能力自动匹配"
+    }
+
+
+    private func selectedToolSummary(
+        for step: ZhuowangWorkflowStep
+    ) -> String {
+
+        if !step.selectedToolIDs.isEmpty {
+            return "已选择工具 \(step.selectedToolIDs.count) 个"
+        }
+
+        return toolSummary(for: step)
+    }
+
+
+
     // MARK: - Execution Mode
 
     private func executionModeText(
@@ -1438,11 +1628,15 @@ struct ZhuowangWorkflowView: View {
             return "Claude Desktop"
 
         case .figma:
-            return "Figma Integration"
+            return "工具连接"
 
         case .custom:
             return "自定义连接"
         }
     }
 }
+
+
+
+
 

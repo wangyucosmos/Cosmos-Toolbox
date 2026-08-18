@@ -30,6 +30,7 @@ struct ZhuowangTaskPackageBuilder {
             ),
             contextReferences: contextReferences(
                 campaign: campaign,
+                workflow: workflow,
                 step: step
             ),
             expectedOutputs: expectedOutputs(
@@ -87,7 +88,7 @@ struct ZhuowangTaskPackageBuilder {
             : campaignNotes
 
         let previousContext =
-            previousApprovedStepsText(
+            previousApprovedArtifactsText(
                 workflow: workflow,
                 currentStep: step
             )
@@ -212,7 +213,14 @@ struct ZhuowangTaskPackageBuilder {
 
         case .prototype:
             return """
-            基于已经确认的页面结构，准备 Figma 原型制作所需要的设计执行说明。
+            基于已经确认的页面结构，准备原型设计执行所需要的说明。
+
+            本阶段不绑定具体原型工具，
+            根据后续选择的执行方式适配：
+            - Figma 原型
+            - Pixso 原型
+            - HTML / Web 原型
+            - 其他支持的设计或开发工具
 
             输出应包括：
             - 页面尺寸与基础布局建议
@@ -221,10 +229,10 @@ struct ZhuowangTaskPackageBuilder {
             - 交互状态
             - 页面跳转关系
             - 需要复用的设计组件
-            - 需要人工确认的视觉重点
-            - Figma 执行前检查项
+            - 视觉重点与人工确认项
+            - 目标工具执行注意事项
 
-            必须等待用户确认设计思路后，才能进入真正的 Figma 执行阶段。
+            必须等待用户确认设计思路后，才能进入真正的原型制作阶段。
             """
 
 
@@ -312,6 +320,7 @@ struct ZhuowangTaskPackageBuilder {
 
     private static func contextReferences(
         campaign: ZhuowangCampaign,
+        workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep
     ) -> [String] {
 
@@ -321,40 +330,56 @@ struct ZhuowangTaskPackageBuilder {
             "Workflow Step：\(step.title)"
         ]
 
-        switch step.kind {
-
-        case .brief:
-            references.append(
-                "当前 Campaign 基本信息"
+        let upstreamArtifacts =
+            approvedUpstreamArtifacts(
+                workflow: workflow,
+                currentStep: step
             )
 
-        case .idea:
-            references.append(
-                "已确认 Campaign Brief"
-            )
+        for item in upstreamArtifacts {
 
-        case .plan:
             references.append(
-                "已确认策划思路"
+                "已确认：\(item.step.title) / \(item.artifact.name) / V\(item.artifact.version)"
             )
+        }
 
-        case .pageStructure:
-            references.append(
-                "已确认完整策划方案"
-            )
+        if upstreamArtifacts.isEmpty {
 
-        case .prototype:
-            references.append(
-                "已确认页面结构"
-            )
+            switch step.kind {
 
-        case .customerService:
-            references.append(
-                "最终确认活动方案与规则"
-            )
+            case .brief:
+                references.append(
+                    "当前 Campaign 基本信息"
+                )
 
-        default:
-            break
+            case .idea:
+                references.append(
+                    "等待已确认 Campaign Brief"
+                )
+
+            case .plan:
+                references.append(
+                    "等待已确认策划思路"
+                )
+
+            case .pageStructure:
+                references.append(
+                    "等待已确认完整策划方案"
+                )
+
+            case .prototype:
+                references.append(
+                    "等待已确认页面结构"
+                )
+
+            case .customerService:
+                references.append(
+                    "等待最终确认活动方案与规则"
+                )
+
+            default:
+                break
+            }
         }
 
         return references
@@ -397,8 +422,9 @@ struct ZhuowangTaskPackageBuilder {
 
         case .prototype:
             return [
-                "Figma 原型执行说明",
-                "组件与页面结构清单"
+                "原型设计执行说明",
+                "组件与页面结构清单",
+                "目标工具适配说明"
             ]
 
         case .customerService:
@@ -467,12 +493,19 @@ struct ZhuowangTaskPackageBuilder {
     }
 
 
-    // MARK: - Previous Approved Steps
+    // MARK: - Previous Approved Artifacts
 
-    private static func previousApprovedStepsText(
+    private struct ApprovedArtifactContext {
+
+        let step: ZhuowangWorkflowStep
+        let artifact: ZhuowangArtifact
+    }
+
+
+    private static func approvedUpstreamArtifacts(
         workflow: ZhuowangCampaignWorkflow,
         currentStep: ZhuowangWorkflowStep
-    ) -> String {
+    ) -> [ApprovedArtifactContext] {
 
         let previousSteps =
             workflow.steps
@@ -490,16 +523,94 @@ struct ZhuowangTaskPackageBuilder {
                         < $1.sortOrder
                 }
 
-        guard !previousSteps.isEmpty else {
-            return "暂无已经确认的前置步骤。"
+        return previousSteps
+            .compactMap { step in
+
+                let approvedArtifact =
+                    workflow.artifacts
+                        .filter {
+                            $0.stepID == step.id
+                            && $0.isApprovedVersion
+                        }
+                        .sorted {
+                            $0.updatedAt
+                                > $1.updatedAt
+                        }
+                        .first
+
+                guard
+                    let approvedArtifact
+                else {
+                    return nil
+                }
+
+                return ApprovedArtifactContext(
+                    step: step,
+                    artifact:
+                        approvedArtifact
+                )
+            }
+    }
+
+
+    private static func previousApprovedArtifactsText(
+        workflow: ZhuowangCampaignWorkflow,
+        currentStep: ZhuowangWorkflowStep
+    ) -> String {
+
+        let upstreamArtifacts =
+            approvedUpstreamArtifacts(
+                workflow: workflow,
+                currentStep: currentStep
+            )
+
+        guard !upstreamArtifacts.isEmpty else {
+            return "暂无已经确认并采用的前置工作产物。"
         }
 
-        return previousSteps
-            .map {
-                "✓ \($0.title)"
+        return upstreamArtifacts
+            .map { item in
+
+                let content =
+                    item.artifact.content?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                    ?? ""
+
+                let location =
+                    item.artifact.location
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+
+                let locationText =
+                    location.isEmpty
+                    ? "未记录本地路径"
+                    : location
+
+                let contentText =
+                    content.isEmpty
+                    ? "该工作产物暂无可读取正文。"
+                    : content
+
+                return """
+                ===== 前置已确认工作产物 =====
+                步骤：\(item.step.title)
+                Artifact：\(item.artifact.name)
+                当前采用版本：V\(item.artifact.version)
+                本地文件：\(locationText)
+
+                【正文】
+                \(contentText)
+                ===== 前置工作产物结束 =====
+                """
             }
             .joined(
-                separator: "\n"
+                separator: "\n\n"
             )
     }
+
 }
+
+

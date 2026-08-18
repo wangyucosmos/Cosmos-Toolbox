@@ -106,6 +106,71 @@ struct ZhuowangAIProvider:
 }
 
 
+// MARK: - Workflow Capability
+
+/// Describes the ability required by a workflow step.
+/// This is intentionally separated from concrete tools.
+///
+/// Example:
+/// Prototype Design capability can be fulfilled by:
+/// - Figma
+/// - Pixso
+/// - HTML prototype
+/// - Other future design tools
+enum ZhuowangWorkflowCapability:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case informationProcessing
+    case planning
+    case documentGeneration
+    case prototypeDesign
+    case imageCreation
+    case dataProcessing
+    case codeGeneration
+    case publishing
+    case custom
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+
+        switch self {
+        case .informationProcessing:
+            return "信息整理"
+
+        case .planning:
+            return "策划规划"
+
+        case .documentGeneration:
+            return "文档生成"
+
+        case .prototypeDesign:
+            return "原型设计"
+
+        case .imageCreation:
+            return "视觉生成"
+
+        case .dataProcessing:
+            return "数据处理"
+
+        case .codeGeneration:
+            return "代码生成"
+
+        case .publishing:
+            return "发布"
+
+        case .custom:
+            return "自定义"
+        }
+    }
+}
+
+
 // MARK: - Workflow Step Kind
 
 enum ZhuowangWorkflowStepKind: String, Codable {
@@ -190,6 +255,19 @@ struct ZhuowangWorkflowStep:
     /// Nil means provider has not been selected yet.
     var selectedProviderID: UUID?
 
+    /// Capabilities required by this workflow step.
+    /// This avoids binding Cosmos OS to one specific product.
+    var requiredCapabilities: [ZhuowangWorkflowCapability]
+
+    /// External tools required by this workflow step.
+    /// Examples: Figma, Pixso, GitHub, Browser.
+    var requiredTools: [ZhuowangExternalToolKind]
+
+    /// User-selected tools for this specific execution path.
+    /// Kept separate from requiredTools because one capability
+    /// may have multiple available tools.
+    var selectedToolIDs: [UUID]
+
     /// If true, Cosmos OS may recommend a provider.
     /// The user still keeps final control.
     var allowsAutomaticProviderRecommendation: Bool
@@ -216,6 +294,9 @@ struct ZhuowangWorkflowStep:
         sortOrder: Int,
         status: ZhuowangWorkflowStepStatus = .notStarted,
         selectedProviderID: UUID? = nil,
+        requiredCapabilities: [ZhuowangWorkflowCapability] = [],
+        requiredTools: [ZhuowangExternalToolKind] = [],
+        selectedToolIDs: [UUID] = [],
         allowsAutomaticProviderRecommendation: Bool = true,
         requiresApproval: Bool = true,
         isEnabled: Bool = true,
@@ -230,6 +311,9 @@ struct ZhuowangWorkflowStep:
         self.sortOrder = sortOrder
         self.status = status
         self.selectedProviderID = selectedProviderID
+        self.requiredCapabilities = requiredCapabilities
+        self.requiredTools = requiredTools
+        self.selectedToolIDs = selectedToolIDs
         self.allowsAutomaticProviderRecommendation =
             allowsAutomaticProviderRecommendation
         self.requiresApproval = requiresApproval
@@ -583,10 +667,13 @@ extension ZhuowangCampaignWorkflow {
                 ),
 
                 ZhuowangWorkflowStep(
-                    title: "Figma 原型",
-                    englishTitle: "Figma Prototype",
+                    title: "产品原型设计",
+                    englishTitle: "Product Prototype",
                     kind: .prototype,
                     sortOrder: 50,
+                    requiredCapabilities: [
+                        .prototypeDesign
+                    ],
                     requiresApproval: true
                 ),
 
@@ -601,4 +688,6 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
+
+
 
