@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ZhuowangCampaignView: View {
 
@@ -10,7 +11,6 @@ struct ZhuowangCampaignView: View {
     @State private var searchText = ""
     @State private var selectedStatus: ZhuowangCampaignStatus?
     @State private var showCreateSheet = false
-    @State private var selectedCampaign: ZhuowangCampaign?
 
     @StateObject private var workflowStore = ZhuowangWorkflowStore()
 
@@ -79,16 +79,6 @@ struct ZhuowangCampaignView: View {
         .sheet(isPresented: $showCreateSheet) {
             ZhuowangCampaignCreateView(
                 store: store,
-                province: province,
-                module: module
-            )
-        }
-        .sheet(item: $selectedCampaign) { campaign in
-
-            ZhuowangCampaignDetailView(
-                store: store,
-                workflowStore: workflowStore,
-                campaignID: campaign.id,
                 province: province,
                 module: module
             )
@@ -216,7 +206,9 @@ struct ZhuowangCampaignView: View {
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    selectedCampaign = campaign
+                    openCampaignWindow(
+                        campaign
+                    )
                 }
 
                 if index
@@ -328,6 +320,23 @@ struct ZhuowangCampaignView: View {
     }
 
 
+
+    // MARK: - Open Campaign Window
+
+    private func openCampaignWindow(
+        _ campaign: ZhuowangCampaign
+    ) {
+
+        ZhuowangCampaignWindowManager.shared.open(
+            campaign: campaign,
+            store: store,
+            workflowStore: workflowStore,
+            province: province,
+            module: module
+        )
+    }
+
+
     // MARK: - Filtering
 
     private var filteredCampaigns: [ZhuowangCampaign] {
@@ -428,6 +437,153 @@ struct ZhuowangCampaignView: View {
         }
 
         return "创建活动后，可以在这里统一查看项目状态、时间和备注。"
+    }
+}
+
+
+
+// MARK: - Campaign Native Window Manager
+
+private final class ZhuowangCampaignWindowManager:
+    NSObject,
+    NSWindowDelegate {
+
+    static let shared =
+        ZhuowangCampaignWindowManager()
+
+    private var controllers:
+        [UUID: NSWindowController] = [:]
+
+    private override init() {
+        super.init()
+    }
+
+
+    func open(
+        campaign: ZhuowangCampaign,
+        store: ZhuowangCampaignStore,
+        workflowStore: ZhuowangWorkflowStore,
+        province: ZhuowangProvince?,
+        module: ZhuowangModule?
+    ) {
+
+        if let existing =
+            controllers[campaign.id] {
+
+            existing.window?
+                .makeKeyAndOrderFront(nil)
+
+            NSApp.activate(
+                ignoringOtherApps: true
+            )
+
+            return
+        }
+
+        let rootView =
+            ZhuowangCampaignDetailView(
+                store: store,
+                workflowStore:
+                    workflowStore,
+                campaignID:
+                    campaign.id,
+                province:
+                    province,
+                module:
+                    module
+            )
+
+        let hostingController =
+            NSHostingController(
+                rootView: rootView
+            )
+
+        let window =
+            NSWindow(
+                contentRect:
+                    NSRect(
+                        x: 0,
+                        y: 0,
+                        width: 980,
+                        height: 760
+                    ),
+                styleMask: [
+                    .titled,
+                    .closable,
+                    .miniaturizable,
+                    .resizable
+                ],
+                backing: .buffered,
+                defer: false
+            )
+
+        window.title =
+            campaign.name
+
+        window.titleVisibility =
+            .visible
+
+        window.titlebarAppearsTransparent =
+            false
+
+        window.minSize =
+            NSSize(
+                width: 760,
+                height: 620
+            )
+
+        window.contentViewController =
+            hostingController
+
+        window.delegate = self
+
+        window.identifier =
+            NSUserInterfaceItemIdentifier(
+                campaign.id.uuidString
+            )
+
+        let controller =
+            NSWindowController(
+                window: window
+            )
+
+        controllers[campaign.id] =
+            controller
+
+        window.center()
+
+        controller.showWindow(nil)
+
+        window.makeKeyAndOrderFront(nil)
+
+        NSApp.activate(
+            ignoringOtherApps: true
+        )
+    }
+
+
+    func windowWillClose(
+        _ notification: Notification
+    ) {
+
+        guard
+            let window =
+                notification.object
+                    as? NSWindow,
+            let rawID =
+                window.identifier?
+                    .rawValue,
+            let campaignID =
+                UUID(
+                    uuidString: rawID
+                )
+        else {
+            return
+        }
+
+        controllers.removeValue(
+            forKey: campaignID
+        )
     }
 }
 
@@ -867,3 +1023,4 @@ struct ZhuowangCampaignCreateView: View {
         height: 720
     )
 }
+

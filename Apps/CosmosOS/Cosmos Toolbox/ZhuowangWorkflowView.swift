@@ -1127,6 +1127,10 @@ struct ZhuowangWorkflowView: View {
                     context.workflowID,
                 campaignID:
                     campaign.id,
+                campaignName:
+                    campaign.name,
+                provinceName:
+                    province?.name,
                 stepID:
                     context.stepID,
                 providerID:

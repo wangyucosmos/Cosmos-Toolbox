@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ZhuowangCampaignDetailView: View {
 
@@ -14,6 +15,10 @@ struct ZhuowangCampaignDetailView: View {
 
     @State private var isEditing = false
     @State private var showDeleteConfirmation = false
+
+    @State private var workspaceMessage = ""
+    @State private var showWorkspaceAlert = false
+
 
     @State private var selectedTab: ZhuowangCampaignDetailTab = .overview
 
@@ -117,6 +122,14 @@ struct ZhuowangCampaignDetailView: View {
             Text(
                 "删除后，这个活动将从 Cosmos OS 中移除。"
             )
+        }
+        .alert(
+            "工作目录",
+            isPresented: $showWorkspaceAlert
+        ) {
+            Button("知道了") { }
+        } message: {
+            Text(workspaceMessage)
         }
     }
 
@@ -479,84 +492,99 @@ struct ZhuowangCampaignDetailView: View {
                         id: \.element.id
                     ) { index, artifact in
 
-                        HStack(
-                            spacing:
-                                CosmosDesign.spacingM
-                        ) {
-
-                            ZStack {
-
-                                RoundedRectangle(
-                                    cornerRadius: 9,
-                                    style: .continuous
-                                )
-                                .fill(
-                                    Color.accentColor.opacity(0.07)
-                                )
-                                .frame(
-                                    width: 38,
-                                    height: 38
-                                )
-
-                                Image(
-                                    systemName:
-                                        artifactIcon(
-                                            artifact.type
-                                        )
-                                )
-                                .font(
-                                    .system(
-                                        size: 15,
-                                        weight: .medium
-                                    )
-                                )
-                                .foregroundStyle(.tint)
-                            }
-
-                            VStack(
-                                alignment: .leading,
-                                spacing: 3
-                            ) {
-
-                                Text(artifact.name)
-                                    .fontWeight(.medium)
-
-                                HStack(spacing: 6) {
-
-                                    Text(artifact.type.title)
-
-                                    Text("·")
-
-                                    Text("V\(artifact.version)")
-
-                                    if artifact.isApprovedVersion {
-
-                                        Text("·")
-
-                                        Text("已采用")
-                                            .foregroundStyle(.green)
-                                    }
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(
-                                systemName: "chevron.right"
+                        Button {
+                            openArtifactWindow(
+                                artifact
                             )
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                        } label: {
+                            HStack(
+                                spacing:
+                                    CosmosDesign.spacingM
+                            ) {
+    
+                                ZStack {
+    
+                                    RoundedRectangle(
+                                        cornerRadius: 9,
+                                        style: .continuous
+                                    )
+                                    .fill(
+                                        Color.accentColor.opacity(0.07)
+                                    )
+                                    .frame(
+                                        width: 38,
+                                        height: 38
+                                    )
+    
+                                    Image(
+                                        systemName:
+                                            artifactIcon(
+                                                artifact.type
+                                            )
+                                    )
+                                    .font(
+                                        .system(
+                                            size: 15,
+                                            weight: .medium
+                                        )
+                                    )
+                                    .foregroundStyle(.tint)
+                                }
+    
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 3
+                                ) {
+    
+                                    Text(artifact.name)
+                                        .fontWeight(.medium)
+    
+                                    HStack(spacing: 6) {
+    
+                                        Text(artifact.type.title)
+    
+                                        Text("·")
+    
+                                        Text("V\(artifact.version)")
+    
+                                        if artifact.isApprovedVersion {
+    
+                                            Text("·")
+    
+                                            Text("已采用")
+                                                .foregroundStyle(.green)
+                                        }
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+    
+                                Spacer()
+    
+                                Image(
+                                    systemName: "chevron.right"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                            }
+                            .padding(
+                                .horizontal,
+                                CosmosDesign.spacingL
+                            )
+                            .padding(
+                                .vertical,
+                                CosmosDesign.spacingM
+                            )
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                            .contentShape(
+                                Rectangle()
+                            )
                         }
-                        .padding(
-                            .horizontal,
-                            CosmosDesign.spacingL
-                        )
-                        .padding(
-                            .vertical,
-                            CosmosDesign.spacingM
-                        )
+                        .buttonStyle(.plain)
+                        .help("查看工作产物")
 
                         if index
                             < campaignArtifacts.count - 1 {
@@ -597,6 +625,88 @@ struct ZhuowangCampaignDetailView: View {
         workflowStore.artifacts(
             forCampaignID: campaignID
         )
+    }
+
+
+    private func openArtifactWindow(
+        _ artifact: ZhuowangArtifact
+    ) {
+
+        ZhuowangArtifactWindowManager.shared.open(
+            artifact: artifact,
+            sourceStepName:
+                artifactSourceStepName(
+                    artifact
+                ),
+            sourceAIName:
+                artifactSourceAIName(
+                    artifact
+                )
+        )
+    }
+
+
+    private func artifactSourceStepName(
+        _ artifact: ZhuowangArtifact
+    ) -> String {
+
+        guard
+            let stepID = artifact.stepID,
+            let workflow =
+                workflowStore.workflow(
+                    forCampaignID: campaignID
+                ),
+            let step =
+                workflow.steps.first(
+                    where: {
+                        $0.id == stepID
+                    }
+                )
+        else {
+            return "未关联"
+        }
+
+        return step.title
+    }
+
+
+    private func artifactSourceAIName(
+        _ artifact: ZhuowangArtifact
+    ) -> String {
+
+        guard
+            let runID = artifact.runID,
+            let workflow =
+                workflowStore.workflow(
+                    forCampaignID: campaignID
+                ),
+            let run =
+                workflow.aiRuns.first(
+                    where: {
+                        $0.id == runID
+                    }
+                )
+        else {
+            return "未记录"
+        }
+
+        if let provider =
+            workflowStore.provider(
+                id: run.providerID
+            ) {
+
+            return provider.name
+        }
+
+        let modelName =
+            run.modelName
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        return modelName.isEmpty
+            ? "未记录"
+            : modelName
     }
 
 
@@ -743,6 +853,73 @@ struct ZhuowangCampaignDetailView: View {
                         )
                         .padding(.vertical, 4)
                 }
+            }
+
+            detailSection(
+                title: "项目文件",
+                subtitle: "Workspace Files"
+            ) {
+
+                HStack(
+                    spacing: CosmosDesign.spacingM
+                ) {
+
+                    Image(
+                        systemName:
+                            "folder.badge.plus"
+                    )
+                    .frame(width: 22)
+                    .foregroundStyle(.secondary)
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 4
+                    ) {
+
+                        Text("创建标准工作目录")
+                            .fontWeight(.medium)
+
+                        Text(
+                            "在 Mac 的“文稿/Cosmos OS/Workspaces”中为当前活动创建标准文件夹。"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    HStack(
+                        spacing: CosmosDesign.spacingS
+                    ) {
+
+                        Button {
+                            createWorkspace()
+                        } label: {
+                            Label(
+                                "创建工作目录",
+                                systemImage:
+                                    "folder.badge.plus"
+                            )
+                        }
+                        .buttonStyle(
+                            .bordered
+                        )
+
+                        Button {
+                            openWorkspaceInFinder()
+                        } label: {
+                            Label(
+                                "在 Finder 中打开",
+                                systemImage:
+                                    "folder"
+                            )
+                        }
+                        .buttonStyle(
+                            .borderedProminent
+                        )
+                    }
+                }
+                .padding(.vertical, 11)
             }
 
             detailSection(
@@ -1252,6 +1429,81 @@ struct ZhuowangCampaignDetailView: View {
     }
 
 
+    private func openWorkspaceInFinder() {
+
+        guard let campaign else {
+            return
+        }
+
+        do {
+
+            let workspaceURL =
+                try ZhuowangWorkspaceFileManager
+                    .shared
+                    .createCampaignWorkspace(
+                        provinceName:
+                            province?.name,
+                        campaignName:
+                            campaign.name
+                    )
+
+            NSWorkspace.shared.open(
+                workspaceURL
+            )
+
+        } catch {
+
+            workspaceMessage =
+                """
+                无法打开工作目录：
+
+                \(error.localizedDescription)
+                """
+
+            showWorkspaceAlert = true
+        }
+    }
+
+
+    private func createWorkspace() {
+
+        guard let campaign else {
+            return
+        }
+
+        do {
+
+            let workspaceURL =
+                try ZhuowangWorkspaceFileManager
+                    .shared
+                    .createCampaignWorkspace(
+                        provinceName:
+                            province?.name,
+                        campaignName:
+                            campaign.name
+                    )
+
+            workspaceMessage =
+                """
+                已成功创建工作目录：
+
+                \(workspaceURL.path)
+                """
+
+        } catch {
+
+            workspaceMessage =
+                """
+                创建工作目录失败：
+
+                \(error.localizedDescription)
+                """
+        }
+
+        showWorkspaceAlert = true
+    }
+
+
     private func deleteCampaign() {
 
         store.deleteCampaign(
@@ -1279,6 +1531,596 @@ struct ZhuowangCampaignDetailView: View {
 
         return formatter.string(
             from: date
+        )
+    }
+}
+
+
+// MARK: - Artifact Detail
+
+private struct ZhuowangArtifactDetailView: View {
+
+    let artifact: ZhuowangArtifact
+    let sourceStepName: String
+    let sourceAIName: String
+
+    @Environment(\.dismiss)
+    private var dismiss
+
+    @State
+    private var copied = false
+
+    var body: some View {
+
+        VStack(spacing: 0) {
+
+            header
+            Divider()
+
+            ScrollView {
+
+                VStack(
+                    alignment: .leading,
+                    spacing: CosmosDesign.spacingXL
+                ) {
+
+                    summaryCard
+                    contentSection
+                }
+                .padding(
+                    .horizontal,
+                    CosmosDesign.pagePadding
+                )
+                .padding(
+                    .vertical,
+                    CosmosDesign.spacingXL
+                )
+                .frame(
+                    maxWidth: 860,
+                    alignment: .leading
+                )
+            }
+
+            Divider()
+            footer
+        }
+        .frame(
+            minWidth: 760,
+            minHeight: 650
+        )
+    }
+
+
+    private var header: some View {
+
+        HStack(
+            spacing: CosmosDesign.spacingM
+        ) {
+
+            ZStack {
+
+                RoundedRectangle(
+                    cornerRadius: 10,
+                    style: .continuous
+                )
+                .fill(
+                    Color.accentColor.opacity(0.09)
+                )
+                .frame(
+                    width: 40,
+                    height: 40
+                )
+
+                Image(
+                    systemName: artifactSystemImage
+                )
+                .font(
+                    .system(
+                        size: 17,
+                        weight: .medium
+                    )
+                )
+                .foregroundStyle(.tint)
+            }
+
+            VStack(
+                alignment: .leading,
+                spacing: 3
+            ) {
+
+                Text(artifact.name)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Artifact Detail · 独立窗口")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(
+            .horizontal,
+            CosmosDesign.spacingL
+        )
+        .padding(
+            .vertical,
+            CosmosDesign.spacingM
+        )
+    }
+
+
+    private var summaryCard: some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingM
+        ) {
+
+            HStack(
+                alignment: .top,
+                spacing: CosmosDesign.spacingL
+            ) {
+
+                meta(
+                    title: "文件类型",
+                    value: artifact.type.title
+                )
+
+                meta(
+                    title: "版本",
+                    value: "V\(artifact.version)"
+                )
+
+                meta(
+                    title: "来源步骤",
+                    value: sourceStepName
+                )
+
+                meta(
+                    title: "来源 AI",
+                    value: sourceAIName
+                )
+
+                Spacer()
+            }
+
+            Divider()
+
+            HStack(spacing: 10) {
+
+                if artifact.isApprovedVersion {
+
+                    Label(
+                        "当前采用版本",
+                        systemImage: "checkmark.seal.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                }
+
+                Text(
+                    formattedDateTime(
+                        artifact.createdAt
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(CosmosDesign.cardPadding)
+        .background(.thinMaterial)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign.cornerRadiusLarge,
+                style: .continuous
+            )
+        )
+        .overlay {
+
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign.cornerRadiusLarge,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary.opacity(0.06),
+                lineWidth: 1
+            )
+        }
+    }
+
+
+    private var contentSection: some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingM
+        ) {
+
+            CosmosSectionTitle(
+                title: "完整内容",
+                subtitle: "Content"
+            )
+
+            Group {
+
+                if cleanContent.isEmpty {
+
+                    VStack(
+                        spacing: CosmosDesign.spacingM
+                    ) {
+
+                        Image(
+                            systemName:
+                                "doc.text.magnifyingglass"
+                        )
+                        .font(
+                            .system(
+                                size: 24,
+                                weight: .medium
+                            )
+                        )
+                        .foregroundStyle(.secondary)
+
+                        Text("这个工作产物暂时没有可显示的正文")
+                            .font(.headline)
+
+                        if !artifact.location.isEmpty {
+
+                            Text(artifact.location)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: 220
+                    )
+
+                } else {
+
+                    Text(cleanContent)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                }
+            }
+            .padding(CosmosDesign.spacingL)
+            .background(
+                Color.primary.opacity(0.018)
+            )
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius:
+                        CosmosDesign.cornerRadiusLarge,
+                    style: .continuous
+                )
+            )
+            .overlay {
+
+                RoundedRectangle(
+                    cornerRadius:
+                        CosmosDesign.cornerRadiusLarge,
+                    style: .continuous
+                )
+                .stroke(
+                    Color.primary.opacity(0.055),
+                    lineWidth: 1
+                )
+            }
+        }
+    }
+
+
+    private var footer: some View {
+
+        HStack(
+            spacing: CosmosDesign.spacingM
+        ) {
+
+            if !artifact.location.isEmpty {
+
+                Text(artifact.location)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button {
+                copyContent()
+            } label: {
+
+                Label(
+                    copied
+                    ? "已复制"
+                    : "复制内容",
+                    systemImage:
+                        copied
+                        ? "checkmark"
+                        : "doc.on.doc"
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(cleanContent.isEmpty)
+        }
+        .padding(
+            .horizontal,
+            CosmosDesign.spacingL
+        )
+        .padding(
+            .vertical,
+            CosmosDesign.spacingM
+        )
+    }
+
+
+    private func meta(
+        title: String,
+        value: String
+    ) -> some View {
+
+        VStack(
+            alignment: .leading,
+            spacing: 5
+        ) {
+
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(value)
+                .font(.callout)
+                .fontWeight(.medium)
+                .lineLimit(2)
+        }
+        .frame(
+            minWidth: 105,
+            alignment: .leading
+        )
+    }
+
+
+    private var cleanContent: String {
+
+        artifact.content?
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        ?? ""
+    }
+
+
+    private func copyContent() {
+
+        guard !cleanContent.isEmpty else {
+            return
+        }
+
+        NSPasteboard.general.clearContents()
+
+        NSPasteboard.general.setString(
+            cleanContent,
+            forType: .string
+        )
+
+        copied = true
+
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + 1.5
+        ) {
+            copied = false
+        }
+    }
+
+
+    private func formattedDateTime(
+        _ date: Date
+    ) -> String {
+
+        let formatter =
+            DateFormatter()
+
+        formatter.locale =
+            Locale(
+                identifier: "zh_CN"
+            )
+
+        formatter.dateFormat =
+            "yyyy.MM.dd HH:mm"
+
+        return formatter.string(
+            from: date
+        )
+    }
+
+
+    private var artifactSystemImage: String {
+
+        switch artifact.type {
+
+        case .markdown:
+            return "doc.text"
+
+        case .word:
+            return "doc.richtext"
+
+        case .pdf:
+            return "doc.text"
+
+        case .excel:
+            return "tablecells"
+
+        case .image:
+            return "photo"
+
+        case .figma:
+            return "square.on.square"
+
+        case .html:
+            return "chevron.left.forwardslash.chevron.right"
+
+        case .flowchart:
+            return "point.3.connected.trianglepath.dotted"
+
+        case .prompt:
+            return "text.quote"
+
+        case .url:
+            return "link"
+
+        case .other:
+            return "doc"
+        }
+    }
+}
+
+
+// MARK: - Artifact Native Window Manager
+
+private final class ZhuowangArtifactWindowManager:
+    NSObject,
+    NSWindowDelegate {
+
+    static let shared =
+        ZhuowangArtifactWindowManager()
+
+    private var controllers:
+        [UUID: NSWindowController] = [:]
+
+    private override init() {
+        super.init()
+    }
+
+
+    func open(
+        artifact: ZhuowangArtifact,
+        sourceStepName: String,
+        sourceAIName: String
+    ) {
+
+        if let existing =
+            controllers[artifact.id] {
+
+            existing.window?
+                .makeKeyAndOrderFront(nil)
+
+            NSApp.activate(
+                ignoringOtherApps: true
+            )
+
+            return
+        }
+
+        let rootView =
+            ZhuowangArtifactDetailView(
+                artifact: artifact,
+                sourceStepName:
+                    sourceStepName,
+                sourceAIName:
+                    sourceAIName
+            )
+
+        let hostingController =
+            NSHostingController(
+                rootView: rootView
+            )
+
+        let window =
+            NSWindow(
+                contentRect:
+                    NSRect(
+                        x: 0,
+                        y: 0,
+                        width: 900,
+                        height: 760
+                    ),
+                styleMask: [
+                    .titled,
+                    .closable,
+                    .miniaturizable,
+                    .resizable
+                ],
+                backing: .buffered,
+                defer: false
+            )
+
+        window.title =
+            artifact.name
+
+        window.titleVisibility =
+            .visible
+
+        window.titlebarAppearsTransparent =
+            false
+
+        window.isMovableByWindowBackground =
+            false
+
+        window.minSize =
+            NSSize(
+                width: 700,
+                height: 560
+            )
+
+        window.contentViewController =
+            hostingController
+
+        window.delegate = self
+
+        window.center()
+
+        let controller =
+            NSWindowController(
+                window: window
+            )
+
+        controllers[artifact.id] =
+            controller
+
+        window.identifier =
+            NSUserInterfaceItemIdentifier(
+                artifact.id.uuidString
+            )
+
+        controller.showWindow(nil)
+
+        window.makeKeyAndOrderFront(nil)
+
+        NSApp.activate(
+            ignoringOtherApps: true
+        )
+    }
+
+
+    func windowWillClose(
+        _ notification: Notification
+    ) {
+
+        guard
+            let window =
+                notification.object
+                    as? NSWindow,
+            let rawID =
+                window.identifier?
+                    .rawValue,
+            let artifactID =
+                UUID(
+                    uuidString: rawID
+                )
+        else {
+            return
+        }
+
+        controllers.removeValue(
+            forKey: artifactID
         )
     }
 }
@@ -1362,3 +2204,4 @@ enum ZhuowangCampaignDetailTab:
             nil
     )
 }
+

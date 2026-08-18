@@ -982,6 +982,8 @@ final class ZhuowangWorkflowStore: ObservableObject {
     func adoptAIResult(
         workflowID: UUID,
         campaignID: UUID,
+        campaignName: String,
+        provinceName: String?,
         stepID: UUID,
         providerID: UUID,
         inputText: String,
@@ -1021,6 +1023,11 @@ final class ZhuowangWorkflowStore: ObservableObject {
             return false
         }
 
+        let stepKind =
+            workflows[workflowIndex]
+                .steps[stepIndex]
+                .kind
+
         // Avoid creating duplicate records when the button is clicked twice.
         if let existingRun =
             workflows[workflowIndex]
@@ -1041,6 +1048,69 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         && $0.decision == .approved
                     }
                 ) {
+
+            if let artifactIndex =
+                workflows[workflowIndex]
+                    .artifacts
+                    .firstIndex(
+                        where: {
+                            $0.runID == existingRun.id
+                        }
+                    ) {
+
+                let existingArtifact =
+                    workflows[workflowIndex]
+                        .artifacts[artifactIndex]
+
+                if existingArtifact.location
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                    .isEmpty,
+                   let existingContent =
+                    existingArtifact.content,
+                   !existingContent
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                    .isEmpty {
+
+                    do {
+
+                        let fileURL =
+                            try ZhuowangWorkspaceFileManager
+                                .shared
+                                .writeMarkdownArtifact(
+                                    provinceName:
+                                        provinceName,
+                                    campaignName:
+                                        campaignName,
+                                    stepKind:
+                                        stepKind,
+                                    artifactName:
+                                        existingArtifact.name,
+                                    version:
+                                        existingArtifact.version,
+                                    content:
+                                        existingContent
+                                )
+
+                        workflows[workflowIndex]
+                            .artifacts[artifactIndex]
+                            .location =
+                            fileURL.path
+
+                        workflows[workflowIndex]
+                            .artifacts[artifactIndex]
+                            .updatedAt =
+                            Date()
+
+                    } catch {
+
+                        return false
+                    }
+                }
+            }
 
             workflows[workflowIndex]
                 .steps[stepIndex]
@@ -1150,6 +1220,33 @@ final class ZhuowangWorkflowStore: ObservableObject {
             }
         }
 
+        let fileURL: URL
+
+        do {
+
+            fileURL =
+                try ZhuowangWorkspaceFileManager
+                    .shared
+                    .writeMarkdownArtifact(
+                        provinceName:
+                            provinceName,
+                        campaignName:
+                            campaignName,
+                        stepKind:
+                            stepKind,
+                        artifactName:
+                            finalArtifactName,
+                        version:
+                            artifactVersion,
+                        content:
+                            cleanOutput
+                    )
+
+        } catch {
+
+            return false
+        }
+
         let artifact =
             ZhuowangArtifact(
                 campaignID: campaignID,
@@ -1157,7 +1254,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 runID: run.id,
                 name: finalArtifactName,
                 type: .markdown,
-                location: "",
+                location: fileURL.path,
                 content: cleanOutput,
                 version: artifactVersion,
                 isApprovedVersion: true
@@ -1752,4 +1849,5 @@ final class ZhuowangWorkflowStore: ObservableObject {
         )
     ]
 }
+
 
