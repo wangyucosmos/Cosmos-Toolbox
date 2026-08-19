@@ -44,6 +44,15 @@ Important version state:
 - Current adopted version is **V1**.
 - Do not overwrite this choice unless the user explicitly changes it.
 
+Post-P0 runtime acceptance was completed manually on 2026-08-19:
+
+- 01-04 Workflow remain `已确认`;
+- 05 产品原型设计 remains `可开始`;
+- 完整策划案 currently adopted version remains **V1**;
+- Figma does not appear in the `执行 AI` list;
+- Figma remains available as a Tool;
+- recovered Artifacts and all historical versions remain available.
+
 ---
 
 ## 3. Verified Workflow capabilities
@@ -94,6 +103,11 @@ Fixes implemented:
 - backward-compatible Workflow Step decoding;
 - persistence protection against overwriting unreadable saved Workflow data;
 - lightweight Workflow backup payload;
+- backward-compatible decoding for AI Provider, AI Connection, Tool Integration, and Agent/Tool Route payloads;
+- independent backup payloads and write locks for all four configuration boundaries;
+- backup refresh only after the current payload is successfully decoded again;
+- preservation of the last recoverable backup when the current payload is unreadable;
+- default configuration seeding only when a storage key is genuinely missing, not when saved data is empty or unreadable;
 - local-file disaster recovery;
 - local Markdown Artifact discovery;
 - reconstruction of missing Artifact metadata;
@@ -201,6 +215,12 @@ The Tool Adapter abstraction exists to prevent Workflow logic from being tied to
 
 The HTML Prototype Adapter is the first simple adapter used to validate the abstraction.
 
+Current limitation:
+
+- it is a compiling placeholder implementation;
+- it is not connected to Workflow UI execution orchestration;
+- it does not yet complete human review, adoption, local HTML persistence, or disaster recovery.
+
 Do not assume HTML is the final prototype path.
 
 ---
@@ -271,6 +291,8 @@ Current implementation focus:
 - Business data still relies heavily on UserDefaults in current implementation.
 - Long-term business persistence should move toward a more robust structured persistence strategy.
 - Schema migration and recovery must remain safe.
+- Workflow, AI Provider, AI Connection, Tool Integration, and Agent/Tool Route payloads now have decode protection and backup recovery.
+- Campaign Store and Workspace Store do not yet have the same backup / write-lock boundary.
 
 ### P1
 
@@ -279,6 +301,7 @@ Current implementation focus:
 - Claude Desktop direct execution is not yet implemented.
 - ChatGPT direct execution path is not yet implemented.
 - Codex execution path from inside Cosmos OS is not yet fully implemented.
+- The project still has no automated Test Target; persistence regression coverage remains technical debt.
 
 ### Deferred
 
@@ -342,7 +365,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 The next engineering priority should be chosen after Codex reads the current codebase and verifies that the persistence / recovery fixes are present in the local repository.
 
-Assuming that baseline is healthy:
+The P0 persistence baseline for Workflow and AI/tool configuration is now healthy enough to continue, with the remaining risks recorded above.
 
 ### Next mainline
 
@@ -386,15 +409,10 @@ Do not regress these verified decisions:
 
 ---
 
-## 15. Immediate Codex onboarding task
+## 15. Current verification checkpoint
 
-When Codex first takes over this repository:
-
-1. Read `AGENTS.md`.
-2. Read Docs 01-07.
-3. Inspect `git status`.
-4. Inspect current Swift source and verify it matches this status.
-5. Build the macOS app.
-6. Report any mismatch between repository code and this document.
-7. Do not immediately refactor.
-8. Propose the smallest coherent next implementation plan for Workflow Step 05.
+- Post-P0 runtime state was manually verified by the user without regenerating 01-04 or changing the adopted V1 selection.
+- P0 persistence changes do not reset or delete UserDefaults data.
+- The user confirmed that Workflow progress, Tool separation, recovered Artifacts, and historical versions remained intact after running the updated app.
+- Full macOS Debug build completed with `BUILD SUCCEEDED` on 2026-08-19.
+- No automated tests were added because the project has no Test Target; this remains explicit technical debt.

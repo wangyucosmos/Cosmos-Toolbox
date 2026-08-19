@@ -103,6 +103,91 @@ struct ZhuowangAIProvider:
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+
+    // MARK: Backward-Compatible Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case kind
+        case modelName
+        case isEnabled
+        case isVisible
+        case configurationIdentifier
+        case createdAt
+        case updatedAt
+    }
+
+
+    init(from decoder: Decoder) throws {
+
+        let container =
+            try decoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        id =
+            try container.decode(
+                UUID.self,
+                forKey: .id
+            )
+
+        name =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .name
+            )
+            ?? "未命名 AI Provider"
+
+        kind =
+            try container.decodeIfPresent(
+                ZhuowangAIProviderKind.self,
+                forKey: .kind
+            )
+            ?? .custom
+
+        modelName =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .modelName
+            )
+            ?? ""
+
+        isEnabled =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .isEnabled
+            )
+            ?? true
+
+        isVisible =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .isVisible
+            )
+            ?? true
+
+        configurationIdentifier =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .configurationIdentifier
+            )
+
+        createdAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .createdAt
+            )
+            ?? Date()
+
+        updatedAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .updatedAt
+            )
+            ?? createdAt
+    }
 }
 
 
@@ -932,7 +1017,5 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
-
-
 
 

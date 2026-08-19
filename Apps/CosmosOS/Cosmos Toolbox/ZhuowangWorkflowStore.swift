@@ -1,6 +1,14 @@
 import Foundation
 import Combine
 
+private enum ZhuowangProviderPersistenceLoadState: Equatable {
+    case missing
+    case loaded
+    case recoveredFromBackup
+    case locked
+}
+
+
 struct ZhuowangWorkflowRecoverySummary {
 
     let importedArtifacts: Int
@@ -40,6 +48,9 @@ final class ZhuowangWorkflowStore: ObservableObject {
     private let providerStorageKey =
         "cosmos.zhuowang.ai.providers.v1"
 
+    private let providerBackupStorageKey =
+        "cosmos.zhuowang.ai.providers.v1.backup"
+
     /// Last known workflow payload before a successful overwrite.
     /// Used as a lightweight safety net for future model migrations.
     private let workflowBackupStorageKey =
@@ -52,6 +63,13 @@ final class ZhuowangWorkflowStore: ObservableObject {
     /// When recovering from backup, preserve that backup on the next save.
     private var skipNextWorkflowBackup = false
 
+    /// Provider configuration has the same safety boundary as Workflow data.
+    /// A decode failure must not be converted into a fresh default registry.
+    private var providerPersistenceLocked = false
+    private var skipNextProviderBackup = false
+    private var providerLoadState:
+        ZhuowangProviderPersistenceLoadState = .missing
+
 
     // MARK: - Init
 
@@ -59,14 +77,14 @@ final class ZhuowangWorkflowStore: ObservableObject {
         loadProviders()
         loadWorkflows()
 
-        if providers.isEmpty {
+        if providerLoadState == .missing {
             providers = Self.defaultProviders
             saveProviders()
-        } else {
-            normalizeBuiltInProviderIDs()
-        }
 
-        removeLegacyToolProvidersFromAIRegistry()
+        } else if providerLoadState != .locked {
+            normalizeBuiltInProviderIDs()
+            removeLegacyToolProvidersFromAIRegistry()
+        }
     }
 
 
@@ -2046,11 +2064,19 @@ final class ZhuowangWorkflowStore: ObservableObject {
                     workflowStorageKey
             ) {
 
-            defaults.set(
-                currentData,
-                forKey:
-                    workflowBackupStorageKey
-            )
+            if canDecodeWorkflows(
+                currentData
+            ) {
+                defaults.set(
+                    currentData,
+                    forKey:
+                        workflowBackupStorageKey
+                )
+            } else {
+                print(
+                    "[Cosmos OS] Existing Workflow payload is unreadable. Previous backup was preserved."
+                )
+            }
         }
 
         defaults.set(
@@ -2133,6 +2159,13 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     private func saveProviders() {
 
+        guard !providerPersistenceLocked else {
+            print(
+                "[Cosmos OS] AI Provider persistence is locked because existing data could not be decoded. Save skipped to protect user data."
+            )
+            return
+        }
+
         guard
             let data =
                 try? JSONEncoder()
@@ -2141,7 +2174,33 @@ final class ZhuowangWorkflowStore: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(
+        let defaults = UserDefaults.standard
+
+        if skipNextProviderBackup {
+            skipNextProviderBackup = false
+
+        } else if let currentData =
+            defaults.data(
+                forKey:
+                    providerStorageKey
+            ) {
+
+            if canDecodeProviders(
+                currentData
+            ) {
+                defaults.set(
+                    currentData,
+                    forKey:
+                        providerBackupStorageKey
+                )
+            } else {
+                print(
+                    "[Cosmos OS] Existing AI Provider payload is unreadable. Previous backup was preserved."
+                )
+            }
+        }
+
+        defaults.set(
             data,
             forKey:
                 providerStorageKey
@@ -2151,26 +2210,88 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     private func loadProviders() {
 
-        guard
-            let data =
-                UserDefaults.standard
-                .data(
-                    forKey:
-                        providerStorageKey
-                ),
-            let savedProviders =
-                try? JSONDecoder()
+        let defaults = UserDefaults.standard
+
+        guard let data =
+            defaults.data(
+                forKey:
+                    providerStorageKey
+            )
+        else {
+            providers = []
+            providerPersistenceLocked = false
+            providerLoadState = .missing
+            return
+        }
+
+        do {
+            providers =
+                try JSONDecoder()
                 .decode(
                     [ZhuowangAIProvider].self,
                     from: data
                 )
-        else {
-            providers = []
-            return
-        }
 
-        providers =
-            savedProviders
+            providerPersistenceLocked = false
+            providerLoadState = .loaded
+
+        } catch {
+
+            if let backupData =
+                defaults.data(
+                    forKey:
+                        providerBackupStorageKey
+                ),
+               let backupProviders =
+                try? JSONDecoder()
+                .decode(
+                    [ZhuowangAIProvider].self,
+                    from: backupData
+                ) {
+
+                providers = backupProviders
+                providerPersistenceLocked = false
+                providerLoadState = .recoveredFromBackup
+                skipNextProviderBackup = true
+
+                print(
+                    "[Cosmos OS] AI Provider payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
+                )
+                return
+            }
+
+            providers = []
+            providerPersistenceLocked = true
+            providerLoadState = .locked
+
+            print(
+                "[Cosmos OS] AI Provider decode failed. Existing payload and previous backup were protected from overwrite: \(error.localizedDescription)"
+            )
+        }
+    }
+
+
+    // MARK: - Backup Validation
+
+    private func canDecodeWorkflows(
+        _ data: Data
+    ) -> Bool {
+
+        (try? JSONDecoder().decode(
+            [ZhuowangCampaignWorkflow].self,
+            from: data
+        )) != nil
+    }
+
+
+    private func canDecodeProviders(
+        _ data: Data
+    ) -> Bool {
+
+        (try? JSONDecoder().decode(
+            [ZhuowangAIProvider].self,
+            from: data
+        )) != nil
     }
 
 
@@ -2518,7 +2639,5 @@ final class ZhuowangWorkflowStore: ObservableObject {
         )
     ]
 }
-
-
 
 

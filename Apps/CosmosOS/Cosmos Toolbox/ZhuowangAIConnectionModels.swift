@@ -307,6 +307,153 @@ struct ZhuowangAIConnection:
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+
+    // MARK: Backward-Compatible Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case providerID
+        case name
+        case mode
+        case status
+        case executionStyle
+        case capabilities
+        case allowsAutomaticSelection
+        case supportsDirectExecution
+        case supportsAutomaticResultReturn
+        case adapterIdentifier
+        case endpointOrPath
+        case configuration
+        case isEnabled
+        case notes
+        case createdAt
+        case updatedAt
+    }
+
+
+    init(from decoder: Decoder) throws {
+
+        let container =
+            try decoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        id =
+            try container.decode(
+                UUID.self,
+                forKey: .id
+            )
+
+        providerID =
+            try container.decode(
+                UUID.self,
+                forKey: .providerID
+            )
+
+        name =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .name
+            )
+            ?? "未命名 AI Connection"
+
+        mode =
+            try container.decodeIfPresent(
+                ZhuowangAIConnectionMode.self,
+                forKey: .mode
+            )
+            ?? .custom
+
+        status =
+            try container.decodeIfPresent(
+                ZhuowangAIConnectionStatus.self,
+                forKey: .status
+            )
+            ?? .notConfigured
+
+        executionStyle =
+            try container.decodeIfPresent(
+                ZhuowangAIExecutionStyle.self,
+                forKey: .executionStyle
+            )
+            ?? .assistedManual
+
+        capabilities =
+            try container.decodeIfPresent(
+                Set<ZhuowangAICapability>.self,
+                forKey: .capabilities
+            )
+            ?? []
+
+        allowsAutomaticSelection =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .allowsAutomaticSelection
+            )
+            ?? true
+
+        supportsDirectExecution =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .supportsDirectExecution
+            )
+            ?? false
+
+        supportsAutomaticResultReturn =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .supportsAutomaticResultReturn
+            )
+            ?? false
+
+        adapterIdentifier =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .adapterIdentifier
+            )
+
+        endpointOrPath =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .endpointOrPath
+            )
+
+        configuration =
+            try container.decodeIfPresent(
+                [String: String].self,
+                forKey: .configuration
+            )
+            ?? [:]
+
+        isEnabled =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .isEnabled
+            )
+            ?? true
+
+        notes =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .notes
+            )
+            ?? ""
+
+        createdAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .createdAt
+            )
+            ?? Date()
+
+        updatedAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .updatedAt
+            )
+            ?? createdAt
+    }
 }
 
 
@@ -455,6 +602,114 @@ struct ZhuowangExternalToolIntegration:
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+
+    // MARK: Backward-Compatible Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case kind
+        case name
+        case status
+        case mode
+        case adapterIdentifier
+        case endpointOrPath
+        case configuration
+        case isEnabled
+        case notes
+        case createdAt
+        case updatedAt
+    }
+
+
+    init(from decoder: Decoder) throws {
+
+        let container =
+            try decoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        id =
+            try container.decode(
+                UUID.self,
+                forKey: .id
+            )
+
+        kind =
+            try container.decodeIfPresent(
+                ZhuowangExternalToolKind.self,
+                forKey: .kind
+            )
+            ?? .custom
+
+        name =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .name
+            )
+            ?? "未命名 Tool Integration"
+
+        status =
+            try container.decodeIfPresent(
+                ZhuowangToolIntegrationStatus.self,
+                forKey: .status
+            )
+            ?? .needsSetup
+
+        mode =
+            try container.decodeIfPresent(
+                ZhuowangAIConnectionMode.self,
+                forKey: .mode
+            )
+            ?? .connector
+
+        adapterIdentifier =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .adapterIdentifier
+            )
+
+        endpointOrPath =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .endpointOrPath
+            )
+
+        configuration =
+            try container.decodeIfPresent(
+                [String: String].self,
+                forKey: .configuration
+            )
+            ?? [:]
+
+        isEnabled =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .isEnabled
+            )
+            ?? true
+
+        notes =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .notes
+            )
+            ?? ""
+
+        createdAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .createdAt
+            )
+            ?? Date()
+
+        updatedAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .updatedAt
+            )
+            ?? createdAt
+    }
 }
 
 
@@ -504,6 +759,113 @@ struct ZhuowangAgentToolRoute:
         self.notes = notes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+
+    // MARK: Backward-Compatible Codable
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case connectionID
+        case toolIntegrationID
+        case status
+        case executionMode
+        case supportsDirectExecution
+        case supportsAutomaticResultReturn
+        case adapterIdentifier
+        case configuration
+        case notes
+        case createdAt
+        case updatedAt
+    }
+
+
+    init(from decoder: Decoder) throws {
+
+        let container =
+            try decoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        id =
+            try container.decode(
+                UUID.self,
+                forKey: .id
+            )
+
+        connectionID =
+            try container.decode(
+                UUID.self,
+                forKey: .connectionID
+            )
+
+        toolIntegrationID =
+            try container.decode(
+                UUID.self,
+                forKey: .toolIntegrationID
+            )
+
+        status =
+            try container.decodeIfPresent(
+                ZhuowangToolIntegrationStatus.self,
+                forKey: .status
+            )
+            ?? .needsSetup
+
+        executionMode =
+            try container.decodeIfPresent(
+                ZhuowangToolExecutionMode.self,
+                forKey: .executionMode
+            )
+            ?? .agentManaged
+
+        supportsDirectExecution =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .supportsDirectExecution
+            )
+            ?? false
+
+        supportsAutomaticResultReturn =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .supportsAutomaticResultReturn
+            )
+            ?? false
+
+        adapterIdentifier =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .adapterIdentifier
+            )
+
+        configuration =
+            try container.decodeIfPresent(
+                [String: String].self,
+                forKey: .configuration
+            )
+            ?? [:]
+
+        notes =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .notes
+            )
+            ?? ""
+
+        createdAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .createdAt
+            )
+            ?? Date()
+
+        updatedAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .updatedAt
+            )
+            ?? createdAt
     }
 }
 
@@ -659,5 +1021,3 @@ struct ZhuowangAITaskPackage:
         self.createdAt = createdAt
     }
 }
-
-

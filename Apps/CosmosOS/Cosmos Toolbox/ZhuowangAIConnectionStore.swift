@@ -1,6 +1,14 @@
 import Foundation
 import Combine
 
+private enum ZhuowangConnectionPersistenceLoadState: Equatable {
+    case missing
+    case loaded
+    case recoveredFromBackup
+    case locked
+}
+
+
 final class ZhuowangAIConnectionStore: ObservableObject {
 
     // MARK: - Data
@@ -26,6 +34,32 @@ final class ZhuowangAIConnectionStore: ObservableObject {
     private let agentToolRoutesStorageKey =
         "cosmos.zhuowang.ai.agentToolRoutes.v1"
 
+    private let backupStorageKey =
+        "cosmos.zhuowang.ai.connections.v1.backup"
+
+    private let toolIntegrationsBackupStorageKey =
+        "cosmos.zhuowang.ai.toolIntegrations.v1.backup"
+
+    private let agentToolRoutesBackupStorageKey =
+        "cosmos.zhuowang.ai.agentToolRoutes.v1.backup"
+
+    private var connectionLoadState:
+        ZhuowangConnectionPersistenceLoadState = .missing
+
+    private var toolIntegrationLoadState:
+        ZhuowangConnectionPersistenceLoadState = .missing
+
+    private var agentToolRouteLoadState:
+        ZhuowangConnectionPersistenceLoadState = .missing
+
+    private var connectionPersistenceLocked = false
+    private var toolIntegrationPersistenceLocked = false
+    private var agentToolRoutePersistenceLocked = false
+
+    private var skipNextConnectionBackup = false
+    private var skipNextToolIntegrationBackup = false
+    private var skipNextAgentToolRouteBackup = false
+
 
     // MARK: - Init
 
@@ -35,7 +69,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
         loadToolIntegrations()
         loadAgentToolRoutes()
 
-        if connections.isEmpty {
+        if connectionLoadState == .missing {
 
             connections =
                 Self.defaultConnections
@@ -43,7 +77,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             save()
         }
 
-        if toolIntegrations.isEmpty {
+        if toolIntegrationLoadState == .missing {
 
             toolIntegrations =
                 Self.defaultToolIntegrations
@@ -51,7 +85,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             saveToolIntegrations()
         }
 
-        if agentToolRoutes.isEmpty {
+        if agentToolRouteLoadState == .missing {
 
             agentToolRoutes =
                 Self.defaultAgentToolRoutes
@@ -515,6 +549,13 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
     private func save() {
 
+        guard !connectionPersistenceLocked else {
+            print(
+                "[Cosmos OS] AI Connection persistence is locked because existing data could not be decoded. Save skipped to protect user data."
+            )
+            return
+        }
+
         guard
             let data =
                 try? JSONEncoder()
@@ -523,7 +564,31 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(
+        let defaults = UserDefaults.standard
+
+        if skipNextConnectionBackup {
+            skipNextConnectionBackup = false
+
+        } else if let currentData =
+            defaults.data(
+                forKey: storageKey
+            ) {
+
+            if canDecodeConnections(
+                currentData
+            ) {
+                defaults.set(
+                    currentData,
+                    forKey: backupStorageKey
+                )
+            } else {
+                print(
+                    "[Cosmos OS] Existing AI Connection payload is unreadable. Previous backup was preserved."
+                )
+            }
+        }
+
+        defaults.set(
             data,
             forKey: storageKey
         )
@@ -532,31 +597,75 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
     private func load() {
 
-        guard
-            let data =
-                UserDefaults.standard
-                .data(
-                    forKey: storageKey
-                ),
-            let savedConnections =
-                try? JSONDecoder()
+        let defaults = UserDefaults.standard
+
+        guard let data =
+            defaults.data(
+                forKey: storageKey
+            )
+        else {
+            connections = []
+            connectionPersistenceLocked = false
+            connectionLoadState = .missing
+            return
+        }
+
+        do {
+            connections =
+                try JSONDecoder()
                 .decode(
                     [ZhuowangAIConnection].self,
                     from: data
                 )
-        else {
-            connections = []
-            return
-        }
 
-        connections =
-            savedConnections
+            connectionPersistenceLocked = false
+            connectionLoadState = .loaded
+
+        } catch {
+
+            if let backupData =
+                defaults.data(
+                    forKey: backupStorageKey
+                ),
+               let backupConnections =
+                try? JSONDecoder()
+                .decode(
+                    [ZhuowangAIConnection].self,
+                    from: backupData
+                ) {
+
+                connections = backupConnections
+                connectionPersistenceLocked = false
+                connectionLoadState = .recoveredFromBackup
+                skipNextConnectionBackup = true
+
+                print(
+                    "[Cosmos OS] AI Connection payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
+                )
+                return
+            }
+
+            connections = []
+            connectionPersistenceLocked = true
+            connectionLoadState = .locked
+
+            print(
+                "[Cosmos OS] AI Connection decode failed. Existing payload and previous backup were protected from overwrite: \(error.localizedDescription)"
+            )
+        }
     }
 
 
     // MARK: - Tool Persistence
 
     private func saveToolIntegrations() {
+
+        guard !toolIntegrationPersistenceLocked else {
+            print(
+                "[Cosmos OS] Tool Integration persistence is locked because existing data could not be decoded. Save skipped to protect user data."
+            )
+            return
+        }
 
         guard
             let data =
@@ -568,7 +677,32 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(
+        let defaults = UserDefaults.standard
+
+        if skipNextToolIntegrationBackup {
+            skipNextToolIntegrationBackup = false
+
+        } else if let currentData =
+            defaults.data(
+                forKey: toolIntegrationsStorageKey
+            ) {
+
+            if canDecodeToolIntegrations(
+                currentData
+            ) {
+                defaults.set(
+                    currentData,
+                    forKey:
+                        toolIntegrationsBackupStorageKey
+                )
+            } else {
+                print(
+                    "[Cosmos OS] Existing Tool Integration payload is unreadable. Previous backup was preserved."
+                )
+            }
+        }
+
+        defaults.set(
             data,
             forKey:
                 toolIntegrationsStorageKey
@@ -578,31 +712,76 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
     private func loadToolIntegrations() {
 
-        guard
-            let data =
-                UserDefaults.standard
-                    .data(
-                        forKey:
-                            toolIntegrationsStorageKey
-                    ),
-            let saved =
-                try? JSONDecoder()
-                    .decode(
-                        [ZhuowangExternalToolIntegration].self,
-                        from: data
-                    )
+        let defaults = UserDefaults.standard
+
+        guard let data =
+            defaults.data(
+                forKey:
+                    toolIntegrationsStorageKey
+            )
         else {
 
             toolIntegrations = []
+            toolIntegrationPersistenceLocked = false
+            toolIntegrationLoadState = .missing
             return
         }
 
-        toolIntegrations =
-            saved
+        do {
+            toolIntegrations =
+                try JSONDecoder()
+                .decode(
+                    [ZhuowangExternalToolIntegration].self,
+                    from: data
+                )
+
+            toolIntegrationPersistenceLocked = false
+            toolIntegrationLoadState = .loaded
+
+        } catch {
+
+            if let backupData =
+                defaults.data(
+                    forKey:
+                        toolIntegrationsBackupStorageKey
+                ),
+               let backupIntegrations =
+                try? JSONDecoder()
+                .decode(
+                    [ZhuowangExternalToolIntegration].self,
+                    from: backupData
+                ) {
+
+                toolIntegrations = backupIntegrations
+                toolIntegrationPersistenceLocked = false
+                toolIntegrationLoadState = .recoveredFromBackup
+                skipNextToolIntegrationBackup = true
+
+                print(
+                    "[Cosmos OS] Tool Integration payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
+                )
+                return
+            }
+
+            toolIntegrations = []
+            toolIntegrationPersistenceLocked = true
+            toolIntegrationLoadState = .locked
+
+            print(
+                "[Cosmos OS] Tool Integration decode failed. Existing payload and previous backup were protected from overwrite: \(error.localizedDescription)"
+            )
+        }
     }
 
 
     private func saveAgentToolRoutes() {
+
+        guard !agentToolRoutePersistenceLocked else {
+            print(
+                "[Cosmos OS] Agent/Tool Route persistence is locked because existing data could not be decoded. Save skipped to protect user data."
+            )
+            return
+        }
 
         guard
             let data =
@@ -614,7 +793,32 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(
+        let defaults = UserDefaults.standard
+
+        if skipNextAgentToolRouteBackup {
+            skipNextAgentToolRouteBackup = false
+
+        } else if let currentData =
+            defaults.data(
+                forKey: agentToolRoutesStorageKey
+            ) {
+
+            if canDecodeAgentToolRoutes(
+                currentData
+            ) {
+                defaults.set(
+                    currentData,
+                    forKey:
+                        agentToolRoutesBackupStorageKey
+                )
+            } else {
+                print(
+                    "[Cosmos OS] Existing Agent/Tool Route payload is unreadable. Previous backup was preserved."
+                )
+            }
+        }
+
+        defaults.set(
             data,
             forKey:
                 agentToolRoutesStorageKey
@@ -624,27 +828,100 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
     private func loadAgentToolRoutes() {
 
-        guard
-            let data =
-                UserDefaults.standard
-                    .data(
-                        forKey:
-                            agentToolRoutesStorageKey
-                    ),
-            let saved =
-                try? JSONDecoder()
-                    .decode(
-                        [ZhuowangAgentToolRoute].self,
-                        from: data
-                    )
+        let defaults = UserDefaults.standard
+
+        guard let data =
+            defaults.data(
+                forKey:
+                    agentToolRoutesStorageKey
+            )
         else {
 
             agentToolRoutes = []
+            agentToolRoutePersistenceLocked = false
+            agentToolRouteLoadState = .missing
             return
         }
 
-        agentToolRoutes =
-            saved
+        do {
+            agentToolRoutes =
+                try JSONDecoder()
+                .decode(
+                    [ZhuowangAgentToolRoute].self,
+                    from: data
+                )
+
+            agentToolRoutePersistenceLocked = false
+            agentToolRouteLoadState = .loaded
+
+        } catch {
+
+            if let backupData =
+                defaults.data(
+                    forKey:
+                        agentToolRoutesBackupStorageKey
+                ),
+               let backupRoutes =
+                try? JSONDecoder()
+                .decode(
+                    [ZhuowangAgentToolRoute].self,
+                    from: backupData
+                ) {
+
+                agentToolRoutes = backupRoutes
+                agentToolRoutePersistenceLocked = false
+                agentToolRouteLoadState = .recoveredFromBackup
+                skipNextAgentToolRouteBackup = true
+
+                print(
+                    "[Cosmos OS] Agent/Tool Route payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
+                )
+                return
+            }
+
+            agentToolRoutes = []
+            agentToolRoutePersistenceLocked = true
+            agentToolRouteLoadState = .locked
+
+            print(
+                "[Cosmos OS] Agent/Tool Route decode failed. Existing payload and previous backup were protected from overwrite: \(error.localizedDescription)"
+            )
+        }
+    }
+
+
+    // MARK: - Backup Validation
+
+    private func canDecodeConnections(
+        _ data: Data
+    ) -> Bool {
+
+        (try? JSONDecoder().decode(
+            [ZhuowangAIConnection].self,
+            from: data
+        )) != nil
+    }
+
+
+    private func canDecodeToolIntegrations(
+        _ data: Data
+    ) -> Bool {
+
+        (try? JSONDecoder().decode(
+            [ZhuowangExternalToolIntegration].self,
+            from: data
+        )) != nil
+    }
+
+
+    private func canDecodeAgentToolRoutes(
+        _ data: Data
+    ) -> Bool {
+
+        (try? JSONDecoder().decode(
+            [ZhuowangAgentToolRoute].self,
+            from: data
+        )) != nil
     }
 
 
@@ -1158,5 +1435,3 @@ final class ZhuowangAIConnectionStore: ObservableObject {
     ]
 
 }
-
-
