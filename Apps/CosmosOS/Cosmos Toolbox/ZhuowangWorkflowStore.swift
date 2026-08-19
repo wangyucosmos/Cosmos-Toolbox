@@ -1,6 +1,26 @@
 import Foundation
 import Combine
 
+struct ZhuowangWorkflowRecoverySummary {
+
+    let importedArtifacts: Int
+    let restoredSteps: Int
+    let ambiguousArtifactNames: [String]
+
+    static let empty =
+        ZhuowangWorkflowRecoverySummary(
+            importedArtifacts: 0,
+            restoredSteps: 0,
+            ambiguousArtifactNames: []
+        )
+
+    var didRecoverAnything: Bool {
+        importedArtifacts > 0
+        || restoredSteps > 0
+    }
+}
+
+
 final class ZhuowangWorkflowStore: ObservableObject {
 
     // MARK: - Published Data
@@ -20,6 +40,18 @@ final class ZhuowangWorkflowStore: ObservableObject {
     private let providerStorageKey =
         "cosmos.zhuowang.ai.providers.v1"
 
+    /// Last known workflow payload before a successful overwrite.
+    /// Used as a lightweight safety net for future model migrations.
+    private let workflowBackupStorageKey =
+        "cosmos.zhuowang.workflows.v1.backup"
+
+    /// If persisted workflow data exists but cannot be decoded,
+    /// block writes so a fresh empty workflow cannot overwrite it.
+    private var workflowPersistenceLocked = false
+
+    /// When recovering from backup, preserve that backup on the next save.
+    private var skipNextWorkflowBackup = false
+
 
     // MARK: - Init
 
@@ -33,6 +65,8 @@ final class ZhuowangWorkflowStore: ObservableObject {
         } else {
             normalizeBuiltInProviderIDs()
         }
+
+        removeLegacyToolProvidersFromAIRegistry()
     }
 
 
@@ -490,6 +524,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
         providers.filter {
             $0.isVisible
+            && $0.kind != .figma
         }
     }
 
@@ -499,6 +534,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         providers.filter {
             $0.isEnabled
             && $0.isVisible
+            && $0.kind != .figma
         }
     }
 
@@ -518,6 +554,12 @@ final class ZhuowangWorkflowStore: ObservableObject {
             )
 
         guard !cleanName.isEmpty else {
+            return
+        }
+
+        // Figma is a Tool, not an AI Provider.
+        // Keep the legacy enum case only so old saved data remains decodable.
+        guard kind != .figma else {
             return
         }
 
@@ -1340,6 +1382,351 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Recover Workflow From Local Files
+
+    /// Rebuilds missing Workflow / Artifact metadata from files that already
+    /// exist inside the campaign workspace.
+    ///
+    /// Recovery is idempotent:
+    /// - existing Artifact records are not duplicated
+    /// - existing approved-version choices are preserved
+    /// - local files are read only
+    /// - only missing metadata is reconstructed
+    ///
+    /// If metadata was completely lost and several versions exist for the same
+    /// artifact, the highest version is used as a conservative fallback and the
+    /// ambiguity is reported to the UI so the user can switch versions manually.
+    @discardableResult
+    func recoverWorkflowFromLocalFiles(
+        campaign: ZhuowangCampaign,
+        provinceName: String?
+    ) -> ZhuowangWorkflowRecoverySummary {
+
+        let discovered =
+            ZhuowangWorkspaceFileManager
+                .shared
+                .discoverMarkdownArtifacts(
+                    provinceName:
+                        provinceName,
+                    campaignName:
+                        campaign.name
+                )
+
+        guard !discovered.isEmpty else {
+            return .empty
+        }
+
+        let workflow =
+            getOrCreateWorkflow(
+                forCampaignID:
+                    campaign.id
+            )
+
+        guard
+            let workflowIndex =
+                workflows.firstIndex(
+                    where: {
+                        $0.id == workflow.id
+                    }
+                )
+        else {
+            return .empty
+        }
+
+        var importedArtifacts = 0
+        var recoveredStepIDs = Set<UUID>()
+        var changed = false
+
+        for item in discovered {
+
+            guard
+                let stepIndex =
+                    workflows[workflowIndex]
+                        .steps
+                        .firstIndex(
+                            where: {
+                                $0.kind
+                                    == item.stepKind
+                            }
+                        )
+            else {
+                continue
+            }
+
+            let stepID =
+                workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .id
+
+            recoveredStepIDs.insert(
+                stepID
+            )
+
+            let alreadyExists =
+                workflows[workflowIndex]
+                    .artifacts
+                    .contains {
+                        artifact in
+
+                        artifact.stepID == stepID
+                        && artifact.version
+                            == item.version
+                        && (
+                            artifact.location
+                                == item.fileURL.path
+                            || artifact.name
+                                == item.artifactName
+                        )
+                    }
+
+            if !alreadyExists {
+
+                let artifact =
+                    ZhuowangArtifact(
+                        campaignID:
+                            campaign.id,
+                        stepID:
+                            stepID,
+                        runID:
+                            nil,
+                        name:
+                            item.artifactName,
+                        type:
+                            .markdown,
+                        location:
+                            item.fileURL.path,
+                        content:
+                            item.content,
+                        version:
+                            item.version,
+                        isApprovedVersion:
+                            false,
+                        createdAt:
+                            item.modifiedAt,
+                        updatedAt:
+                            item.modifiedAt
+                    )
+
+                workflows[workflowIndex]
+                    .artifacts
+                    .append(
+                        artifact
+                    )
+
+                importedArtifacts += 1
+                changed = true
+            }
+        }
+
+        // Restore step progress from real files.
+        var restoredSteps = 0
+
+        for stepIndex
+            in workflows[workflowIndex]
+                .steps.indices {
+
+            let stepID =
+                workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .id
+
+            guard
+                recoveredStepIDs.contains(
+                    stepID
+                )
+            else {
+                continue
+            }
+
+            if workflows[workflowIndex]
+                .steps[stepIndex]
+                .status
+                != .approved {
+
+                workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .status =
+                    .approved
+
+                workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .updatedAt =
+                    Date()
+
+                restoredSteps += 1
+                changed = true
+            }
+        }
+
+        // Preserve any existing approved selection. When the metadata is gone,
+        // choose the highest local version and report multi-version ambiguity.
+        var ambiguousArtifactNames: [String] = []
+
+        let groupedArtifacts =
+            Dictionary(
+                grouping:
+                    workflows[workflowIndex]
+                        .artifacts
+            ) {
+                artifact in
+
+                "\(artifact.stepID?.uuidString ?? "none")|\(artifact.name)"
+            }
+
+        for (_, artifacts)
+            in groupedArtifacts {
+
+            guard !artifacts.isEmpty else {
+                continue
+            }
+
+            if artifacts.contains(
+                where: {
+                    $0.isApprovedVersion
+                }
+            ) {
+                continue
+            }
+
+            let sorted =
+                artifacts.sorted {
+
+                    if $0.version
+                        != $1.version {
+
+                        return $0.version
+                            > $1.version
+                    }
+
+                    return $0.updatedAt
+                        > $1.updatedAt
+                }
+
+            guard
+                let fallback =
+                    sorted.first
+            else {
+                continue
+            }
+
+            if sorted.count > 1 {
+
+                ambiguousArtifactNames
+                    .append(
+                        fallback.name
+                    )
+            }
+
+            for artifactIndex
+                in workflows[workflowIndex]
+                    .artifacts.indices {
+
+                let current =
+                    workflows[workflowIndex]
+                        .artifacts[artifactIndex]
+
+                if current.stepID
+                    == fallback.stepID,
+                   current.name
+                    == fallback.name {
+
+                    workflows[workflowIndex]
+                        .artifacts[artifactIndex]
+                        .isApprovedVersion =
+                        current.id
+                        == fallback.id
+
+                    changed = true
+                }
+            }
+        }
+
+        // Rebuild the "next actionable step" after recovered progress.
+        let enabledSortedIndices =
+            workflows[workflowIndex]
+                .steps.indices
+                .filter {
+                    workflows[workflowIndex]
+                        .steps[$0]
+                        .isEnabled
+                }
+                .sorted {
+                    workflows[workflowIndex]
+                        .steps[$0]
+                        .sortOrder
+                    <
+                    workflows[workflowIndex]
+                        .steps[$1]
+                        .sortOrder
+                }
+
+        var foundNextStep = false
+
+        for stepIndex
+            in enabledSortedIndices {
+
+            let status =
+                workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .status
+
+            if status == .approved
+                || status == .completed {
+
+                continue
+            }
+
+            if !foundNextStep {
+
+                if status
+                    == .notStarted
+                    || status
+                    == .failed
+                    || status
+                    == .skipped {
+
+                    workflows[workflowIndex]
+                        .steps[stepIndex]
+                        .status =
+                        .ready
+
+                    workflows[workflowIndex]
+                        .steps[stepIndex]
+                        .updatedAt =
+                        Date()
+
+                    changed = true
+                }
+
+                foundNextStep = true
+            }
+        }
+
+        if changed {
+
+            workflows[workflowIndex]
+                .updatedAt =
+                Date()
+
+            saveWorkflows()
+        }
+
+        return ZhuowangWorkflowRecoverySummary(
+            importedArtifacts:
+                importedArtifacts,
+            restoredSteps:
+                restoredSteps,
+            ambiguousArtifactNames:
+                Array(
+                    Set(
+                        ambiguousArtifactNames
+                    )
+                )
+                .sorted()
+        )
+    }
+
+
     // MARK: - Legacy Artifact Migration
 
     @discardableResult
@@ -1628,6 +2015,16 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     private func saveWorkflows() {
 
+        // Never destroy an existing persisted workflow after a decode failure.
+        guard !workflowPersistenceLocked else {
+
+            print(
+                "[Cosmos OS] Workflow persistence is locked because existing data could not be decoded. Save skipped to protect user data."
+            )
+
+            return
+        }
+
         guard
             let data =
                 try? JSONEncoder()
@@ -1636,7 +2033,27 @@ final class ZhuowangWorkflowStore: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(
+        let defaults =
+            UserDefaults.standard
+
+        if skipNextWorkflowBackup {
+
+            skipNextWorkflowBackup = false
+
+        } else if let currentData =
+            defaults.data(
+                forKey:
+                    workflowStorageKey
+            ) {
+
+            defaults.set(
+                currentData,
+                forKey:
+                    workflowBackupStorageKey
+            )
+        }
+
+        defaults.set(
             data,
             forKey:
                 workflowStorageKey
@@ -1646,26 +2063,71 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     private func loadWorkflows() {
 
+        let defaults =
+            UserDefaults.standard
+
         guard
             let data =
-                UserDefaults.standard
-                .data(
+                defaults.data(
                     forKey:
                         workflowStorageKey
-                ),
-            let savedWorkflows =
-                try? JSONDecoder()
+                )
+        else {
+
+            workflows = []
+            workflowPersistenceLocked = false
+
+            return
+        }
+
+        do {
+
+            workflows =
+                try JSONDecoder()
                 .decode(
                     [ZhuowangCampaignWorkflow].self,
                     from: data
                 )
-        else {
-            workflows = []
-            return
-        }
 
-        workflows =
-            savedWorkflows
+            workflowPersistenceLocked = false
+
+        } catch {
+
+            // Try the previous payload before giving up.
+            if let backupData =
+                defaults.data(
+                    forKey:
+                        workflowBackupStorageKey
+                ),
+               let backupWorkflows =
+                try? JSONDecoder()
+                .decode(
+                    [ZhuowangCampaignWorkflow].self,
+                    from: backupData
+                ) {
+
+                workflows =
+                    backupWorkflows
+
+                workflowPersistenceLocked = false
+                skipNextWorkflowBackup = true
+
+                print(
+                    "[Cosmos OS] Current workflow payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
+                )
+
+                return
+            }
+
+            // Existing bytes are present but unreadable.
+            // Keep them untouched instead of replacing them with a new empty workflow.
+            workflows = []
+            workflowPersistenceLocked = true
+
+            print(
+                "[Cosmos OS] Workflow decode failed. Existing persisted data has been protected from overwrite: \(error.localizedDescription)"
+            )
+        }
     }
 
 
@@ -1936,6 +2398,63 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Legacy Tool Provider Cleanup
+
+    /// Figma used to exist inside the AI Provider registry.
+    /// It is now an external Tool. Keep `.figma` in the enum only for
+    /// backward decoding, but remove persisted Figma provider records
+    /// and clear any step-level AI selections that point to them.
+    private func removeLegacyToolProvidersFromAIRegistry() {
+
+        let legacyFigmaIDs =
+            Set(
+                providers
+                    .filter {
+                        $0.kind == .figma
+                        || $0.configurationIdentifier
+                            == "figma"
+                    }
+                    .map(\.id)
+            )
+
+        guard !legacyFigmaIDs.isEmpty else {
+            return
+        }
+
+        providers.removeAll {
+            legacyFigmaIDs.contains(
+                $0.id
+            )
+        }
+
+        for workflowIndex
+            in workflows.indices {
+
+            for stepIndex
+                in workflows[workflowIndex]
+                    .steps.indices {
+
+                if let selectedProviderID =
+                    workflows[workflowIndex]
+                    .steps[stepIndex]
+                    .selectedProviderID,
+                   legacyFigmaIDs.contains(
+                    selectedProviderID
+                   ) {
+
+                    workflows[workflowIndex]
+                        .steps[stepIndex]
+                        .selectedProviderID =
+                        nil
+                }
+            }
+        }
+
+        saveProviders()
+        saveWorkflows()
+    }
+
+
     // MARK: - Default Providers
 
     private static let defaultProviders: [
@@ -1996,23 +2515,10 @@ final class ZhuowangWorkflowStore: ObservableObject {
             isVisible: true,
             configurationIdentifier:
                 "claude"
-        ),
-
-        ZhuowangAIProvider(
-            id: UUID(
-                uuidString:
-                    "20000000-0000-0000-0000-000000000005"
-            )!,
-            name: "Figma",
-            kind: .figma,
-            modelName: "",
-            isEnabled: true,
-            isVisible: true,
-            configurationIdentifier:
-                "figma"
         )
     ]
 }
+
 
 
 

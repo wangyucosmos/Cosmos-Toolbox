@@ -286,6 +286,7 @@ struct ZhuowangWorkflowStep:
     var createdAt: Date
     var updatedAt: Date
 
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -322,7 +323,250 @@ struct ZhuowangWorkflowStep:
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+
+    // MARK: Backward-Compatible Codable
+
+    /// Workflow Step is persisted across Cosmos OS versions.
+    /// Newly-added fields must never make an older saved workflow undecodable.
+    private enum CodingKeys:
+        String,
+        CodingKey {
+
+        case id
+        case title
+        case englishTitle
+        case kind
+        case sortOrder
+        case status
+        case selectedProviderID
+        case requiredCapabilities
+        case requiredTools
+        case selectedToolIDs
+        case allowsAutomaticProviderRecommendation
+        case requiresApproval
+        case isEnabled
+        case notes
+        case createdAt
+        case updatedAt
+    }
+
+
+    init(
+        from decoder: Decoder
+    ) throws {
+
+        let container =
+            try decoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        id =
+            try container.decodeIfPresent(
+                UUID.self,
+                forKey: .id
+            )
+            ?? UUID()
+
+        title =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .title
+            )
+            ?? "未命名步骤"
+
+        englishTitle =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .englishTitle
+            )
+            ?? ""
+
+        kind =
+            try container.decodeIfPresent(
+                ZhuowangWorkflowStepKind.self,
+                forKey: .kind
+            )
+            ?? .custom
+
+        sortOrder =
+            try container.decodeIfPresent(
+                Int.self,
+                forKey: .sortOrder
+            )
+            ?? 0
+
+        status =
+            try container.decodeIfPresent(
+                ZhuowangWorkflowStepStatus.self,
+                forKey: .status
+            )
+            ?? .notStarted
+
+        selectedProviderID =
+            try container.decodeIfPresent(
+                UUID.self,
+                forKey: .selectedProviderID
+            )
+
+        requiredCapabilities =
+            try container.decodeIfPresent(
+                [ZhuowangWorkflowCapability].self,
+                forKey: .requiredCapabilities
+            )
+            ?? []
+
+        requiredTools =
+            try container.decodeIfPresent(
+                [ZhuowangExternalToolKind].self,
+                forKey: .requiredTools
+            )
+            ?? []
+
+        selectedToolIDs =
+            try container.decodeIfPresent(
+                [UUID].self,
+                forKey: .selectedToolIDs
+            )
+            ?? []
+
+        allowsAutomaticProviderRecommendation =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey:
+                    .allowsAutomaticProviderRecommendation
+            )
+            ?? true
+
+        requiresApproval =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .requiresApproval
+            )
+            ?? true
+
+        isEnabled =
+            try container.decodeIfPresent(
+                Bool.self,
+                forKey: .isEnabled
+            )
+            ?? true
+
+        notes =
+            try container.decodeIfPresent(
+                String.self,
+                forKey: .notes
+            )
+            ?? ""
+
+        createdAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .createdAt
+            )
+            ?? Date()
+
+        updatedAt =
+            try container.decodeIfPresent(
+                Date.self,
+                forKey: .updatedAt
+            )
+            ?? createdAt
+    }
+
+
+    func encode(
+        to encoder: Encoder
+    ) throws {
+
+        var container =
+            encoder.container(
+                keyedBy: CodingKeys.self
+            )
+
+        try container.encode(
+            id,
+            forKey: .id
+        )
+
+        try container.encode(
+            title,
+            forKey: .title
+        )
+
+        try container.encode(
+            englishTitle,
+            forKey: .englishTitle
+        )
+
+        try container.encode(
+            kind,
+            forKey: .kind
+        )
+
+        try container.encode(
+            sortOrder,
+            forKey: .sortOrder
+        )
+
+        try container.encode(
+            status,
+            forKey: .status
+        )
+
+        try container.encodeIfPresent(
+            selectedProviderID,
+            forKey: .selectedProviderID
+        )
+
+        try container.encode(
+            requiredCapabilities,
+            forKey: .requiredCapabilities
+        )
+
+        try container.encode(
+            requiredTools,
+            forKey: .requiredTools
+        )
+
+        try container.encode(
+            selectedToolIDs,
+            forKey: .selectedToolIDs
+        )
+
+        try container.encode(
+            allowsAutomaticProviderRecommendation,
+            forKey:
+                .allowsAutomaticProviderRecommendation
+        )
+
+        try container.encode(
+            requiresApproval,
+            forKey: .requiresApproval
+        )
+
+        try container.encode(
+            isEnabled,
+            forKey: .isEnabled
+        )
+
+        try container.encode(
+            notes,
+            forKey: .notes
+        )
+
+        try container.encode(
+            createdAt,
+            forKey: .createdAt
+        )
+
+        try container.encode(
+            updatedAt,
+            forKey: .updatedAt
+        )
+    }
 }
+
 
 
 // MARK: - AI Run Status
@@ -688,6 +932,7 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
+
 
 
 

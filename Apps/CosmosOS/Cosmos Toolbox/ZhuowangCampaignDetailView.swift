@@ -100,6 +100,7 @@ struct ZhuowangCampaignDetailView: View {
         )
         .onAppear {
             loadDraft()
+            recoverLocalWorkflowIfNeeded()
             migrateLegacyArtifactsIfNeeded()
         }
         .confirmationDialog(
@@ -125,7 +126,7 @@ struct ZhuowangCampaignDetailView: View {
             )
         }
         .alert(
-            "工作目录",
+            "工作区",
             isPresented: $showWorkspaceAlert
         ) {
             Button("知道了") { }
@@ -1386,6 +1387,65 @@ struct ZhuowangCampaignDetailView: View {
         }
 
         return "卓望工作区"
+    }
+
+
+    private func recoverLocalWorkflowIfNeeded() {
+
+        guard let campaign else {
+            return
+        }
+
+        let summary =
+            workflowStore
+                .recoverWorkflowFromLocalFiles(
+                    campaign:
+                        campaign,
+                    provinceName:
+                        province?.name
+                )
+
+        guard
+            summary.didRecoverAnything
+        else {
+            return
+        }
+
+        var lines: [String] = [
+            "已从本地工作目录恢复 Workflow 数据。",
+            "",
+            "恢复工作产物：\(summary.importedArtifacts) 个",
+            "恢复已完成步骤：\(summary.restoredSteps) 个"
+        ]
+
+        if !summary
+            .ambiguousArtifactNames
+            .isEmpty {
+
+            lines.append("")
+            lines.append(
+                "以下工作产物存在多个本地版本，系统暂时采用最高版本："
+            )
+
+            lines.append(
+                summary
+                    .ambiguousArtifactNames
+                    .joined(
+                        separator: "、"
+                    )
+            )
+
+            lines.append(
+                "如需使用其他版本，可在“工作产物”中重新设为当前版本。"
+            )
+        }
+
+        workspaceMessage =
+            lines.joined(
+                separator: "\n"
+            )
+
+        showWorkspaceAlert = true
     }
 
 
@@ -2835,4 +2895,5 @@ enum ZhuowangCampaignDetailTab:
             nil
     )
 }
+
 
