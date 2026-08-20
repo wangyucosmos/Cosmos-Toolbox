@@ -457,6 +457,32 @@ struct ZhuowangAIConnection:
 }
 
 
+// MARK: - Stable Built-in Integration IDs
+
+enum ZhuowangBuiltInIntegrationIDs {
+
+    static let deepSeekConnection = UUID(
+        uuidString:
+            "30000000-0000-0000-0000-000000000003"
+    )!
+
+    static let figmaTool = UUID(
+        uuidString:
+            "40000000-0000-0000-0000-000000000001"
+    )!
+
+    static let htmlPrototypeTool = UUID(
+        uuidString:
+            "40000000-0000-0000-0000-000000000002"
+    )!
+
+    static let deepSeekHTMLRoute = UUID(
+        uuidString:
+            "50000000-0000-0000-0000-000000000005"
+    )!
+}
+
+
 // MARK: - External Tool Kind
 
 enum ZhuowangExternalToolKind:
@@ -466,6 +492,7 @@ enum ZhuowangExternalToolKind:
     Identifiable {
 
     case figma
+    case htmlPrototype
     case github
     case finder
     case browser
@@ -478,6 +505,7 @@ enum ZhuowangExternalToolKind:
     var title: String {
         switch self {
         case .figma: return "Figma"
+        case .htmlPrototype: return "HTML Prototype"
         case .github: return "GitHub"
         case .finder: return "Finder"
         case .browser: return "浏览器"
@@ -488,6 +516,7 @@ enum ZhuowangExternalToolKind:
     var systemImage: String {
         switch self {
         case .figma: return "square.on.square"
+        case .htmlPrototype: return "chevron.left.forwardslash.chevron.right"
         case .github: return "chevron.left.forwardslash.chevron.right"
         case .finder: return "folder"
         case .browser: return "globe"
@@ -567,6 +596,7 @@ struct ZhuowangExternalToolIntegration:
     var name: String
     var status: ZhuowangToolIntegrationStatus
     var mode: ZhuowangAIConnectionMode
+    var capabilities: Set<ZhuowangWorkflowCapability>
     var adapterIdentifier: String?
     var endpointOrPath: String?
     var configuration: [String: String]
@@ -581,6 +611,7 @@ struct ZhuowangExternalToolIntegration:
         name: String,
         status: ZhuowangToolIntegrationStatus = .needsSetup,
         mode: ZhuowangAIConnectionMode = .connector,
+        capabilities: Set<ZhuowangWorkflowCapability> = [],
         adapterIdentifier: String? = nil,
         endpointOrPath: String? = nil,
         configuration: [String: String] = [:],
@@ -594,6 +625,7 @@ struct ZhuowangExternalToolIntegration:
         self.name = name
         self.status = status
         self.mode = mode
+        self.capabilities = capabilities
         self.adapterIdentifier = adapterIdentifier
         self.endpointOrPath = endpointOrPath
         self.configuration = configuration
@@ -612,6 +644,7 @@ struct ZhuowangExternalToolIntegration:
         case name
         case status
         case mode
+        case capabilities
         case adapterIdentifier
         case endpointOrPath
         case configuration
@@ -662,6 +695,13 @@ struct ZhuowangExternalToolIntegration:
                 forKey: .mode
             )
             ?? .connector
+
+        capabilities =
+            try container.decodeIfPresent(
+                Set<ZhuowangWorkflowCapability>.self,
+                forKey: .capabilities
+            )
+            ?? (kind == .figma ? [.prototypeDesign] : [])
 
         adapterIdentifier =
             try container.decodeIfPresent(
@@ -962,6 +1002,52 @@ struct ZhuowangStepExecutionChoice:
 
 // MARK: - Task Handoff Package
 
+/// Immutable provider + connection + tool route selected for one execution.
+/// It travels with the task and is copied into AI Run / Artifact provenance.
+struct ZhuowangWorkflowExecutionSnapshot:
+    Identifiable,
+    Codable,
+    Hashable {
+
+    let id: UUID
+    let workflowID: UUID
+    let workflowStepID: UUID
+    let providerID: UUID
+    let connectionID: UUID
+    let toolIntegrationID: UUID
+    let routeID: UUID
+    let capability: ZhuowangWorkflowCapability
+    let adapterIdentifier: String
+    let createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        workflowID: UUID,
+        workflowStepID: UUID,
+        providerID: UUID,
+        connectionID: UUID,
+        toolIntegrationID: UUID,
+        routeID: UUID,
+        capability: ZhuowangWorkflowCapability,
+        adapterIdentifier: String,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.workflowID = workflowID
+        self.workflowStepID = workflowStepID
+        self.providerID = providerID
+        self.connectionID = connectionID
+        self.toolIntegrationID = toolIntegrationID
+        self.routeID = routeID
+        self.capability = capability
+        self.adapterIdentifier = adapterIdentifier
+        self.createdAt = createdAt
+    }
+}
+
+
+// MARK: - Task Handoff Package
+
 struct ZhuowangAITaskPackage:
     Identifiable,
     Codable,
@@ -971,6 +1057,9 @@ struct ZhuowangAITaskPackage:
 
     var campaignID: UUID
     var workflowStepID: UUID
+
+    /// Nil for historical and non-tool task packages.
+    var executionSnapshot: ZhuowangWorkflowExecutionSnapshot?
 
     /// Human-readable task title.
     var title: String
@@ -1003,6 +1092,7 @@ struct ZhuowangAITaskPackage:
         id: UUID = UUID(),
         campaignID: UUID,
         workflowStepID: UUID,
+        executionSnapshot: ZhuowangWorkflowExecutionSnapshot? = nil,
         title: String,
         instruction: String,
         contextReferences: [String] = [],
@@ -1013,6 +1103,7 @@ struct ZhuowangAITaskPackage:
         self.id = id
         self.campaignID = campaignID
         self.workflowStepID = workflowStepID
+        self.executionSnapshot = executionSnapshot
         self.title = title
         self.instruction = instruction
         self.contextReferences = contextReferences

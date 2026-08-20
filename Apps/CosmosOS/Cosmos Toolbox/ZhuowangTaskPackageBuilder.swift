@@ -10,12 +10,14 @@ struct ZhuowangTaskPackageBuilder {
         module: ZhuowangModule?,
         workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep,
-        provider: ZhuowangAIProvider?
+        provider: ZhuowangAIProvider?,
+        executionSnapshot: ZhuowangWorkflowExecutionSnapshot? = nil
     ) -> ZhuowangAITaskPackage {
 
         ZhuowangAITaskPackage(
             campaignID: campaign.id,
             workflowStepID: step.id,
+            executionSnapshot: executionSnapshot,
             title: taskTitle(
                 campaign: campaign,
                 step: step
@@ -26,7 +28,8 @@ struct ZhuowangTaskPackageBuilder {
                 module: module,
                 workflow: workflow,
                 step: step,
-                provider: provider
+                provider: provider,
+                executionSnapshot: executionSnapshot
             ),
             contextReferences: contextReferences(
                 campaign: campaign,
@@ -63,7 +66,8 @@ struct ZhuowangTaskPackageBuilder {
         module: ZhuowangModule?,
         workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep,
-        provider: ZhuowangAIProvider?
+        provider: ZhuowangAIProvider?,
+        executionSnapshot: ZhuowangWorkflowExecutionSnapshot?
     ) -> String {
 
         let scopeText =
@@ -93,6 +97,19 @@ struct ZhuowangTaskPackageBuilder {
                 currentStep: step
             )
 
+        let toolInstruction =
+            executionSnapshot?.adapterIdentifier
+                == "deepseek-harness-html-prototype"
+            ? """
+
+            【目标 Tool 输出规范】
+            你正在为 HTML Prototype Tool 生成真实产品原型。
+            只返回一个可直接打开的完整单文件 HTML，不要使用 Markdown 代码围栏，不要解释。
+            HTML 必须包含完整的 html、head、body 结构、UTF-8 meta、内联 CSS，以及本步骤需要的真实页面模块与交互。
+            禁止输出 Placeholder、TODO、伪代码或“后续补充”等占位内容。
+            """
+            : ""
+
         return """
         你正在处理 Cosmos OS 中的卓望工作项目。
 
@@ -115,6 +132,8 @@ struct ZhuowangTaskPackageBuilder {
 
         【本次任务】
         \(instructionText(for: step))
+
+        \(toolInstruction)
 
         【执行原则】
         1. 优先遵循卓望项目既有规范与当前活动上下文。
@@ -612,5 +631,4 @@ struct ZhuowangTaskPackageBuilder {
     }
 
 }
-
 

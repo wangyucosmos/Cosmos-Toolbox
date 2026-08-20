@@ -80,6 +80,14 @@ Verified:
 - Later Workflow steps consuming currently adopted upstream Artifact content
 - Native macOS Campaign Detail window
 - Native macOS Artifact Detail window
+- Step 05 capability-based HTML Prototype Tool selection
+- immutable Provider / Connection / Tool / Route / capability execution snapshot
+- AI Execution Adapter Registry + Tool Adapter Registry orchestration
+- DeepSeek Harness to validated HTML Artifact Draft execution path
+- HTML preview and source review
+- versioned `.html` Artifact persistence with overwrite protection
+- HTML local-file disaster recovery across current and historical prototype folders
+- Step 05 approval transition only after durable file + Artifact adoption
 
 ---
 
@@ -206,20 +214,31 @@ The user must be able to re-run the same Workflow Step with another AI and/or an
 
 ## 7. Current Tool Adapter work
 
-Implemented / compiling:
+Implemented and automatically verified:
 
 - `ZhuowangToolAdapter.swift`
 - `ZhuowangHTMLPrototypeAdapter.swift`
+- `ZhuowangWorkflowExecutionCoordinator.swift`
+- `ZhuowangWorkflowTransitionLogic.swift`
 
 The Tool Adapter abstraction exists to prevent Workflow logic from being tied to one concrete product.
 
-The HTML Prototype Adapter is the first simple adapter used to validate the abstraction.
+The first real Step 05 path is:
 
-Current limitation:
+```text
+DeepSeek Harness
+→ AI Execution Adapter Registry
+→ raw AI result
+→ HTML Prototype Tool Adapter Registry
+→ validated HTML Artifact Draft
+→ preview / source review
+→ human adoption
+→ versioned .html file + Artifact provenance
+→ Step 05 approved
+→ Step 06 ready
+```
 
-- it is a compiling placeholder implementation;
-- it is not connected to Workflow UI execution orchestration;
-- it does not yet complete human review, adoption, local HTML persistence, or disaster recovery.
+HTML validation rejects empty, structurally incomplete, non-UTF-8, and Placeholder results. The review WebView uses a non-persistent data store, an injected restrictive CSP, and blocks external top-level navigation.
 
 Do not assume HTML is the final prototype path.
 
@@ -296,12 +315,13 @@ Current implementation focus:
 
 ### P1
 
-- Adapter Registry / execution orchestration is not yet fully complete.
+- The first HTML Adapter Registry / execution orchestration path is complete; other Tool Adapters remain future work.
 - Figma real automated execution is not yet implemented.
 - Claude Desktop direct execution is not yet implemented.
 - ChatGPT direct execution path is not yet implemented.
 - Codex execution path from inside Cosmos OS is not yet fully implemented.
-- The project still has no automated Test Target; persistence regression coverage remains technical debt.
+- A minimal XCTest target now covers Step 05 high-value pure logic; broader persistence and UI regression coverage remains technical debt.
+- Artifact sidecar manifests are deferred, so disaster recovery can reconstruct the primary HTML prototype logical key only from the canonical artifact name.
 
 ### Deferred
 
@@ -363,33 +383,20 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-The next engineering priority should be chosen after Codex reads the current codebase and verifies that the persistence / recovery fixes are present in the local repository.
+The code path for the first real Step 05 HTML prototype loop is complete and awaits manual runtime acceptance against the existing campaign data.
 
-The P0 persistence baseline for Workflow and AI/tool configuration is now healthy enough to continue, with the remaining risks recorded above.
-
-### Next mainline
-
-**Continue Workflow Step 05 — Product Prototype**
-
-Target:
+Manual acceptance target:
 
 ```text
-AI Provider
-+
-Tool selection
-+
-Task Package
-+
-Adapter Registry / execution orchestration
-+
-Artifact version
-+
-human review
+DeepSeek Harness + HTML Prototype
+→ generate and preview real HTML
+→ adopt V1
+→ confirm local .html file and Artifact provenance
+→ confirm Step 05 approved and Step 06 ready
+→ rerun to confirm V2 appends without overwriting V1
 ```
 
-First prove the generic execution path without binding the architecture to Figma.
-
-Then integrate real Figma automation as one Tool implementation.
+Do not begin Figma automation until this HTML path passes manual acceptance and any runtime findings are resolved.
 
 ---
 
@@ -414,5 +421,8 @@ Do not regress these verified decisions:
 - Post-P0 runtime state was manually verified by the user without regenerating 01-04 or changing the adopted V1 selection.
 - P0 persistence changes do not reset or delete UserDefaults data.
 - The user confirmed that Workflow progress, Tool separation, recovered Artifacts, and historical versions remained intact after running the updated app.
-- Full macOS Debug build completed with `BUILD SUCCEEDED` on 2026-08-19.
-- No automated tests were added because the project has no Test Target; this remains explicit technical debt.
+- Step 05 implementation did not launch the app or mutate real runtime data; the accepted baseline remains 01-04 approved, Step 05 ready, Step 06 not started, Campaign Plan V1 adopted.
+- Full Universal macOS Debug build completed with `BUILD SUCCEEDED` on 2026-08-19.
+- Minimal Step 05 Unit Test Target completed with 7/7 tests passing.
+- `git diff --check` completed successfully.
+- Manual runtime acceptance of HTML generation, WebKit preview, adoption, local V1/V2 files, and Step 06 unlock is still required.

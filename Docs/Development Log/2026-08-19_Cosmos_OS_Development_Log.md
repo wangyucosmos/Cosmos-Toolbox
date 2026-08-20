@@ -144,3 +144,111 @@ Tool
 ```
 
 不要把占位 HTML Adapter 视为已经完成该闭环。
+
+---
+
+## 2026-08-19 Step 05 第一条真实 HTML 产品原型闭环
+
+### 一、本次目标
+
+- 以 DeepSeek Harness + HTML Prototype 验证通用 AI Provider + Tool 架构。
+- 打通 Task Package、不可变执行快照、Coordinator、双 Registry、HTML Draft、人工审核、版本化落盘与 Workflow 状态推进。
+- 不接入 Figma / Pixso 自动化，不迁移 SwiftData，不增加 sidecar manifest。
+- 不启动 App，不清空或改写既有 01-04、Step 05/06 与完整策划案 V1 运行数据。
+
+### 二、最终执行架构
+
+```text
+Workflow Step 05 / prototypeDesign
+→ Provider + Connection + Tool + Route selection
+→ immutable Execution Snapshot
+→ ZhuowangWorkflowExecutionCoordinator
+→ AI Execution Adapter Registry
+→ DeepSeek Harness raw HTML
+→ Tool Adapter Registry
+→ ZhuowangHTMLPrototypeAdapter validation
+→ HTML Artifact Draft
+→ WebKit preview / source review
+→ human adoption
+→ versioned .html file
+→ AI Run + Approval + Artifact provenance
+→ Step 05 approved
+→ Step 06 ready
+```
+
+View 不再判断具体 Tool；Coordinator 通过 Registry 查找 AI 与 Tool Adapter。Figma 仍仅为 Tool，本轮没有实现 Figma 自动执行。
+
+### 三、数据安全与兼容
+
+- HTML Tool、DeepSeek Connection、Figma Tool、DeepSeek HTML Route 使用稳定 UUID。
+- 默认 Connection 不再包含历史 Figma Provider Connection；启动迁移只按历史内置 Connection 的精确 UUID 删除，不重置用户配置。
+- Tool Integration capability 使用向后兼容解码；旧 Figma Tool 可推断 `prototypeDesign`。
+- AI Run / Artifact provenance 均为可选字段，旧 Codable payload 保持可解码。
+- Artifact 使用稳定 logical key；旧 Artifact 回退到显示名称分组。
+- V1/V2/V3 文件追加写入，目标版本已存在时停止采用，不覆盖或删除历史。
+- 只有 HTML 文件写入成功并创建采用事务后，Step 05 才进入已确认并解锁 Step 06。
+- 新 HTML 写入 `05_产品原型`；灾备扫描兼容 `05_Figma原型`、`05_产品原型`、`05_原型设计`，不移动或重命名旧文件。
+- 本次未启动 Cosmos OS，实际人工验收基线未被触碰。
+
+### 四、HTML 结果与审核
+
+- HTML Adapter 使用 AI 返回的真实内容，不再生成 Placeholder。
+- 校验非空、UTF-8、完整 html/head/body 结构，并拒绝 Placeholder。
+- 自动注入限制外部资源的 CSP；预览 WebView 使用 non-persistent data store 并阻止外部顶层导航。
+- Result UI 支持真实 HTML 预览与源码切换；采用失败时保留审核界面并提示 Workflow 未改变。
+
+### 五、测试与构建
+
+新增最小 `Cosmos ToolboxTests` Unit Test Target，覆盖：
+
+- HTML Tool stable ID 与 `prototypeDesign` capability；
+- Execution Snapshot Codable round trip，包含 Provider / Connection / Tool / Route；
+- Registry 找到 HTML Adapter；
+- 真实 HTML 成功形成 Draft，并拒绝 Placeholder；
+- V1 → V2 追加与切换当前采用版本时保留历史；
+- HTML 历史原型目录灾备扫描；
+- Step 05 采用前不解锁 Step 06，采用后才解锁。
+
+验证结果：
+
+```text
+Universal macOS Debug Build: SUCCEEDED (arm64 + x86_64)
+Unit Tests: SUCCEEDED (7/7)
+git diff --check: PASSED
+```
+
+首次沙箱内 Build 仅因 Xcode `sandbox-exec: Operation not permitted` 失败；在获准的沙箱外使用相同命令重跑后成功，不属于代码编译失败。
+
+### 六、涉及文件
+
+- `Apps/CosmosOS/Cosmos Toolbox.xcodeproj/project.pbxproj`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAIConnectionModels.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAIConnectionStore.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAIExecutionResultView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignDetailView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangHTMLPrototypeAdapter.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangTaskPackageBuilder.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangTaskPackagePreviewView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangToolAdapter.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowExecutionCoordinator.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowModels.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowStore.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowTransitionLogic.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkspaceFileManager.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/ZhuowangStep05Tests.swift`
+- `Docs/07_Cosmos_OS_Current_Status.md`
+- `Docs/Development Log/2026-08-19_Cosmos_OS_Development_Log.md`
+
+### 七、待人工验收与剩余风险
+
+- 使用现有活动选择 DeepSeek Harness + HTML Prototype，验证真实 Harness 返回、HTML 预览、源码与修订交互。
+- 采用 V1 后确认 `.html` 文件、Artifact provenance、Step 05 已确认与 Step 06 可开始。
+- 再次执行并采用 V2，确认 V1 文件和历史版本仍存在；切换当前采用版本不删除其他版本。
+- 业务数据仍基于 UserDefaults；Artifact sidecar manifest 与 SwiftData 迁移均按本轮边界延期。
+- 自动测试覆盖纯逻辑与临时目录文件扫描，没有替代实际 Harness、WebKit UI 与用户工作区的人工验收。
+
+### 八、Git
+
+- 本轮未 commit。
+- 本轮未 push。

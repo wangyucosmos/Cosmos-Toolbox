@@ -1,5 +1,16 @@
 import Foundation
 
+// MARK: - Artifact Draft
+
+struct ZhuowangArtifactDraft: Equatable {
+
+    let logicalKey: String
+    let name: String
+    let type: ZhuowangArtifactType
+    let content: String
+    let preferredFileExtension: String
+}
+
 // MARK: - Tool Adapter Protocol
 
 /// Cosmos OS 所有外部执行工具统一接口。
@@ -28,8 +39,9 @@ protocol ZhuowangToolAdapter {
 
     /// 执行 AI 任务
     func execute(
-        taskPackage: ZhuowangAITaskPackage
-    ) async throws -> ZhuowangArtifact
+        taskPackage: ZhuowangAITaskPackage,
+        rawAIResult: String
+    ) async throws -> ZhuowangArtifactDraft
 }
 
 
@@ -56,7 +68,9 @@ struct ZhuowangToolAdapterRegistry {
     private var adapters: [any ZhuowangToolAdapter]
 
     init(
-        adapters: [any ZhuowangToolAdapter] = []
+        adapters: [any ZhuowangToolAdapter] = [
+            ZhuowangHTMLPrototypeAdapter()
+        ]
     ) {
         self.adapters = adapters
     }
@@ -64,6 +78,11 @@ struct ZhuowangToolAdapterRegistry {
     mutating func register(
         _ adapter: any ZhuowangToolAdapter
     ) {
+
+        adapters.removeAll {
+            $0.toolID == adapter.toolID
+        }
+
         adapters.append(adapter)
     }
 
@@ -103,6 +122,5 @@ struct ZhuowangToolAdapterRegistry {
 //
 // 它们只需要遵守 ZhuowangToolAdapter。
 // Cosmos Workflow 不需要知道具体工具名称。
-
 
 

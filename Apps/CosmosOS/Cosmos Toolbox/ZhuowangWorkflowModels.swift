@@ -681,6 +681,14 @@ struct ZhuowangAIRun:
     /// Provider used for this specific run.
     var providerID: UUID
 
+    /// Immutable execution provenance captured when this run was created.
+    /// Optional so historical payloads remain decodable.
+    var connectionID: UUID?
+    var toolIntegrationID: UUID?
+    var routeID: UUID?
+    var capability: ZhuowangWorkflowCapability?
+    var adapterIdentifier: String?
+
     /// Model actually used.
     /// Stored here so old runs remain traceable
     /// even if provider settings later change.
@@ -707,6 +715,11 @@ struct ZhuowangAIRun:
         id: UUID = UUID(),
         stepID: UUID,
         providerID: UUID,
+        connectionID: UUID? = nil,
+        toolIntegrationID: UUID? = nil,
+        routeID: UUID? = nil,
+        capability: ZhuowangWorkflowCapability? = nil,
+        adapterIdentifier: String? = nil,
         modelName: String = "",
         status: ZhuowangAIRunStatus = .queued,
         inputText: String,
@@ -719,6 +732,11 @@ struct ZhuowangAIRun:
         self.id = id
         self.stepID = stepID
         self.providerID = providerID
+        self.connectionID = connectionID
+        self.toolIntegrationID = toolIntegrationID
+        self.routeID = routeID
+        self.capability = capability
+        self.adapterIdentifier = adapterIdentifier
         self.modelName = modelName
         self.status = status
         self.inputText = inputText
@@ -854,6 +872,18 @@ struct ZhuowangArtifact:
     var name: String
     var type: ZhuowangArtifactType
 
+    /// Stable identity for all versions of one logical work product.
+    /// Historical artifacts fall back to their display name.
+    var logicalKey: String?
+
+    /// Optional immutable provenance for the execution that created this file.
+    var providerID: UUID?
+    var connectionID: UUID?
+    var toolIntegrationID: UUID?
+    var routeID: UUID?
+    var capability: ZhuowangWorkflowCapability?
+    var adapterIdentifier: String?
+
     /// Local path, future cloud path, Figma URL,
     /// GitHub URL, etc.
     var location: String
@@ -878,6 +908,13 @@ struct ZhuowangArtifact:
         runID: UUID? = nil,
         name: String,
         type: ZhuowangArtifactType,
+        logicalKey: String? = nil,
+        providerID: UUID? = nil,
+        connectionID: UUID? = nil,
+        toolIntegrationID: UUID? = nil,
+        routeID: UUID? = nil,
+        capability: ZhuowangWorkflowCapability? = nil,
+        adapterIdentifier: String? = nil,
         location: String = "",
         content: String? = nil,
         version: Int = 1,
@@ -891,12 +928,33 @@ struct ZhuowangArtifact:
         self.runID = runID
         self.name = name
         self.type = type
+        self.logicalKey = logicalKey
+        self.providerID = providerID
+        self.connectionID = connectionID
+        self.toolIntegrationID = toolIntegrationID
+        self.routeID = routeID
+        self.capability = capability
+        self.adapterIdentifier = adapterIdentifier
         self.location = location
         self.content = content
         self.version = version
         self.isApprovedVersion = isApprovedVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    var versionGroupKey: String {
+
+        let cleanLogicalKey =
+            logicalKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+            ?? ""
+
+        return cleanLogicalKey.isEmpty
+            ? name
+            : cleanLogicalKey
     }
 }
 
@@ -1017,5 +1075,4 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
-
 

@@ -1400,6 +1400,178 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Adopt Tool Artifact Result
+
+    /// Adopts a validated Tool Artifact only after its versioned file has been
+    /// written successfully. Existing Workflow data is not mutated before that
+    /// durable file boundary succeeds.
+    @discardableResult
+    func adoptExecutionResult(
+        workflowID: UUID,
+        campaignID: UUID,
+        campaignName: String,
+        provinceName: String?,
+        stepID: UUID,
+        provider: ZhuowangAIProvider,
+        inputText: String,
+        executionResult: ZhuowangWorkflowExecutionResult
+    ) -> Bool {
+
+        let draft = executionResult.artifactDraft
+        let snapshot = executionResult.snapshot
+        let cleanContent = draft.content.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard
+            !cleanContent.isEmpty,
+            snapshot.workflowID == workflowID,
+            snapshot.workflowStepID == stepID,
+            snapshot.providerID == provider.id
+        else {
+            return false
+        }
+
+        guard
+            let workflowIndex = workflows.firstIndex(
+                where: { $0.id == workflowID }
+            ),
+            let stepIndex = workflows[workflowIndex]
+                .steps.firstIndex(
+                    where: { $0.id == stepID }
+                )
+        else {
+            return false
+        }
+
+        let originalWorkflow = workflows[workflowIndex]
+        let stepKind = originalWorkflow.steps[stepIndex].kind
+
+        let nextRunVersion =
+            (originalWorkflow.aiRuns
+                .filter { $0.stepID == stepID }
+                .map(\.version)
+                .max() ?? 0) + 1
+
+        let nextArtifactVersion =
+            ZhuowangWorkflowTransitionLogic
+                .nextArtifactVersion(
+                    artifacts: originalWorkflow.artifacts,
+                    logicalKey: draft.logicalKey
+                )
+
+        let fileURL: URL
+
+        do {
+            switch draft.type {
+            case .html:
+                fileURL = try ZhuowangWorkspaceFileManager
+                    .shared
+                    .writeHTMLArtifact(
+                        provinceName: provinceName,
+                        campaignName: campaignName,
+                        stepKind: stepKind,
+                        artifactName: draft.name,
+                        version: nextArtifactVersion,
+                        content: cleanContent
+                    )
+
+            case .markdown:
+                fileURL = try ZhuowangWorkspaceFileManager
+                    .shared
+                    .writeMarkdownArtifact(
+                        provinceName: provinceName,
+                        campaignName: campaignName,
+                        stepKind: stepKind,
+                        artifactName: draft.name,
+                        version: nextArtifactVersion,
+                        content: cleanContent
+                    )
+
+            default:
+                return false
+            }
+        } catch {
+            print(
+                "[Cosmos OS] Artifact adoption stopped before Workflow mutation: \(error.localizedDescription)"
+            )
+            return false
+        }
+
+        let run = ZhuowangAIRun(
+            stepID: stepID,
+            providerID: provider.id,
+            connectionID: snapshot.connectionID,
+            toolIntegrationID: snapshot.toolIntegrationID,
+            routeID: snapshot.routeID,
+            capability: snapshot.capability,
+            adapterIdentifier: snapshot.adapterIdentifier,
+            modelName: provider.modelName,
+            status: .succeeded,
+            inputText: inputText,
+            outputText: executionResult.rawAIResult,
+            version: nextRunVersion,
+            startedAt: snapshot.createdAt,
+            completedAt: Date()
+        )
+
+        let approval = ZhuowangApproval(
+            stepID: stepID,
+            runID: run.id,
+            decision: .approved,
+            feedback: "",
+            createdAt: Date(),
+            decidedAt: Date()
+        )
+
+        let artifact = ZhuowangArtifact(
+            campaignID: campaignID,
+            stepID: stepID,
+            runID: run.id,
+            name: draft.name,
+            type: draft.type,
+            logicalKey: draft.logicalKey,
+            providerID: provider.id,
+            connectionID: snapshot.connectionID,
+            toolIntegrationID: snapshot.toolIntegrationID,
+            routeID: snapshot.routeID,
+            capability: snapshot.capability,
+            adapterIdentifier: snapshot.adapterIdentifier,
+            location: fileURL.path,
+            content: cleanContent,
+            version: nextArtifactVersion,
+            isApprovedVersion: true
+        )
+
+        var updatedWorkflow = originalWorkflow
+
+        updatedWorkflow.aiRuns.append(run)
+        updatedWorkflow.approvals.append(approval)
+        updatedWorkflow.artifacts.append(artifact)
+        updatedWorkflow.artifacts =
+            ZhuowangWorkflowTransitionLogic
+                .selectingCurrentVersion(
+                    artifacts: updatedWorkflow.artifacts,
+                    artifactID: artifact.id
+                )
+        updatedWorkflow.steps[stepIndex].selectedProviderID = provider.id
+        updatedWorkflow.steps[stepIndex].selectedToolIDs = [
+            snapshot.toolIntegrationID
+        ]
+        updatedWorkflow =
+            ZhuowangWorkflowTransitionLogic
+                .approvingStepAndUnlockingNext(
+                    workflow: updatedWorkflow,
+                    stepID: stepID
+                )
+
+        workflows[workflowIndex] = updatedWorkflow
+
+        saveWorkflows()
+        return true
+    }
+
+
     // MARK: - Recover Workflow From Local Files
 
     /// Rebuilds missing Workflow / Artifact metadata from files that already
@@ -1423,7 +1595,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         let discovered =
             ZhuowangWorkspaceFileManager
                 .shared
-                .discoverMarkdownArtifacts(
+                .discoverLocalArtifacts(
                     provinceName:
                         provinceName,
                     campaignName:
@@ -1510,7 +1682,13 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         name:
                             item.artifactName,
                         type:
-                            .markdown,
+                            item.type,
+                        logicalKey:
+                            item.stepKind == .prototype
+                            && item.type == .html
+                            && item.artifactName == "产品原型设计"
+                            ? "workflow.prototypeDesign.primary"
+                            : nil,
                         location:
                             item.fileURL.path,
                         content:
@@ -1588,7 +1766,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             ) {
                 artifact in
 
-                "\(artifact.stepID?.uuidString ?? "none")|\(artifact.name)"
+                "\(artifact.stepID?.uuidString ?? "none")|\(artifact.versionGroupKey)"
             }
 
         for (_, artifacts)
@@ -1646,7 +1824,9 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 if current.stepID
                     == fallback.stepID,
                    current.name
-                    == fallback.name {
+                    == fallback.name,
+                   current.versionGroupKey
+                    == fallback.versionGroupKey {
 
                     workflows[workflowIndex]
                         .artifacts[artifactIndex]
@@ -1814,8 +1994,27 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
             do {
 
-                let fileURL =
-                    try ZhuowangWorkspaceFileManager
+                let fileURL: URL
+
+                if artifact.type == .html {
+                    fileURL = try ZhuowangWorkspaceFileManager
+                        .shared
+                        .writeHTMLArtifact(
+                            provinceName:
+                                provinceName,
+                            campaignName:
+                                campaign.name,
+                            stepKind:
+                                step.kind,
+                            artifactName:
+                                artifact.name,
+                            version:
+                                artifact.version,
+                            content:
+                                content
+                        )
+                } else {
+                    fileURL = try ZhuowangWorkspaceFileManager
                         .shared
                         .writeMarkdownArtifact(
                             provinceName:
@@ -1831,6 +2030,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                             content:
                                 content
                         )
+                }
 
                 workflows[workflowIndex]
                     .artifacts[artifactIndex]
@@ -1901,7 +2101,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             workflows[workflowIndex]
                 .artifacts
                 .filter {
-                    $0.name == cleanName
+                    $0.versionGroupKey == cleanName
                 }
                 .map(\.version)
 
@@ -1919,7 +2119,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
                 if workflows[workflowIndex]
                     .artifacts[artifactIndex]
-                    .name == cleanName {
+                    .versionGroupKey == cleanName {
 
                     workflows[workflowIndex]
                         .artifacts[artifactIndex]
@@ -1970,38 +2170,24 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         $0.id == workflowID
                     }
                 ),
-            let targetArtifact =
-                workflows[workflowIndex]
-                    .artifacts
-                    .first(
-                        where: {
-                            $0.id == artifactID
-                        }
-                    )
+            workflows[workflowIndex]
+                .artifacts
+                .contains(
+                    where: {
+                        $0.id == artifactID
+                    }
+                )
         else {
             return
         }
 
-        for artifactIndex
-            in workflows[workflowIndex]
-                .artifacts.indices {
-
-            if workflows[workflowIndex]
-                .artifacts[artifactIndex]
-                .name
-                == targetArtifact.name {
-
-                workflows[workflowIndex]
-                    .artifacts[artifactIndex]
-                    .isApprovedVersion =
-                    (
-                        workflows[workflowIndex]
-                            .artifacts[artifactIndex]
-                            .id
-                        == artifactID
-                    )
-            }
-        }
+        workflows[workflowIndex].artifacts =
+            ZhuowangWorkflowTransitionLogic
+                .selectingCurrentVersion(
+                    artifacts:
+                        workflows[workflowIndex].artifacts,
+                    artifactID: artifactID
+                )
 
         workflows[workflowIndex]
             .updatedAt = Date()
@@ -2639,5 +2825,3 @@ final class ZhuowangWorkflowStore: ObservableObject {
         )
     ]
 }
-
-

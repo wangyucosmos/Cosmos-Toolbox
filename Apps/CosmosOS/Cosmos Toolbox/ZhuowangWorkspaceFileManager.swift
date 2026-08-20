@@ -8,12 +8,20 @@ final class ZhuowangWorkspaceFileManager {
     private let fileManager =
         FileManager.default
 
-    private init() { }
+    private let rootURLOverride: URL?
+
+    init(rootURL: URL? = nil) {
+        rootURLOverride = rootURL
+    }
 
 
     // MARK: - Root
 
     var cosmosRootURL: URL {
+
+        if let rootURLOverride {
+            return rootURLOverride
+        }
 
         let documentsURL =
             fileManager.urls(
@@ -182,7 +190,7 @@ final class ZhuowangWorkspaceFileManager {
                 campaignName
         )
         .appendingPathComponent(
-            "05_Figma原型",
+            "05_产品原型",
             isDirectory: true
         )
     }
@@ -432,6 +440,74 @@ final class ZhuowangWorkspaceFileManager {
                     isDirectory: false
                 )
 
+        guard !fileManager.fileExists(
+            atPath: fileURL.path
+        ) else {
+            throw ZhuowangWorkspaceFileError
+                .versionAlreadyExists(fileURL.path)
+        }
+
+        try cleanContent.write(
+            to: fileURL,
+            atomically: true,
+            encoding: .utf8
+        )
+
+        return fileURL
+    }
+
+
+    // MARK: - Write HTML Artifact
+
+    @discardableResult
+    func writeHTMLArtifact(
+        provinceName: String?,
+        campaignName: String,
+        stepKind: ZhuowangWorkflowStepKind,
+        artifactName: String,
+        version: Int,
+        content: String
+    ) throws -> URL {
+
+        _ = try createCampaignWorkspace(
+            provinceName: provinceName,
+            campaignName: campaignName
+        )
+
+        let cleanContent = content.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard !cleanContent.isEmpty else {
+            throw ZhuowangWorkspaceFileError.emptyContent
+        }
+
+        guard cleanContent.data(using: .utf8) != nil else {
+            throw ZhuowangWorkspaceFileError.invalidUTF8
+        }
+
+        let directory = directoryURL(
+            for: stepKind,
+            provinceName: provinceName,
+            campaignName: campaignName
+        )
+
+        let safeArtifactName = sanitizedPathComponent(
+            artifactName
+        )
+
+        let fileURL = directory.appendingPathComponent(
+            "\(safeArtifactName)_V\(version).html",
+            isDirectory: false
+        )
+
+        guard !fileManager.fileExists(
+            atPath: fileURL.path
+        ) else {
+            throw ZhuowangWorkspaceFileError
+                .versionAlreadyExists(fileURL.path)
+        }
+
         try cleanContent.write(
             to: fileURL,
             atomically: true,
@@ -450,7 +526,7 @@ final class ZhuowangWorkspaceFileManager {
     /// This is intentionally read-only. It never renames, rewrites, or deletes
     /// user files. It exists so Cosmos OS can rebuild metadata after a local
     /// database / UserDefaults migration problem.
-    func discoverMarkdownArtifacts(
+    func discoverLocalArtifacts(
         provinceName: String?,
         campaignName: String
     ) -> [ZhuowangDiscoveredLocalArtifact] {
@@ -493,9 +569,16 @@ final class ZhuowangWorkspaceFileManager {
                     continue
                 }
 
-                for fileURL in files
-                    where fileURL.pathExtension
-                        .lowercased() == "md" {
+                for fileURL in files {
+
+                    let fileExtension =
+                        fileURL.pathExtension.lowercased()
+
+                    guard ["md", "html"].contains(
+                        fileExtension
+                    ) else {
+                        continue
+                    }
 
                     guard
                         seenPaths.insert(
@@ -524,6 +607,10 @@ final class ZhuowangWorkspaceFileManager {
                     results.append(
                         ZhuowangDiscoveredLocalArtifact(
                             stepKind: stepKind,
+                            type:
+                                fileExtension == "html"
+                                ? .html
+                                : .markdown,
                             artifactName:
                                 parsed.name,
                             version:
@@ -599,6 +686,10 @@ final class ZhuowangWorkspaceFileManager {
         // while allowing future generic prototype folder names.
         return [
             canonical,
+            campaignURL.appendingPathComponent(
+                "05_Figma原型",
+                isDirectory: true
+            ),
             campaignURL.appendingPathComponent(
                 "05_产品原型",
                 isDirectory: true
@@ -767,6 +858,7 @@ final class ZhuowangWorkspaceFileManager {
 struct ZhuowangDiscoveredLocalArtifact {
 
     let stepKind: ZhuowangWorkflowStepKind
+    let type: ZhuowangArtifactType
     let artifactName: String
     let version: Int
     let fileURL: URL
@@ -781,6 +873,8 @@ enum ZhuowangWorkspaceFileError:
     LocalizedError {
 
     case emptyContent
+    case invalidUTF8
+    case versionAlreadyExists(String)
 
     var errorDescription: String? {
 
@@ -788,7 +882,10 @@ enum ZhuowangWorkspaceFileError:
 
         case .emptyContent:
             return "工作产物正文为空，无法保存为 Markdown 文件。"
+        case .invalidUTF8:
+            return "工作产物不是有效 UTF-8 内容。"
+        case let .versionAlreadyExists(path):
+            return "目标版本文件已存在，为避免覆盖已停止写入：\(path)"
         }
     }
 }
-

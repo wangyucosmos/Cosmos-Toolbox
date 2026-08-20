@@ -1,5 +1,20 @@
 import SwiftUI
 import AppKit
+import WebKit
+
+private enum ZhuowangHTMLReviewMode: String, CaseIterable, Identifiable {
+    case preview
+    case source
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .preview: return "预览"
+        case .source: return "源码"
+        }
+    }
+}
 
 // MARK: - Execution State
 
@@ -19,13 +34,14 @@ struct ZhuowangAIExecutionResultView: View {
 
     let provider: ZhuowangAIProvider?
     let connection: ZhuowangAIConnection?
+    let artifactDraft: ZhuowangArtifactDraft?
 
     let resultText: String
     let errorText: String
 
     let state: ZhuowangAIExecutionViewState
 
-    let onAdopt: () -> Void
+    let onAdopt: () -> Bool
     let onRequestRevision: (String) -> Void
     let onRegenerate: () -> Void
 
@@ -37,6 +53,13 @@ struct ZhuowangAIExecutionResultView: View {
 
     @State
     private var showRevisionSheet = false
+
+    @State
+    private var htmlReviewMode:
+        ZhuowangHTMLReviewMode = .preview
+
+    @State
+    private var adoptionFailed = false
 
 
     var body: some View {
@@ -473,6 +496,15 @@ struct ZhuowangAIExecutionResultView: View {
 
 
             reviewNotice
+
+            if adoptionFailed {
+                Label(
+                    "采用失败：HTML 文件或 Artifact 未能安全保存。Workflow 状态未改变，请检查后重试。",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.red)
+            }
         }
     }
 
@@ -529,33 +561,33 @@ struct ZhuowangAIExecutionResultView: View {
 
             Divider()
 
-            Text(
-                cleanedResultText
-            )
-            .font(
-                .system(
-                    size: 14
-                )
-            )
-            .textSelection(.enabled)
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-            .padding(
-                CosmosDesign.spacingM
-            )
-            .background(
-                Color.primary
-                    .opacity(0.018)
-            )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusSmall,
-                    style: .continuous
-                )
-            )
+            if artifactDraft?.type == .html {
+
+                Picker(
+                    "HTML 查看方式",
+                    selection: $htmlReviewMode
+                ) {
+                    ForEach(
+                        ZhuowangHTMLReviewMode.allCases
+                    ) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+
+                if htmlReviewMode == .preview {
+                    ZhuowangHTMLPreview(
+                        html: cleanedResultText
+                    )
+                    .frame(minHeight: 500)
+                } else {
+                    sourceCodeView
+                }
+
+            } else {
+                sourceCodeView
+            }
         }
         .padding(
             CosmosDesign.spacingL
@@ -581,6 +613,36 @@ struct ZhuowangAIExecutionResultView: View {
                 lineWidth: 1
             )
         }
+    }
+
+
+    private var sourceCodeView: some View {
+
+        ScrollView([.horizontal, .vertical]) {
+            Text(cleanedResultText)
+                .font(
+                    .system(
+                        size: 13,
+                        design: artifactDraft?.type == .html
+                            ? .monospaced
+                            : .default
+                    )
+                )
+                .textSelection(.enabled)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+                .padding(CosmosDesign.spacingM)
+        }
+        .frame(minHeight: artifactDraft?.type == .html ? 420 : 180)
+        .background(Color.primary.opacity(0.018))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusSmall,
+                style: .continuous
+            )
+        )
     }
 
 
@@ -892,9 +954,12 @@ struct ZhuowangAIExecutionResultView: View {
 
                 Button {
 
-                    onAdopt()
-
-                    dismiss()
+                    if onAdopt() {
+                        adoptionFailed = false
+                        dismiss()
+                    } else {
+                        adoptionFailed = true
+                    }
 
                 } label: {
 
@@ -1192,6 +1257,65 @@ struct ZhuowangAIExecutionResultView: View {
                 cleanedErrorText,
                 forType: .string
             )
+    }
+}
+
+
+// MARK: - Sandboxed HTML Review
+
+private struct ZhuowangHTMLPreview: NSViewRepresentable {
+
+    let html: String
+
+    func makeNSView(context: Context) -> WKWebView {
+
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+
+        let webView = WKWebView(
+            frame: .zero,
+            configuration: configuration
+        )
+        webView.navigationDelegate = context.coordinator
+        return webView
+    }
+
+    func updateNSView(
+        _ webView: WKWebView,
+        context: Context
+    ) {
+        guard context.coordinator.lastHTML != html else {
+            return
+        }
+
+        context.coordinator.lastHTML = html
+        webView.loadHTMLString(html, baseURL: nil)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+
+        var lastHTML = ""
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            guard let scheme = navigationAction.request.url?.scheme else {
+                decisionHandler(.allow)
+                return
+            }
+
+            decisionHandler(
+                ["about", "data", "blob"].contains(scheme)
+                ? .allow
+                : .cancel
+            )
+        }
     }
 }
 

@@ -8,7 +8,18 @@
 
 /* Begin PBXFileReference section */
 		CBADA23630329A5F002325A1 /* Cosmos Toolbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cosmos Toolbox.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0D000000000000000000001 /* Cosmos ToolboxTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cosmos ToolboxTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		C0D000000000000000000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CBADA22E30329A5F002325A1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CBADA23530329A5F002325A1;
+			remoteInfo = "Cosmos Toolbox";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CBADA23830329A5F002325A1 /* Cosmos Toolbox */ = {
@@ -16,10 +27,22 @@
 			path = "Cosmos Toolbox";
 			sourceTree = "<group>";
 		};
+		C0D000000000000000000002 /* Cosmos ToolboxTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Cosmos ToolboxTests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CBADA23330329A5F002325A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0D000000000000000000003 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				CBADA23830329A5F002325A1 /* Cosmos Toolbox */,
+				C0D000000000000000000002 /* Cosmos ToolboxTests */,
 				CBADA23730329A5F002325A1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				CBADA23630329A5F002325A1 /* Cosmos Toolbox.app */,
+				C0D000000000000000000001 /* Cosmos ToolboxTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = CBADA23630329A5F002325A1 /* Cosmos Toolbox.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C0D000000000000000000006 /* Cosmos ToolboxTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0D00000000000000000000B /* Build configuration list for PBXNativeTarget "Cosmos ToolboxTests" */;
+			buildPhases = (
+				C0D000000000000000000004 /* Sources */,
+				C0D000000000000000000003 /* Frameworks */,
+				C0D000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0D000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C0D000000000000000000002 /* Cosmos ToolboxTests */,
+			);
+			name = "Cosmos ToolboxTests";
+			packageProductDependencies = (
+			);
+			productName = "Cosmos ToolboxTests";
+			productReference = C0D000000000000000000001 /* Cosmos ToolboxTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					CBADA23530329A5F002325A1 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					C0D000000000000000000006 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = CBADA23530329A5F002325A1;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				CBADA23530329A5F002325A1 /* Cosmos Toolbox */,
+				C0D000000000000000000006 /* Cosmos ToolboxTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		CBADA23430329A5F002325A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0D000000000000000000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0D000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C0D000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CBADA23530329A5F002325A1 /* Cosmos Toolbox */;
+			targetProxy = C0D000000000000000000007 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CBADA23F30329A60002325A1 /* Debug */ = {
@@ -301,6 +376,40 @@
 			};
 			name = Release;
 		};
+		C0D000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wangyucosmos.Cosmos-ToolboxTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cosmos Toolbox.app/Contents/MacOS/Cosmos Toolbox";
+			};
+			name = Debug;
+		};
+		C0D00000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wangyucosmos.Cosmos-ToolboxTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cosmos Toolbox.app/Contents/MacOS/Cosmos Toolbox";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -318,6 +427,15 @@
 			buildConfigurations = (
 				CBADA24230329A60002325A1 /* Debug */,
 				CBADA24330329A60002325A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0D00000000000000000000B /* Build configuration list for PBXNativeTarget "Cosmos ToolboxTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0D000000000000000000009 /* Debug */,
+				C0D00000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

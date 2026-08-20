@@ -14,6 +14,12 @@ private struct ZhuowangTaskPreviewContext:
     let connection:
         ZhuowangAIConnection?
 
+    let tool:
+        ZhuowangExternalToolIntegration?
+
+    let route:
+        ZhuowangAgentToolRoute?
+
     let workflowID: UUID
     let stepID: UUID
 }
@@ -67,14 +73,21 @@ struct ZhuowangWorkflowView: View {
                     context.provider,
                 connection:
                     context.connection,
+                tool:
+                    context.tool,
+                route:
+                    context.route,
                 onAdoptResult: {
-                    resultText in
+                    resultText,
+                    executionResult in
 
                     adoptPreviewResult(
                         context:
                             context,
                         resultText:
-                            resultText
+                            resultText,
+                        executionResult:
+                            executionResult
                     )
                 }
             )
@@ -740,13 +753,10 @@ struct ZhuowangWorkflowView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(
-                    currentProviderID(
-                        workflowID:
-                            workflow.id,
-                        stepID:
-                            step.id
+                    !canPrepareTask(
+                        workflowID: workflow.id,
+                        step: step
                     )
-                    == nil
                 )
             }
         }
@@ -787,7 +797,9 @@ struct ZhuowangWorkflowView: View {
                 // 下一阶段直接读取 AIConnectionStore 的 Tool Registry。
                 // 当前先使用已注册工具作为展示入口。
                 ForEach(
-                    connectionStore.enabledToolIntegrations()
+                    availableTools(
+                        for: step
+                    )
                 ) { tool in
 
                     Button {
@@ -1181,13 +1193,57 @@ struct ZhuowangWorkflowView: View {
                 for: latestStep
             )
 
-        let connection =
-            provider.flatMap {
-                connectionStore
-                    .recommendedConnection(
-                        forProviderID: $0.id
-                    )
+        let connection = provider.flatMap {
+            connectionStore.recommendedConnection(
+                forProviderID: $0.id
+            )
+        }
+
+        let tool = selectedTool(
+            for: latestStep
+        )
+
+        let route = connection.flatMap { connection in
+            tool.flatMap { tool in
+                connectionStore.route(
+                    connectionID: connection.id,
+                    toolIntegrationID: tool.id
+                )
             }
+        }
+
+        let executionSnapshot:
+            ZhuowangWorkflowExecutionSnapshot?
+
+        if let capability = latestStep.requiredCapabilities.first {
+            guard
+                let provider,
+                let connection,
+                let tool,
+                let route,
+                tool.capabilities.contains(capability),
+                route.status == .available,
+                route.supportsDirectExecution,
+                route.supportsAutomaticResultReturn,
+                let adapterIdentifier = route.adapterIdentifier
+            else {
+                return
+            }
+
+            executionSnapshot =
+                ZhuowangWorkflowExecutionSnapshot(
+                    workflowID: workflow.id,
+                    workflowStepID: latestStep.id,
+                    providerID: provider.id,
+                    connectionID: connection.id,
+                    toolIntegrationID: tool.id,
+                    routeID: route.id,
+                    capability: capability,
+                    adapterIdentifier: adapterIdentifier
+                )
+        } else {
+            executionSnapshot = nil
+        }
 
         let latestWorkflow =
             store.workflow(
@@ -1203,7 +1259,9 @@ struct ZhuowangWorkflowView: View {
                 module: module,
                 workflow: latestWorkflow,
                 step: latestStep,
-                provider: provider
+                provider: provider,
+                executionSnapshot:
+                    executionSnapshot
             )
 
         previewContext =
@@ -1214,6 +1272,10 @@ struct ZhuowangWorkflowView: View {
                     provider,
                 connection:
                     connection,
+                tool:
+                    tool,
+                route:
+                    route,
                 workflowID:
                     latestWorkflow.id,
                 stepID:
@@ -1226,8 +1288,9 @@ struct ZhuowangWorkflowView: View {
 
     private func adoptPreviewResult(
         context: ZhuowangTaskPreviewContext,
-        resultText: String
-    ) {
+        resultText: String,
+        executionResult: ZhuowangWorkflowExecutionResult?
+    ) -> Bool {
 
         guard
             let providerID =
@@ -1240,7 +1303,7 @@ struct ZhuowangWorkflowView: View {
                         context.stepID
                 )
         else {
-            return
+            return false
         }
 
         let inputText =
@@ -1256,11 +1319,12 @@ struct ZhuowangWorkflowView: View {
             \(context.taskPackage.expectedOutputs.joined(separator: "\n"))
             """
 
-        let artifactName =
-            "\(currentStep.title) · AI 采用结果"
+        let adopted: Bool
 
-        let adopted =
-            store.adoptAIResult(
+        if let executionResult,
+           let provider = context.provider {
+
+            adopted = store.adoptExecutionResult(
                 workflowID:
                     context.workflowID,
                 campaignID:
@@ -1269,22 +1333,38 @@ struct ZhuowangWorkflowView: View {
                     campaign.name,
                 provinceName:
                     province?.name,
-                stepID:
-                    context.stepID,
-                providerID:
-                    providerID,
+                stepID: context.stepID,
+                provider: provider,
                 inputText:
                     inputText,
-                outputText:
-                    resultText,
-                artifactName:
-                    artifactName
+                executionResult:
+                    executionResult
             )
+
+        } else {
+
+            let artifactName =
+                "\(currentStep.title) · AI 采用结果"
+
+            adopted = store.adoptAIResult(
+                workflowID: context.workflowID,
+                campaignID: campaign.id,
+                campaignName: campaign.name,
+                provinceName: province?.name,
+                stepID: context.stepID,
+                providerID: providerID,
+                inputText: inputText,
+                outputText: resultText,
+                artifactName: artifactName
+            )
+        }
 
         if adopted {
             expandedStepID =
                 context.stepID
         }
+
+        return adopted
     }
 
 
@@ -1588,11 +1668,87 @@ struct ZhuowangWorkflowView: View {
         for step: ZhuowangWorkflowStep
     ) -> String {
 
-        if !step.selectedToolIDs.isEmpty {
-            return "已选择工具 \(step.selectedToolIDs.count) 个"
+        if let tool = selectedTool(for: step) {
+            return tool.name
         }
 
         return toolSummary(for: step)
+    }
+
+
+    private func availableTools(
+        for step: ZhuowangWorkflowStep
+    ) -> [ZhuowangExternalToolIntegration] {
+
+        var seen = Set<UUID>()
+
+        return step.requiredCapabilities
+            .flatMap {
+                connectionStore.availableTools(
+                    for: $0
+                )
+            }
+            .filter {
+                seen.insert($0.id).inserted
+            }
+    }
+
+
+    private func selectedTool(
+        for step: ZhuowangWorkflowStep
+    ) -> ZhuowangExternalToolIntegration? {
+
+        step.selectedToolIDs.lazy
+            .compactMap {
+                connectionStore.toolIntegration(
+                    id: $0
+                )
+            }
+            .first
+    }
+
+
+    private func canPrepareTask(
+        workflowID: UUID,
+        step: ZhuowangWorkflowStep
+    ) -> Bool {
+
+        let latestStep = store.step(
+            workflowID: workflowID,
+            stepID: step.id
+        ) ?? step
+
+        guard let provider = selectedProvider(
+            for: latestStep
+        ) else {
+            return false
+        }
+
+        guard let capability =
+            latestStep.requiredCapabilities.first
+        else {
+            return true
+        }
+
+        guard
+            let connection = connectionStore
+                .recommendedConnection(
+                    forProviderID: provider.id
+                ),
+            let tool = selectedTool(for: latestStep),
+            tool.capabilities.contains(capability),
+            let route = connectionStore.route(
+                connectionID: connection.id,
+                toolIntegrationID: tool.id
+            )
+        else {
+            return false
+        }
+
+        return route.status == .available
+            && route.supportsDirectExecution
+            && route.supportsAutomaticResultReturn
+            && route.adapterIdentifier != nil
     }
 
 
@@ -1635,8 +1791,6 @@ struct ZhuowangWorkflowView: View {
         }
     }
 }
-
-
 
 
 

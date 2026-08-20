@@ -677,7 +677,7 @@ struct ZhuowangCampaignDetailView: View {
                 grouping:
                     campaignArtifacts
             ) {
-                $0.name
+                $0.versionGroupKey
             }
 
         return grouped
@@ -1799,7 +1799,7 @@ private struct ZhuowangArtifactDetailView: View {
                 spacing: 3
             ) {
 
-                Text(artifactName)
+                Text(artifact?.name ?? artifactName)
                     .font(.title2)
                     .fontWeight(.semibold)
 
@@ -2329,7 +2329,7 @@ private struct ZhuowangArtifactDetailView: View {
                     campaignID
             )
             .filter {
-                $0.name == artifactName
+                $0.versionGroupKey == artifactName
             }
             .sorted {
                 $0.version > $1.version
@@ -2895,5 +2895,3 @@ enum ZhuowangCampaignDetailTab:
             nil
     )
 }
-
-

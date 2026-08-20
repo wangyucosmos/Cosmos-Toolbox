@@ -6,8 +6,13 @@ struct ZhuowangTaskPackagePreviewView: View {
     let taskPackage: ZhuowangAITaskPackage
     let provider: ZhuowangAIProvider?
     let connection: ZhuowangAIConnection?
+    let tool: ZhuowangExternalToolIntegration?
+    let route: ZhuowangAgentToolRoute?
 
-    let onAdoptResult: (String) -> Void
+    let onAdoptResult: (
+        String,
+        ZhuowangWorkflowExecutionResult?
+    ) -> Bool
 
     @Environment(\.dismiss)
     private var dismiss
@@ -26,6 +31,9 @@ struct ZhuowangTaskPackagePreviewView: View {
     @State private var executionErrorText = ""
 
     @State private var currentRevisionFeedback = ""
+
+    @State private var workflowExecutionResult:
+        ZhuowangWorkflowExecutionResult?
 
 
     var body: some View {
@@ -87,6 +95,8 @@ struct ZhuowangTaskPackagePreviewView: View {
                     provider,
                 connection:
                     connection,
+                artifactDraft:
+                    workflowExecutionResult?.artifactDraft,
                 resultText:
                     executionResultText,
                 errorText:
@@ -95,14 +105,17 @@ struct ZhuowangTaskPackagePreviewView: View {
                     executionState,
                 onAdopt: {
 
-                    onAdoptResult(
-                        executionResultText
+                    let adopted = onAdoptResult(
+                        executionResultText,
+                        workflowExecutionResult
                     )
 
-                    showExecutionResult =
-                        false
+                    if adopted {
+                        showExecutionResult = false
+                        dismiss()
+                    }
 
-                    dismiss()
+                    return adopted
                 },
                 onRequestRevision: {
                     feedback in
@@ -488,6 +501,18 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                 HStack {
 
+                    Text("Tool")
+
+                    Spacer()
+
+                    Text(tool?.name ?? "未选择")
+                        .fontWeight(.medium)
+                }
+
+                Divider()
+
+                HStack {
+
                     Text("Connection")
 
                     Spacer()
@@ -528,6 +553,15 @@ struct ZhuowangTaskPackagePreviewView: View {
             Label(
                 "当前还没有绑定具体 Connection。",
                 systemImage: "info.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        } else if taskPackage.executionSnapshot != nil {
+
+            Label(
+                "Provider、Connection、Tool、Route 与 capability 已冻结为本次执行快照，将通过 Coordinator 和 Adapter Registry 执行。",
+                systemImage: "checkmark.shield"
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -699,8 +733,37 @@ struct ZhuowangTaskPackagePreviewView: View {
         executionResultText = ""
         executionErrorText = ""
         currentRevisionFeedback = ""
+        workflowExecutionResult = nil
         executionState = .running
         showExecutionResult = true
+
+        if taskPackage.executionSnapshot != nil {
+
+            Task {
+                do {
+                    let result = try await
+                        ZhuowangWorkflowExecutionCoordinator()
+                        .execute(taskPackage: taskPackage)
+
+                    await MainActor.run {
+                        workflowExecutionResult = result
+                        executionResultText =
+                            result.artifactDraft.content
+                        executionState = .succeeded
+                    }
+                } catch {
+                    await MainActor.run {
+                        workflowExecutionResult = nil
+                        executionResultText = ""
+                        executionErrorText =
+                            error.localizedDescription
+                        executionState = .failed
+                    }
+                }
+            }
+
+            return
+        }
 
         guard isDeepSeekHarnessConnection else {
 
@@ -829,6 +892,26 @@ struct ZhuowangTaskPackagePreviewView: View {
         Task {
 
             do {
+
+                if taskPackage.executionSnapshot != nil {
+
+                    var revisionPackage = taskPackage
+                    revisionPackage.instruction = revisionTask
+
+                    let result = try await
+                        ZhuowangWorkflowExecutionCoordinator()
+                        .execute(taskPackage: revisionPackage)
+
+                    await MainActor.run {
+                        workflowExecutionResult = result
+                        executionResultText =
+                            result.artifactDraft.content
+                        executionErrorText = ""
+                        executionState = .succeeded
+                    }
+
+                    return
+                }
 
                 let result =
                     try await
@@ -999,4 +1082,3 @@ struct ZhuowangTaskPackagePreviewView: View {
         }
     }
 }
-

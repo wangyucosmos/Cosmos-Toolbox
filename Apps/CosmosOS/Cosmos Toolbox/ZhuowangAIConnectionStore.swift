@@ -92,6 +92,18 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
             saveAgentToolRoutes()
         }
+
+        if connectionLoadState != .locked {
+            removeLegacyBuiltInFigmaConnection()
+        }
+
+        if toolIntegrationLoadState != .locked {
+            ensureBuiltInHTMLPrototypeTool()
+        }
+
+        if agentToolRouteLoadState != .locked {
+            ensureBuiltInDeepSeekHTMLRoute()
+        }
     }
 
 
@@ -251,15 +263,9 @@ final class ZhuowangAIConnectionStore: ObservableObject {
 
         enabledToolIntegrations()
             .filter { tool in
-
-                switch capability {
-
-                case .prototypeDesign:
-                    return tool.kind == .figma
-
-                default:
-                    return false
-                }
+                tool.capabilities.contains(
+                    capability
+                )
             }
     }
 
@@ -951,13 +957,6 @@ final class ZhuowangAIConnectionStore: ObservableObject {
                 "20000000-0000-0000-0000-000000000004"
         )!
 
-    private static let figmaProviderID =
-        UUID(
-            uuidString:
-                "20000000-0000-0000-0000-000000000005"
-        )!
-
-
     // MARK: - Default Connection / Tool IDs
 
     private static let chatGPTConnectionID =
@@ -985,10 +984,10 @@ final class ZhuowangAIConnectionStore: ObservableObject {
         )!
 
     private static let figmaToolIntegrationID =
-        UUID(
-            uuidString:
-                "40000000-0000-0000-0000-000000000001"
-        )!
+        ZhuowangBuiltInIntegrationIDs.figmaTool
+
+    private static let htmlPrototypeToolIntegrationID =
+        ZhuowangBuiltInIntegrationIDs.htmlPrototypeTool
 
 
     // MARK: - Default Connections
@@ -1237,47 +1236,6 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             notes:
                 "Claude Desktop 内集成的 Claude Code。使用 Claude 订阅，不使用 Anthropic API。"
         ),
-
-
-        // Figma
-
-        ZhuowangAIConnection(
-            id: UUID(
-                uuidString:
-                    "30000000-0000-0000-0000-000000000006"
-            )!,
-            providerID:
-                figmaProviderID,
-            name:
-                "Figma Integration",
-            mode:
-                .connector,
-            status:
-                .needsSetup,
-            executionStyle:
-                .externalTool,
-            capabilities: [
-                .prototypeDesign,
-                .figmaEditing,
-                .automation,
-                .toolCalling
-            ],
-            allowsAutomaticSelection:
-                true,
-            supportsDirectExecution:
-                false,
-            supportsAutomaticResultReturn:
-                false,
-            adapterIdentifier:
-                "figma-integration",
-            endpointOrPath:
-                nil,
-            configuration: [:],
-            isEnabled:
-                true,
-            notes:
-                "后续根据实际能力接入 Figma Connector、MCP 或 Plugin。"
-        )
     ]
 
     // MARK: - Default Tool Integrations
@@ -1297,6 +1255,9 @@ final class ZhuowangAIConnectionStore: ObservableObject {
                 .needsSetup,
             mode:
                 .connector,
+            capabilities: [
+                .prototypeDesign
+            ],
             adapterIdentifier:
                 "figma",
             endpointOrPath:
@@ -1311,6 +1272,34 @@ final class ZhuowangAIConnectionStore: ObservableObject {
                 true,
             notes:
                 "Figma 是外部设计工具，不再作为固定 AI 执行器。由 ChatGPT、Codex、Claude、DeepSeek Harness 等 Agent 通过各自可用的 Connector / MCP / Plugin 路径调用。"
+        ),
+
+        ZhuowangExternalToolIntegration(
+            id:
+                htmlPrototypeToolIntegrationID,
+            kind:
+                .htmlPrototype,
+            name:
+                "HTML Prototype",
+            status:
+                .available,
+            mode:
+                .localAgent,
+            capabilities: [
+                .prototypeDesign
+            ],
+            adapterIdentifier:
+                "html-prototype",
+            endpointOrPath:
+                nil,
+            configuration: [
+                "artifactType": "html",
+                "resultType": "local-html"
+            ],
+            isEnabled:
+                true,
+            notes:
+                "使用 AI 返回的完整单文件 HTML，经过本地 Adapter 验证后形成可预览、可采用的原型 Artifact。"
         )
     ]
 
@@ -1431,7 +1420,131 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             ],
             notes:
                 "目标：DeepSeek Harness 作为执行 Agent 调用 Figma。当前先注册正式 Route，实际 MCP / Plugin 路径仍需后续验证，不在模型层写死。"
+        ),
+
+        ZhuowangAgentToolRoute(
+            id:
+                ZhuowangBuiltInIntegrationIDs.deepSeekHTMLRoute,
+            connectionID:
+                deepSeekConnectionID,
+            toolIntegrationID:
+                htmlPrototypeToolIntegrationID,
+            status:
+                .available,
+            executionMode:
+                .agentManaged,
+            supportsDirectExecution:
+                true,
+            supportsAutomaticResultReturn:
+                true,
+            adapterIdentifier:
+                "deepseek-harness-html-prototype",
+            configuration: [
+                "pipeline": "ai-result-to-html-adapter"
+            ],
+            notes:
+                "DeepSeek Harness 生成完整 HTML，HTML Prototype Adapter 验证并返回 Artifact Draft。"
         )
     ]
+
+
+    // MARK: - Safe Built-in Migrations
+
+    /// Removes only the exact historical built-in Figma connection. User-created
+    /// connections and the standalone Figma Tool Integration are preserved.
+    private func removeLegacyBuiltInFigmaConnection() {
+
+        let legacyConnectionIDs = Set(
+            connections
+                .filter {
+                    $0.id.uuidString
+                        == "30000000-0000-0000-0000-000000000006"
+                }
+                .map(\.id)
+        )
+
+        guard !legacyConnectionIDs.isEmpty else {
+            return
+        }
+
+        connections.removeAll {
+            legacyConnectionIDs.contains($0.id)
+        }
+
+        save()
+
+        if agentToolRouteLoadState != .locked {
+            agentToolRoutes.removeAll {
+                legacyConnectionIDs.contains(
+                    $0.connectionID
+                )
+            }
+            saveAgentToolRoutes()
+        }
+    }
+
+
+    private func ensureBuiltInHTMLPrototypeTool() {
+
+        guard !toolIntegrations.contains(
+            where: {
+                $0.id == Self.htmlPrototypeToolIntegrationID
+            }
+        ) else {
+            return
+        }
+
+        guard let builtIn = Self.defaultToolIntegrations.first(
+            where: {
+                $0.id == Self.htmlPrototypeToolIntegrationID
+            }
+        ) else {
+            return
+        }
+
+        toolIntegrations.append(builtIn)
+        saveToolIntegrations()
+    }
+
+
+    private func ensureBuiltInDeepSeekHTMLRoute() {
+
+        guard
+            connections.contains(
+                where: { $0.id == Self.deepSeekConnectionID }
+            ),
+            toolIntegrations.contains(
+                where: {
+                    $0.id == Self.htmlPrototypeToolIntegrationID
+                }
+            )
+        else {
+            return
+        }
+
+        guard !agentToolRoutes.contains(
+            where: {
+                $0.id == ZhuowangBuiltInIntegrationIDs.deepSeekHTMLRoute
+                || (
+                    $0.connectionID == Self.deepSeekConnectionID
+                    && $0.toolIntegrationID
+                        == Self.htmlPrototypeToolIntegrationID
+                )
+            }
+        ) else {
+            return
+        }
+
+        guard let builtIn = Self.defaultAgentToolRoutes.first(
+            where: {
+                $0.id == ZhuowangBuiltInIntegrationIDs.deepSeekHTMLRoute
+            }
+        ) else {
+            return
+        }
+
+        agentToolRoutes.append(builtIn)
+        saveAgentToolRoutes()
+    }
 
 }
