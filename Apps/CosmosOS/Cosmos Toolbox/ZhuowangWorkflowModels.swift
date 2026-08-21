@@ -256,6 +256,119 @@ enum ZhuowangWorkflowCapability:
 }
 
 
+// MARK: - Prototype Execution Profile
+
+enum ZhuowangPrototypeFidelity:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case low
+    case mid
+    case high
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .low:
+            return "Low-fi"
+        case .mid:
+            return "Mid-fi"
+        case .high:
+            return "High-fi"
+        }
+    }
+}
+
+
+enum ZhuowangPrototypeStyle:
+    String,
+    Codable,
+    CaseIterable,
+    Identifiable {
+
+    case grayscaleWireframe
+    case annotatedBoard
+    case brandMinimal
+    case highFidelityMarketingPage
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .grayscaleWireframe:
+            return "黑白灰线框"
+        case .annotatedBoard:
+            return "批注说明板"
+        case .brandMinimal:
+            return "品牌简约"
+        case .highFidelityMarketingPage:
+            return "高保真活动页"
+        }
+    }
+}
+
+
+/// Tool-agnostic controls for a prototypeDesign execution.
+/// Concrete Tool / Route resolvers translate this profile into output rules.
+struct ZhuowangPrototypeExecutionProfile:
+    Codable,
+    Hashable {
+
+    var fidelity: ZhuowangPrototypeFidelity
+    var style: ZhuowangPrototypeStyle
+
+    static let `default` =
+        ZhuowangPrototypeExecutionProfile(
+            fidelity: .high,
+            style: .highFidelityMarketingPage
+        )
+
+    static func supportedStyles(
+        for fidelity: ZhuowangPrototypeFidelity
+    ) -> [ZhuowangPrototypeStyle] {
+        switch fidelity {
+        case .low:
+            return [.grayscaleWireframe, .annotatedBoard]
+        case .mid:
+            return [
+                .grayscaleWireframe,
+                .annotatedBoard,
+                .brandMinimal
+            ]
+        case .high:
+            return [.brandMinimal, .highFidelityMarketingPage]
+        }
+    }
+
+    static func recommendedStyle(
+        for fidelity: ZhuowangPrototypeFidelity
+    ) -> ZhuowangPrototypeStyle {
+        switch fidelity {
+        case .low:
+            return .grayscaleWireframe
+        case .mid:
+            return .annotatedBoard
+        case .high:
+            return .highFidelityMarketingPage
+        }
+    }
+
+    var normalized: ZhuowangPrototypeExecutionProfile {
+        guard Self.supportedStyles(for: fidelity).contains(style) else {
+            return ZhuowangPrototypeExecutionProfile(
+                fidelity: fidelity,
+                style: Self.recommendedStyle(for: fidelity)
+            )
+        }
+
+        return self
+    }
+}
+
+
 // MARK: - Workflow Step Kind
 
 enum ZhuowangWorkflowStepKind: String, Codable {
@@ -353,6 +466,10 @@ struct ZhuowangWorkflowStep:
     /// may have multiple available tools.
     var selectedToolIDs: [UUID]
 
+    /// Persisted, tool-agnostic prototype generation controls.
+    /// Relevant only when requiredCapabilities includes prototypeDesign.
+    var prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile
+
     /// If true, Cosmos OS may recommend a provider.
     /// The user still keeps final control.
     var allowsAutomaticProviderRecommendation: Bool
@@ -383,6 +500,7 @@ struct ZhuowangWorkflowStep:
         requiredCapabilities: [ZhuowangWorkflowCapability] = [],
         requiredTools: [ZhuowangExternalToolKind] = [],
         selectedToolIDs: [UUID] = [],
+        prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile = .default,
         allowsAutomaticProviderRecommendation: Bool = true,
         requiresApproval: Bool = true,
         isEnabled: Bool = true,
@@ -400,6 +518,7 @@ struct ZhuowangWorkflowStep:
         self.requiredCapabilities = requiredCapabilities
         self.requiredTools = requiredTools
         self.selectedToolIDs = selectedToolIDs
+        self.prototypeExecutionProfile = prototypeExecutionProfile.normalized
         self.allowsAutomaticProviderRecommendation =
             allowsAutomaticProviderRecommendation
         self.requiresApproval = requiresApproval
@@ -428,6 +547,7 @@ struct ZhuowangWorkflowStep:
         case requiredCapabilities
         case requiredTools
         case selectedToolIDs
+        case prototypeExecutionProfile
         case allowsAutomaticProviderRecommendation
         case requiresApproval
         case isEnabled
@@ -514,6 +634,14 @@ struct ZhuowangWorkflowStep:
                 forKey: .selectedToolIDs
             )
             ?? []
+
+        prototypeExecutionProfile =
+            try container.decodeIfPresent(
+                ZhuowangPrototypeExecutionProfile.self,
+                forKey: .prototypeExecutionProfile
+            )?
+            .normalized
+            ?? .default
 
         allowsAutomaticProviderRecommendation =
             try container.decodeIfPresent(
@@ -620,6 +748,11 @@ struct ZhuowangWorkflowStep:
         )
 
         try container.encode(
+            prototypeExecutionProfile,
+            forKey: .prototypeExecutionProfile
+        )
+
+        try container.encode(
             allowsAutomaticProviderRecommendation,
             forKey:
                 .allowsAutomaticProviderRecommendation
@@ -688,6 +821,7 @@ struct ZhuowangAIRun:
     var routeID: UUID?
     var capability: ZhuowangWorkflowCapability?
     var adapterIdentifier: String?
+    var prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile?
 
     /// Model actually used.
     /// Stored here so old runs remain traceable
@@ -720,6 +854,7 @@ struct ZhuowangAIRun:
         routeID: UUID? = nil,
         capability: ZhuowangWorkflowCapability? = nil,
         adapterIdentifier: String? = nil,
+        prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile? = nil,
         modelName: String = "",
         status: ZhuowangAIRunStatus = .queued,
         inputText: String,
@@ -737,6 +872,7 @@ struct ZhuowangAIRun:
         self.routeID = routeID
         self.capability = capability
         self.adapterIdentifier = adapterIdentifier
+        self.prototypeExecutionProfile = prototypeExecutionProfile
         self.modelName = modelName
         self.status = status
         self.inputText = inputText
@@ -883,6 +1019,7 @@ struct ZhuowangArtifact:
     var routeID: UUID?
     var capability: ZhuowangWorkflowCapability?
     var adapterIdentifier: String?
+    var prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile?
 
     /// Local path, future cloud path, Figma URL,
     /// GitHub URL, etc.
@@ -915,6 +1052,7 @@ struct ZhuowangArtifact:
         routeID: UUID? = nil,
         capability: ZhuowangWorkflowCapability? = nil,
         adapterIdentifier: String? = nil,
+        prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile? = nil,
         location: String = "",
         content: String? = nil,
         version: Int = 1,
@@ -935,6 +1073,7 @@ struct ZhuowangArtifact:
         self.routeID = routeID
         self.capability = capability
         self.adapterIdentifier = adapterIdentifier
+        self.prototypeExecutionProfile = prototypeExecutionProfile
         self.location = location
         self.content = content
         self.version = version
@@ -1075,4 +1214,3 @@ extension ZhuowangCampaignWorkflow {
         )
     }
 }
-

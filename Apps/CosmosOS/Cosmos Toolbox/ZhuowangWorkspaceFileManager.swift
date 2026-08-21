@@ -518,6 +518,65 @@ final class ZhuowangWorkspaceFileManager {
     }
 
 
+    // MARK: - Existing Artifact Versions
+
+    /// Returns versions already occupying the local file namespace for one
+    /// logical Artifact. Until a sidecar manifest exists, the stable Artifact
+    /// name is the recoverable on-disk identity paired with its Workflow step.
+    func existingArtifactVersions(
+        provinceName: String?,
+        campaignName: String,
+        stepKind: ZhuowangWorkflowStepKind,
+        artifactName: String,
+        fileExtension: String
+    ) -> [Int] {
+
+        let expectedExtension = fileExtension
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !expectedExtension.isEmpty else {
+            return []
+        }
+
+        var versions = Set<Int>()
+        var seenPaths = Set<String>()
+
+        for directory in recoveryCandidateDirectories(
+            for: stepKind,
+            provinceName: provinceName,
+            campaignName: campaignName
+        ) {
+            guard
+                fileManager.fileExists(atPath: directory.path),
+                let files = try? fileManager.contentsOfDirectory(
+                    at: directory,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )
+            else {
+                continue
+            }
+
+            for fileURL in files {
+                guard
+                    seenPaths.insert(fileURL.path).inserted,
+                    fileURL.pathExtension.lowercased()
+                        == expectedExtension,
+                    let parsed = parseArtifactFileName(fileURL),
+                    parsed.name == artifactName
+                else {
+                    continue
+                }
+
+                versions.insert(parsed.version)
+            }
+        }
+
+        return versions.sorted()
+    }
+
+
     // MARK: - Discover Existing Local Artifacts
 
     /// Scans an existing campaign workspace and rebuilds a neutral description

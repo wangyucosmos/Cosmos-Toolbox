@@ -1018,6 +1018,7 @@ struct ZhuowangWorkflowExecutionSnapshot:
     let routeID: UUID
     let capability: ZhuowangWorkflowCapability
     let adapterIdentifier: String
+    let prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile?
     let createdAt: Date
 
     init(
@@ -1030,6 +1031,7 @@ struct ZhuowangWorkflowExecutionSnapshot:
         routeID: UUID,
         capability: ZhuowangWorkflowCapability,
         adapterIdentifier: String,
+        prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -1041,6 +1043,7 @@ struct ZhuowangWorkflowExecutionSnapshot:
         self.routeID = routeID
         self.capability = capability
         self.adapterIdentifier = adapterIdentifier
+        self.prototypeExecutionProfile = prototypeExecutionProfile
         self.createdAt = createdAt
     }
 }

@@ -1,20 +1,5 @@
 import SwiftUI
 import AppKit
-import WebKit
-
-private enum ZhuowangHTMLReviewMode: String, CaseIterable, Identifiable {
-    case preview
-    case source
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .preview: return "预览"
-        case .source: return "源码"
-        }
-    }
-}
 
 // MARK: - Execution State
 
@@ -53,10 +38,6 @@ struct ZhuowangAIExecutionResultView: View {
 
     @State
     private var showRevisionSheet = false
-
-    @State
-    private var htmlReviewMode:
-        ZhuowangHTMLReviewMode = .preview
 
     @State
     private var adoptionFailed = false
@@ -561,30 +542,10 @@ struct ZhuowangAIExecutionResultView: View {
 
             Divider()
 
-            if artifactDraft?.type == .html {
-
-                Picker(
-                    "HTML 查看方式",
-                    selection: $htmlReviewMode
-                ) {
-                    ForEach(
-                        ZhuowangHTMLReviewMode.allCases
-                    ) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 220)
-
-                if htmlReviewMode == .preview {
-                    ZhuowangHTMLPreview(
-                        html: cleanedResultText
-                    )
-                    .frame(minHeight: 500)
-                } else {
-                    sourceCodeView
-                }
-
+            if let artifactDraft {
+                artifactDraftSummary(
+                    artifactDraft
+                )
             } else {
                 sourceCodeView
             }
@@ -613,6 +574,66 @@ struct ZhuowangAIExecutionResultView: View {
                 lineWidth: 1
             )
         }
+    }
+
+
+    private func artifactDraftSummary(
+        _ draft: ZhuowangArtifactDraft
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingM
+        ) {
+            HStack(spacing: CosmosDesign.spacingL) {
+                Label(
+                    draft.name,
+                    systemImage: "doc.richtext"
+                )
+                .font(.headline)
+
+                Spacer()
+
+                Text(draft.type.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text("Draft")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+
+            Text(
+                "在独立 Artifact Review Workspace 中查看真实渲染、切换 Mobile Viewport，并核对源码。"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+
+            HStack {
+                Text("内容长度：\(draft.content.utf8.count) bytes")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Button {
+                    openArtifactReviewWorkspace()
+                } label: {
+                    Label(
+                        "打开完整预览",
+                        systemImage: "macwindow"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(CosmosDesign.spacingM)
+        .background(Color.primary.opacity(0.018))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusSmall,
+                style: .continuous
+            )
+        )
     }
 
 
@@ -1221,6 +1242,46 @@ struct ZhuowangAIExecutionResultView: View {
     }
 
 
+    private func openArtifactReviewWorkspace() {
+        guard let artifactReviewDocument else {
+            return
+        }
+
+        ArtifactReviewWindowManager.shared.open(
+            document: artifactReviewDocument
+        )
+    }
+
+
+    private var artifactReviewDocument:
+        ArtifactReviewDocument? {
+        guard let artifactDraft else {
+            return nil
+        }
+
+        return ArtifactReviewDocument(
+            id: taskPackage.executionSnapshot?.id
+                ?? taskPackage.id,
+            draft: artifactDraft,
+            snapshot: taskPackage.executionSnapshot,
+            providerName: frozenProviderName
+        )
+    }
+
+
+    private var frozenProviderName: String? {
+        guard let snapshot = taskPackage.executionSnapshot else {
+            return provider?.name
+        }
+
+        guard provider?.id == snapshot.providerID else {
+            return nil
+        }
+
+        return provider?.name
+    }
+
+
     // MARK: - Clipboard
 
     private func copyResult() {
@@ -1257,65 +1318,6 @@ struct ZhuowangAIExecutionResultView: View {
                 cleanedErrorText,
                 forType: .string
             )
-    }
-}
-
-
-// MARK: - Sandboxed HTML Review
-
-private struct ZhuowangHTMLPreview: NSViewRepresentable {
-
-    let html: String
-
-    func makeNSView(context: Context) -> WKWebView {
-
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
-
-        let webView = WKWebView(
-            frame: .zero,
-            configuration: configuration
-        )
-        webView.navigationDelegate = context.coordinator
-        return webView
-    }
-
-    func updateNSView(
-        _ webView: WKWebView,
-        context: Context
-    ) {
-        guard context.coordinator.lastHTML != html else {
-            return
-        }
-
-        context.coordinator.lastHTML = html
-        webView.loadHTMLString(html, baseURL: nil)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    final class Coordinator: NSObject, WKNavigationDelegate {
-
-        var lastHTML = ""
-
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            guard let scheme = navigationAction.request.url?.scheme else {
-                decisionHandler(.allow)
-                return
-            }
-
-            decisionHandler(
-                ["about", "data", "blob"].contains(scheme)
-                ? .allow
-                : .cancel
-            )
-        }
     }
 }
 

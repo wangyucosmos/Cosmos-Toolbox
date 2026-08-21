@@ -710,6 +710,13 @@ struct ZhuowangWorkflowView: View {
                 Spacer()
             }
 
+            if step.requiredCapabilities.contains(.prototypeDesign) {
+                prototypeExecutionProfileControls(
+                    workflow: workflow,
+                    step: step
+                )
+            }
+
             HStack {
 
                 if step.selectedProviderID
@@ -774,6 +781,79 @@ struct ZhuowangWorkflowView: View {
         )
     }
 
+
+
+    // MARK: - Prototype Execution Profile
+
+    private func prototypeExecutionProfileControls(
+        workflow: ZhuowangCampaignWorkflow,
+        step: ZhuowangWorkflowStep
+    ) -> some View {
+        let profile = step.prototypeExecutionProfile.normalized
+
+        return HStack(alignment: .top, spacing: CosmosDesign.spacingXL) {
+            VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
+                Text("原型保真度")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+
+                Menu(profile.fidelity.title) {
+                    ForEach(ZhuowangPrototypeFidelity.allCases) { fidelity in
+                        Button(fidelity.title) {
+                            let supportedStyles =
+                                ZhuowangPrototypeExecutionProfile
+                                    .supportedStyles(for: fidelity)
+                            let style = supportedStyles.contains(profile.style)
+                                ? profile.style
+                                : ZhuowangPrototypeExecutionProfile
+                                    .recommendedStyle(for: fidelity)
+
+                            store.selectPrototypeExecutionProfile(
+                                workflowID: workflow.id,
+                                stepID: step.id,
+                                profile: ZhuowangPrototypeExecutionProfile(
+                                    fidelity: fidelity,
+                                    style: style
+                                )
+                            )
+                        }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+            }
+            .frame(maxWidth: 220, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
+                Text("原型风格")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+
+                Menu(profile.style.title) {
+                    ForEach(
+                        ZhuowangPrototypeExecutionProfile
+                            .supportedStyles(for: profile.fidelity)
+                    ) { style in
+                        Button(style.title) {
+                            store.selectPrototypeExecutionProfile(
+                                workflowID: workflow.id,
+                                stepID: step.id,
+                                profile: ZhuowangPrototypeExecutionProfile(
+                                    fidelity: profile.fidelity,
+                                    style: style
+                                )
+                            )
+                        }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+            }
+            .frame(maxWidth: 220, alignment: .leading)
+
+            Spacer()
+        }
+    }
 
 
     // MARK: - Tool Picker
@@ -1239,7 +1319,11 @@ struct ZhuowangWorkflowView: View {
                     toolIntegrationID: tool.id,
                     routeID: route.id,
                     capability: capability,
-                    adapterIdentifier: adapterIdentifier
+                    adapterIdentifier: adapterIdentifier,
+                    prototypeExecutionProfile:
+                        capability == .prototypeDesign
+                        ? latestStep.prototypeExecutionProfile.normalized
+                        : nil
                 )
         } else {
             executionSnapshot = nil
@@ -1791,6 +1875,5 @@ struct ZhuowangWorkflowView: View {
         }
     }
 }
-
 
 

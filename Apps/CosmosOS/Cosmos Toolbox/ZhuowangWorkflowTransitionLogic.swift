@@ -5,15 +5,24 @@ enum ZhuowangWorkflowTransitionLogic {
 
     static func nextArtifactVersion(
         artifacts: [ZhuowangArtifact],
-        logicalKey: String
+        logicalKey: String,
+        workspaceVersions: [Int] = []
     ) -> Int {
 
-        (artifacts
+        let metadataVersion = artifacts
             .filter {
                 $0.versionGroupKey == logicalKey
             }
             .map(\.version)
-            .max() ?? 0) + 1
+            .max() ?? 0
+
+        let workspaceVersion =
+            workspaceVersions.max() ?? 0
+
+        return max(
+            metadataVersion,
+            workspaceVersion
+        ) + 1
     }
 
 
@@ -38,6 +47,23 @@ enum ZhuowangWorkflowTransitionLogic {
             }
 
             return updated
+        }
+    }
+
+
+    static func shouldRecoverMissingArtifact(
+        existingArtifactsAtRecoveryStart: [ZhuowangArtifact],
+        stepID: UUID,
+        versionGroupKey: String,
+        artifactName: String
+    ) -> Bool {
+
+        !existingArtifactsAtRecoveryStart.contains {
+            $0.stepID == stepID
+            && (
+                $0.versionGroupKey == versionGroupKey
+                || $0.name == artifactName
+            )
         }
     }
 

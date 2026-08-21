@@ -1,4 +1,183 @@
 import Foundation
+import OSLog
+
+// MARK: - DeepSeek Harness Runtime Compatibility
+
+struct DeepSeekHarnessRuntime {
+    let executableURL: URL?
+    let version: String
+    let dshHomePath: String
+    let supportsHeadless: Bool
+    let source: String
+
+    var isDiscoveredRuntime: Bool {
+        executableURL != nil && supportsHeadless
+    }
+}
+
+
+struct DeepSeekHarnessRuntimeCompatibility {
+
+    private let fileManager: FileManager
+    private let environment: [String: String]
+
+    init(
+        fileManager: FileManager = .default,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) {
+        self.fileManager = fileManager
+        self.environment = environment
+    }
+
+
+    func discover() -> DeepSeekHarnessRuntime {
+        let dshHomePath = discoverDSHHome()
+
+        for candidate in executableCandidates() {
+            guard fileManager.isExecutableFile(atPath: candidate) else {
+                continue
+            }
+
+            let executableURL = URL(fileURLWithPath: candidate)
+                .resolvingSymlinksInPath()
+            let version = commandOutput(
+                executableURL: executableURL,
+                arguments: ["--version"]
+            )
+            let help = commandOutput(
+                executableURL: executableURL,
+                arguments: ["--help"]
+            )
+            let supportsHeadless = help.contains("--profile headless")
+
+            guard !version.isEmpty, supportsHeadless else {
+                continue
+            }
+
+            return DeepSeekHarnessRuntime(
+                executableURL: executableURL,
+                version: version,
+                dshHomePath: dshHomePath,
+                supportsHeadless: true,
+                source: "本机 dsh"
+            )
+        }
+
+        return DeepSeekHarnessRuntime(
+            executableURL: nil,
+            version: "由 npx 环境解析",
+            dshHomePath: dshHomePath,
+            supportsHeadless: true,
+            source: "兼容 fallback"
+        )
+    }
+
+
+    func discoverDSHHome() -> String {
+        if let configured = nonempty(environment["DSH_HOME"]) {
+            return NSString(string: configured).expandingTildeInPath
+        }
+
+        let homePath = nonempty(environment["HOME"])
+            ?? fileManager.homeDirectoryForCurrentUser.path
+        let launchAgentURL = URL(fileURLWithPath: homePath)
+            .appendingPathComponent("Library/LaunchAgents")
+            .appendingPathComponent("ai.deepseek.harness.server.plist")
+
+        if
+            let data = try? Data(contentsOf: launchAgentURL),
+            let plist = try? PropertyListSerialization.propertyList(
+                from: data,
+                options: [],
+                format: nil
+            ) as? [String: Any],
+            let variables = plist["EnvironmentVariables"]
+                as? [String: String],
+            let configured = nonempty(variables["DSH_HOME"])
+        {
+            return NSString(string: configured).expandingTildeInPath
+        }
+
+        return URL(fileURLWithPath: homePath)
+            .appendingPathComponent(".dsh", isDirectory: true)
+            .path
+    }
+
+
+    func executableCandidates() -> [String] {
+        let homePath = nonempty(environment["HOME"])
+            ?? fileManager.homeDirectoryForCurrentUser.path
+        var candidates: [String] = []
+
+        if let configured = nonempty(environment["COSMOS_DSH_EXECUTABLE"]) {
+            candidates.append(
+                NSString(string: configured).expandingTildeInPath
+            )
+        }
+
+        if let path = environment["PATH"] {
+            candidates.append(
+                contentsOf: path
+                    .split(separator: ":")
+                    .map {
+                        URL(fileURLWithPath: String($0))
+                            .appendingPathComponent("dsh")
+                            .path
+                    }
+            )
+        }
+
+        candidates.append(
+            contentsOf: [
+                URL(fileURLWithPath: homePath)
+                    .appendingPathComponent(".local/bin/dsh")
+                    .path,
+                "/opt/homebrew/bin/dsh",
+                "/usr/local/bin/dsh"
+            ]
+        )
+
+        var seen = Set<String>()
+        return candidates.filter { seen.insert($0).inserted }
+    }
+
+
+    private func commandOutput(
+        executableURL: URL,
+        arguments: [String]
+    ) -> String {
+        let process = Process()
+        let pipe = Pipe()
+
+        process.executableURL = executableURL
+        process.arguments = arguments
+        process.standardOutput = pipe
+        process.standardError = pipe
+
+        do {
+            try process.run()
+        } catch {
+            return ""
+        }
+
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            return ""
+        }
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? ""
+    }
+
+
+    private func nonempty(_ value: String?) -> String? {
+        let cleaned = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned?.isEmpty == false ? cleaned : nil
+    }
+}
 
 // MARK: - DeepSeek Harness Execution Result
 
@@ -60,7 +239,17 @@ final class DeepSeekHarnessAdapter {
     static let shared =
         DeepSeekHarnessAdapter()
 
-    private init() { }
+    private let runtime: DeepSeekHarnessRuntime
+
+    private let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "CosmosToolbox",
+        category: "DeepSeekHarnessRuntime"
+    )
+
+    private init() {
+        runtime = DeepSeekHarnessRuntimeCompatibility().discover()
+        logRuntime()
+    }
 
 
     // MARK: - Configuration
@@ -75,7 +264,7 @@ final class DeepSeekHarnessAdapter {
         "/Users/rainiesmac-15/.local/bin"
 
     private let dshPackage =
-        "@deepseek-ai/dsh@0.1.0-rc.6"
+        "@deepseek-ai/dsh"
 
 
     // MARK: - Execute Task Package
@@ -86,7 +275,7 @@ final class DeepSeekHarnessAdapter {
         -> DeepSeekHarnessExecutionResult {
 
         let taskText =
-            buildExecutionText(
+            Self.buildExecutionText(
                 from: taskPackage
             )
 
@@ -157,12 +346,6 @@ final class DeepSeekHarnessAdapter {
         let stderrPipe =
             Pipe()
 
-        process.executableURL =
-            URL(
-                fileURLWithPath:
-                    shellPath
-            )
-
         process.standardOutput =
             stdoutPipe
 
@@ -183,16 +366,25 @@ final class DeepSeekHarnessAdapter {
         // npx environment that already works
         // in the user's Terminal.
 
+        if let executableURL = runtime.executableURL {
+            process.executableURL = executableURL
+            process.arguments = [
+                "--profile",
+                "headless",
+                task
+            ]
+        } else {
+            process.executableURL = URL(fileURLWithPath: shellPath)
             let command =
                 """
                 "\(npxPath)" -y \(dshPackage) --profile headless "$COSMOS_DSH_TASK"
                 """
-
-        process.arguments = [
-            "-l",
-            "-c",
-            command
-        ]
+            process.arguments = [
+                "-l",
+                "-c",
+                command
+            ]
+        }
 
 
         // MARK: Environment
@@ -210,12 +402,16 @@ final class DeepSeekHarnessAdapter {
             "COSMOS_DSH_TASK"
         ] = task
 
+        environment[
+            "DSH_HOME"
+        ] = runtime.dshHomePath
+
         // Preserve the user's real HOME so
-        // DeepSeek Harness continues reading:
+        // DeepSeek Harness can resolve paths
+        // outside its explicit DSH_HOME.
         //
-        // ~/.dsh
-        // ~/.dsh/.credentials.yaml
-        // ~/.dsh/settings.yaml
+        // The Harness data and credentials store
+        // are selected by DSH_HOME above.
         //
         // Cosmos OS does not rewrite these files.
 
@@ -337,9 +533,25 @@ final class DeepSeekHarnessAdapter {
     }
 
 
+    // MARK: - Runtime Log
+
+    private func logRuntime() {
+        let path = runtime.executableURL?.path ?? npxPath
+
+        logger.notice(
+            "当前使用 Runtime：\(self.runtime.source, privacy: .public)"
+        )
+        logger.notice("路径：\(path, privacy: .public)")
+        logger.notice("版本：\(self.runtime.version, privacy: .public)")
+        logger.notice(
+            "DSH_HOME：\(self.runtime.dshHomePath, privacy: .public)"
+        )
+    }
+
+
     // MARK: - Task Package → DSH Text
 
-    private func buildExecutionText(
+    static func buildExecutionText(
         from taskPackage:
             ZhuowangAITaskPackage
     ) -> String {
@@ -364,6 +576,11 @@ final class DeepSeekHarnessAdapter {
                 separator: "\n"
             )
 
+        let resultDelivery =
+            Self.resultDeliveryText(
+                for: taskPackage
+            )
+
         return """
         \(taskPackage.title)
 
@@ -375,10 +592,31 @@ final class DeepSeekHarnessAdapter {
         【预期输出】
         \(outputs)
 
-        【建议保存位置】
-        \(taskPackage.destinationHint)
+        \(resultDelivery)
 
         请只完成当前任务要求，并返回最终结果。
+        """
+    }
+
+
+    private static func resultDeliveryText(
+        for taskPackage: ZhuowangAITaskPackage
+    ) -> String {
+
+        if ZhuowangTaskExecutionSpecificationResolver.resolve(
+            snapshot: taskPackage.executionSnapshot
+        ) != nil {
+            return """
+            【结果回传约束】
+            本次为自动结果回传，不提供正式 Workspace 保存路径。
+            不要创建、修改、复制或管理任何正式 Artifact 文件。
+            stdout 必须且只能包含完整 HTML 源码；不要返回文件路径或交付说明。
+            """
+        }
+
+        return """
+        【建议保存位置】
+        \(taskPackage.destinationHint)
         """
     }
 }

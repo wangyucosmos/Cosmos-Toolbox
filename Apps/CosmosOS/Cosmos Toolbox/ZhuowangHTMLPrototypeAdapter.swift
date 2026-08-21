@@ -26,8 +26,11 @@ struct ZhuowangHTMLPrototypeAdapter: ZhuowangToolAdapter {
         rawAIResult: String
     ) async throws -> ZhuowangArtifactDraft {
 
+        let normalizedHTML = try ZhuowangHTMLPrototypeNormalizer()
+            .normalize(rawAIResult)
+
         let htmlContent = try validatedHTML(
-            rawAIResult
+            normalizedHTML
         )
 
         return ZhuowangArtifactDraft(
@@ -53,20 +56,6 @@ struct ZhuowangHTMLPrototypeAdapter: ZhuowangToolAdapter {
             in: .whitespacesAndNewlines
         )
 
-        if html.hasPrefix("```html") {
-            html.removeFirst("```html".count)
-        } else if html.hasPrefix("```") {
-            html.removeFirst(3)
-        }
-
-        if html.hasSuffix("```") {
-            html.removeLast(3)
-        }
-
-        html = html.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-
         guard !html.isEmpty else {
             throw ZhuowangHTMLPrototypeAdapterError.emptyHTML
         }
@@ -88,7 +77,7 @@ struct ZhuowangHTMLPrototypeAdapter: ZhuowangToolAdapter {
             throw ZhuowangHTMLPrototypeAdapterError.invalidStructure
         }
 
-        guard !normalized.contains("placeholder") else {
+        guard hasNoUnimplementedContent(in: html) else {
             throw ZhuowangHTMLPrototypeAdapterError.placeholderContent
         }
 
@@ -112,6 +101,76 @@ struct ZhuowangHTMLPrototypeAdapter: ZhuowangToolAdapter {
 
         return html
     }
+
+
+    private func hasNoUnimplementedContent(
+        in html: String
+    ) -> Bool {
+
+        let allowedAttributePattern =
+            "<(?:input|textarea)\\b[^>]*>"
+
+        guard let tagExpression = try? NSRegularExpression(
+            pattern: allowedAttributePattern,
+            options: [
+                .caseInsensitive,
+                .dotMatchesLineSeparators
+            ]
+        ) else {
+            return false
+        }
+
+        var inspectionText = html
+        let fullRange = NSRange(
+            inspectionText.startIndex..<inspectionText.endIndex,
+            in: inspectionText
+        )
+        let allowedTags = tagExpression.matches(
+            in: inspectionText,
+            options: [],
+            range: fullRange
+        )
+
+        for match in allowedTags.reversed() {
+            guard let range = Range(
+                match.range,
+                in: inspectionText
+            ) else {
+                return false
+            }
+
+            let tag = String(inspectionText[range])
+            let normalizedTag = tag.replacingOccurrences(
+                of: "\\bplaceholder\\s*=",
+                with: "data-cosmos-input-hint=",
+                options: [
+                    .regularExpression,
+                    .caseInsensitive
+                ]
+            )
+
+            inspectionText.replaceSubrange(
+                range,
+                with: normalizedTag
+            )
+        }
+
+        let normalizedInspection =
+            inspectionText.lowercased()
+
+        let prohibitedMarkers = [
+            "placeholder",
+            "todo",
+            "后续补充",
+            "待补充",
+            "待实现",
+            "空白模块"
+        ]
+
+        return !prohibitedMarkers.contains {
+            normalizedInspection.contains($0)
+        }
+    }
 }
 
 
@@ -131,7 +190,7 @@ enum ZhuowangHTMLPrototypeAdapterError: LocalizedError {
         case .invalidStructure:
             return "HTML Prototype 缺少完整的 html、head 或 body 结构。"
         case .placeholderContent:
-            return "HTML Prototype 仍包含 Placeholder，不能作为真实产物。"
+            return "HTML Prototype 仍包含 Placeholder、TODO 或未实现内容，不能作为真实产物。"
         }
     }
 }

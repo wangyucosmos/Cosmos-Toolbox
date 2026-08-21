@@ -441,6 +441,40 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Select Prototype Execution Profile
+
+    func selectPrototypeExecutionProfile(
+        workflowID: UUID,
+        stepID: UUID,
+        profile: ZhuowangPrototypeExecutionProfile
+    ) {
+        guard
+            let workflowIndex = workflows.firstIndex(
+                where: { $0.id == workflowID }
+            ),
+            let stepIndex = workflows[workflowIndex].steps.firstIndex(
+                where: { $0.id == stepID }
+            ),
+            workflows[workflowIndex]
+                .steps[stepIndex]
+                .requiredCapabilities
+                .contains(.prototypeDesign)
+        else {
+            return
+        }
+
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .prototypeExecutionProfile = profile.normalized
+        workflows[workflowIndex]
+            .steps[stepIndex]
+            .updatedAt = Date()
+        workflows[workflowIndex].updatedAt = Date()
+
+        saveWorkflows()
+    }
+
+
     // MARK: - Enable / Disable Step
 
     func setStepEnabled(
@@ -1453,11 +1487,23 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 .map(\.version)
                 .max() ?? 0) + 1
 
+        let workspaceArtifactVersions =
+            ZhuowangWorkspaceFileManager
+                .shared
+                .existingArtifactVersions(
+                    provinceName: provinceName,
+                    campaignName: campaignName,
+                    stepKind: stepKind,
+                    artifactName: draft.name,
+                    fileExtension: draft.preferredFileExtension
+                )
+
         let nextArtifactVersion =
             ZhuowangWorkflowTransitionLogic
                 .nextArtifactVersion(
                     artifacts: originalWorkflow.artifacts,
-                    logicalKey: draft.logicalKey
+                    logicalKey: draft.logicalKey,
+                    workspaceVersions: workspaceArtifactVersions
                 )
 
         let fileURL: URL
@@ -1506,6 +1552,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             routeID: snapshot.routeID,
             capability: snapshot.capability,
             adapterIdentifier: snapshot.adapterIdentifier,
+            prototypeExecutionProfile: snapshot.prototypeExecutionProfile,
             modelName: provider.modelName,
             status: .succeeded,
             inputText: inputText,
@@ -1537,6 +1584,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             routeID: snapshot.routeID,
             capability: snapshot.capability,
             adapterIdentifier: snapshot.adapterIdentifier,
+            prototypeExecutionProfile: snapshot.prototypeExecutionProfile,
             location: fileURL.path,
             content: cleanContent,
             version: nextArtifactVersion,
@@ -1580,6 +1628,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
     /// Recovery is idempotent:
     /// - existing Artifact records are not duplicated
     /// - existing approved-version choices are preserved
+    /// - additional disk versions are not imported into a managed group
     /// - local files are read only
     /// - only missing metadata is reconstructed
     ///
@@ -1627,6 +1676,9 @@ final class ZhuowangWorkflowStore: ObservableObject {
         var recoveredStepIDs = Set<UUID>()
         var changed = false
 
+        let artifactsAtRecoveryStart =
+            workflows[workflowIndex].artifacts
+
         for item in discovered {
 
             guard
@@ -1648,10 +1700,6 @@ final class ZhuowangWorkflowStore: ObservableObject {
                     .steps[stepIndex]
                     .id
 
-            recoveredStepIDs.insert(
-                stepID
-            )
-
             let alreadyExists =
                 workflows[workflowIndex]
                     .artifacts
@@ -1669,6 +1717,37 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         )
                     }
 
+            let recoveredLogicalKey =
+                item.stepKind == .prototype
+                && item.type == .html
+                && item.artifactName == "产品原型设计"
+                ? "workflow.prototypeDesign.primary"
+                : nil
+
+            let recoveredVersionGroupKey =
+                recoveredLogicalKey
+                ?? item.artifactName
+
+            guard
+                alreadyExists
+                || ZhuowangWorkflowTransitionLogic
+                    .shouldRecoverMissingArtifact(
+                        existingArtifactsAtRecoveryStart:
+                            artifactsAtRecoveryStart,
+                        stepID: stepID,
+                        versionGroupKey:
+                            recoveredVersionGroupKey,
+                        artifactName:
+                            item.artifactName
+                    )
+            else {
+                continue
+            }
+
+            recoveredStepIDs.insert(
+                stepID
+            )
+
             if !alreadyExists {
 
                 let artifact =
@@ -1684,11 +1763,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         type:
                             item.type,
                         logicalKey:
-                            item.stepKind == .prototype
-                            && item.type == .html
-                            && item.artifactName == "产品原型设计"
-                            ? "workflow.prototypeDesign.primary"
-                            : nil,
+                            recoveredLogicalKey,
                         location:
                             item.fileURL.path,
                         content:

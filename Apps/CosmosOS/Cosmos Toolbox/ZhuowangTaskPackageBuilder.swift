@@ -14,7 +14,11 @@ struct ZhuowangTaskPackageBuilder {
         executionSnapshot: ZhuowangWorkflowExecutionSnapshot? = nil
     ) -> ZhuowangAITaskPackage {
 
-        ZhuowangAITaskPackage(
+        let executionSpecification =
+            ZhuowangTaskExecutionSpecificationResolver
+                .resolve(snapshot: executionSnapshot)
+
+        return ZhuowangAITaskPackage(
             campaignID: campaign.id,
             workflowStepID: step.id,
             executionSnapshot: executionSnapshot,
@@ -29,7 +33,8 @@ struct ZhuowangTaskPackageBuilder {
                 workflow: workflow,
                 step: step,
                 provider: provider,
-                executionSnapshot: executionSnapshot
+                executionSpecification:
+                    executionSpecification
             ),
             contextReferences: contextReferences(
                 campaign: campaign,
@@ -37,7 +42,9 @@ struct ZhuowangTaskPackageBuilder {
                 step: step
             ),
             expectedOutputs: expectedOutputs(
-                for: step
+                for: step,
+                executionSpecification:
+                    executionSpecification
             ),
             destinationHint: destinationHint(
                 campaign: campaign,
@@ -67,7 +74,8 @@ struct ZhuowangTaskPackageBuilder {
         workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep,
         provider: ZhuowangAIProvider?,
-        executionSnapshot: ZhuowangWorkflowExecutionSnapshot?
+        executionSpecification:
+            ZhuowangTaskExecutionSpecification?
     ) -> String {
 
         let scopeText =
@@ -98,17 +106,8 @@ struct ZhuowangTaskPackageBuilder {
             )
 
         let toolInstruction =
-            executionSnapshot?.adapterIdentifier
-                == "deepseek-harness-html-prototype"
-            ? """
-
-            【目标 Tool 输出规范】
-            你正在为 HTML Prototype Tool 生成真实产品原型。
-            只返回一个可直接打开的完整单文件 HTML，不要使用 Markdown 代码围栏，不要解释。
-            HTML 必须包含完整的 html、head、body 结构、UTF-8 meta、内联 CSS，以及本步骤需要的真实页面模块与交互。
-            禁止输出 Placeholder、TODO、伪代码或“后续补充”等占位内容。
-            """
-            : ""
+            executionSpecification?.instruction
+            ?? ""
 
         return """
         你正在处理 Cosmos OS 中的卓望工作项目。
@@ -232,26 +231,11 @@ struct ZhuowangTaskPackageBuilder {
 
         case .prototype:
             return """
-            基于已经确认的页面结构，准备原型设计执行所需要的说明。
+            基于当前采用的需求整理、策划思路、完整策划案和页面结构，使用本轮所选 Tool 生成真实的产品原型交付物。
 
-            本阶段不绑定具体原型工具，
-            根据后续选择的执行方式适配：
-            - Figma 原型
-            - Pixso 原型
-            - HTML / Web 原型
-            - 其他支持的设计或开发工具
-
-            输出应包括：
-            - 页面尺寸与基础布局建议
-            - 页面模块层级
-            - 组件清单
-            - 交互状态
-            - 页面跳转关系
-            - 需要复用的设计组件
-            - 视觉重点与人工确认项
-            - 目标工具执行注意事项
-
-            必须等待用户确认设计思路后，才能进入真正的原型制作阶段。
+            不重新设计或改变已经确认的上游业务方案，应准确落实其中的页面内容、业务规则和用户路径。
+            本步骤只定义通用的原型设计业务目标，不绑定 Figma、Pixso、HTML 或其他具体工具。
+            具体交付格式和执行要求由本次 Execution Snapshot 中冻结的 capability、Tool 与 Route 决定。
             """
 
 
@@ -408,8 +392,14 @@ struct ZhuowangTaskPackageBuilder {
     // MARK: - Expected Outputs
 
     private static func expectedOutputs(
-        for step: ZhuowangWorkflowStep
+        for step: ZhuowangWorkflowStep,
+        executionSpecification:
+            ZhuowangTaskExecutionSpecification?
     ) -> [String] {
+
+        if let executionSpecification {
+            return executionSpecification.expectedOutputs
+        }
 
         switch step.kind {
 
@@ -441,9 +431,7 @@ struct ZhuowangTaskPackageBuilder {
 
         case .prototype:
             return [
-                "原型设计执行说明",
-                "组件与页面结构清单",
-                "目标工具适配说明"
+                "本轮所选 Tool 生成的真实产品原型交付物"
             ]
 
         case .customerService:
@@ -631,4 +619,3 @@ struct ZhuowangTaskPackageBuilder {
     }
 
 }
-

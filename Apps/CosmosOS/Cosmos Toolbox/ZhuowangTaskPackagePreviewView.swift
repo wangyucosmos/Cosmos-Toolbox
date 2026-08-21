@@ -525,6 +525,53 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                 HStack {
 
+                    Text("Capability")
+
+                    Spacer()
+
+                    Text(capabilityDisplayName)
+                        .fontWeight(.medium)
+                }
+
+                Divider()
+
+                HStack {
+
+                    Text("Route")
+
+                    Spacer()
+
+                    Text(routeDisplayName)
+                        .fontWeight(.medium)
+                }
+
+                if let profile =
+                    taskPackage.executionSnapshot?
+                        .prototypeExecutionProfile {
+
+                    Divider()
+
+                    HStack {
+                        Text("Prototype Fidelity")
+                        Spacer()
+                        Text(profile.fidelity.title)
+                            .fontWeight(.medium)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Text("Prototype Style")
+                        Spacer()
+                        Text(profile.style.title)
+                            .fontWeight(.medium)
+                    }
+                }
+
+                Divider()
+
+                HStack {
+
                     Text("Execution Style")
 
                     Spacer()
@@ -560,7 +607,7 @@ struct ZhuowangTaskPackagePreviewView: View {
         } else if taskPackage.executionSnapshot != nil {
 
             Label(
-                "Provider、Connection、Tool、Route 与 capability 已冻结为本次执行快照，将通过 Coordinator 和 Adapter Registry 执行。",
+                "Provider、Connection、Tool、Route、Capability、Fidelity 与 Style 已冻结为本次执行快照，将通过 Coordinator 和 Adapter Registry 执行。",
                 systemImage: "checkmark.shield"
             )
             .font(.caption)
@@ -1053,6 +1100,34 @@ struct ZhuowangTaskPackagePreviewView: View {
         }
 
         return "\(connection.name) · \(connection.mode.title)"
+    }
+
+
+    private var capabilityDisplayName: String {
+
+        guard let capability =
+            taskPackage.executionSnapshot?.capability
+        else {
+            return "未冻结"
+        }
+
+        return "\(capability.rawValue)（\(capability.title)）"
+    }
+
+
+    private var routeDisplayName: String {
+
+        guard let route else {
+            return "未冻结"
+        }
+
+        if let connection,
+           let tool {
+            return "\(connection.name) → \(tool.name)"
+        }
+
+        return route.adapterIdentifier
+            ?? route.id.uuidString
     }
 
 

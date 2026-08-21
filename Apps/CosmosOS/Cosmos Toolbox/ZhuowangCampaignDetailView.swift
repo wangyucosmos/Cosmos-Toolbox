@@ -1691,6 +1691,9 @@ private struct ZhuowangArtifactDetailView: View {
     @State
     private var copied = false
 
+    @State
+    private var contentMode: ArtifactDetailContentMode = .initial
+
     init(
         workflowStore: ZhuowangWorkflowStore,
         campaignID: UUID,
@@ -1979,6 +1982,7 @@ private struct ZhuowangArtifactDetailView: View {
                     Button {
                         selectedArtifactID =
                             version.id
+                        contentMode = .initial
                     } label: {
 
                         HStack(
@@ -2151,83 +2155,153 @@ private struct ZhuowangArtifactDetailView: View {
         ) {
 
             CosmosSectionTitle(
-                title: "完整内容",
-                subtitle: "Content"
+                title: "产物查看",
+                subtitle: "Artifact Preview"
             )
 
-            Group {
+            Picker(
+                "产物查看方式",
+                selection: $contentMode
+            ) {
+                Text("Preview Workspace")
+                    .tag(ArtifactDetailContentMode.preview)
+                Text("查看源码")
+                    .tag(ArtifactDetailContentMode.source)
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
 
-                if cleanContent.isEmpty {
+            if contentMode == .preview {
+                previewWorkspaceEntry
+            } else {
+                sourceContent
+            }
+        }
+    }
 
-                    VStack(
-                        spacing:
-                            CosmosDesign.spacingM
-                    ) {
 
-                        Image(
-                            systemName:
-                                "doc.text.magnifyingglass"
+    private var previewWorkspaceEntry: some View {
+        VStack(spacing: CosmosDesign.spacingM) {
+            Image(systemName: "macwindow")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(.tint)
+
+            Text("在 Artifact Review Workspace 中查看")
+                .font(.headline)
+
+            Text(
+                "统一预览窗口会根据 Artifact 类型选择 Renderer；未接入的类型将显示安全提示。"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+
+            Button {
+                openArtifactReviewWorkspace()
+            } label: {
+                Label(
+                    "打开预览",
+                    systemImage: "arrow.up.right.square"
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(artifact == nil)
+        }
+        .frame(maxWidth: .infinity, minHeight: 240)
+        .padding(CosmosDesign.spacingL)
+        .background(Color.primary.opacity(0.018))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusLarge,
+                style: .continuous
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusLarge,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary.opacity(0.055),
+                lineWidth: 1
+            )
+        }
+    }
+
+
+    private var sourceContent: some View {
+        Group {
+
+            if cleanContent.isEmpty {
+
+                VStack(
+                    spacing:
+                        CosmosDesign.spacingM
+                ) {
+
+                    Image(
+                        systemName:
+                            "doc.text.magnifyingglass"
+                    )
+                    .font(
+                        .system(
+                            size: 24,
+                            weight: .medium
                         )
-                        .font(
-                            .system(
-                                size: 24,
-                                weight: .medium
-                            )
-                        )
-                        .foregroundStyle(.secondary)
+                    )
+                    .foregroundStyle(.secondary)
 
-                        Text(
-                            "这个版本暂时没有可显示的正文"
-                        )
-                        .font(.headline)
+                    Text(
+                        "这个版本暂时没有可显示的正文"
+                    )
+                    .font(.headline)
 
-                        if !cleanLocation.isEmpty {
+                    if !cleanLocation.isEmpty {
 
-                            Text(cleanLocation)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                        }
+                        Text(cleanLocation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
                     }
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: 220
+                )
+
+            } else {
+
+                Text(cleanContent)
+                    .font(.body)
+                    .textSelection(.enabled)
                     .frame(
                         maxWidth: .infinity,
-                        minHeight: 220
+                        alignment: .leading
                     )
-
-                } else {
-
-                    Text(cleanContent)
-                        .font(.body)
-                        .textSelection(.enabled)
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
-                }
             }
-            .padding(CosmosDesign.spacingL)
-            .background(
-                Color.primary.opacity(0.018)
+        }
+        .padding(CosmosDesign.spacingL)
+        .background(
+            Color.primary.opacity(0.018)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign.cornerRadiusLarge,
+                style: .continuous
             )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
-            .overlay {
+        )
+        .overlay {
 
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary.opacity(0.055),
-                    lineWidth: 1
-                )
-            }
+            RoundedRectangle(
+                cornerRadius:
+                    CosmosDesign.cornerRadiusLarge,
+                style: .continuous
+            )
+            .stroke(
+                Color.primary.opacity(0.055),
+                lineWidth: 1
+            )
         }
     }
 
@@ -2537,6 +2611,26 @@ private struct ZhuowangArtifactDetailView: View {
 
         NSWorkspace.shared.open(
             localFileURL
+        )
+    }
+
+
+    private func openArtifactReviewWorkspace() {
+        guard let artifact else {
+            return
+        }
+
+        let providerName = artifact.providerID.flatMap {
+            workflowStore.provider(id: $0)?.name
+        }
+        let document = ArtifactReviewDocument(
+            id: artifact.id,
+            artifact: artifact,
+            providerName: providerName
+        )
+
+        ArtifactReviewWindowManager.shared.open(
+            document: document
         )
     }
 
