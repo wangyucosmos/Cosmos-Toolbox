@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-08-21
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Step 05 prototype workflow milestone complete; Artifact Review foundation established
+**Current stage:** Step 05 prototype workflow milestone complete; Artifact Review Renderer security boundary established
 
 ---
 
@@ -42,6 +42,8 @@ Important version state:
 
 - 完整策划案 has multiple historical versions.
 - Current adopted version is **V1**.
+- 产品原型 current adopted version is **V3**.
+- Artifact Detail currently manages prototype **V1 / V3 / V4**; the local V2 file remains intentionally unmanaged and must not be imported, deleted, or modified.
 - Do not overwrite this choice unless the user explicitly changes it.
 
 Post-P0 runtime acceptance was completed manually on 2026-08-19:
@@ -103,9 +105,11 @@ Verified:
 - tool-agnostic Prototype Execution Profile persists Fidelity / Style on the prototypeDesign step
 - immutable execution snapshots and AI Run / Artifact provenance preserve the selected Prototype Fidelity / Style
 - capability-driven Profile controls enforce supported Fidelity / Style combinations and map them into the selected Tool / Route specification
-- Artifact Review Workspace opens AI Drafts and adopted V1 / V2 / V3 Artifacts in the same independent resizable macOS window
+- Artifact Review Workspace opens AI Drafts and managed adopted / historical Artifacts in the same independent resizable macOS window
 - type-agnostic Artifact Preview Renderer Registry with safe unsupported-type fallback
 - Phase 1 HTML Renderer uses a real interactive WKWebView inside selectable 375px / 390px mobile device frames
+- HTML Preview always derives an in-memory secured copy through the Renderer security policy; Source and the original Artifact remain byte-for-byte unchanged
+- Preview CSP, WebKit content rules, a non-persistent data store, and a scheme allowlist form separate defense layers
 - Artifact Review Preview / Source modes and focused Full Preview mode preserve the original Artifact content
 - Review metadata is captured from Draft + immutable execution snapshot / Artifact provenance rather than current Workflow selections
 
@@ -259,7 +263,20 @@ DeepSeek Harness
 → Step 06 ready
 ```
 
-HTML validation rejects empty, structurally incomplete, non-UTF-8, and Placeholder results. The review WebView uses a non-persistent data store, an injected restrictive CSP, and blocks external top-level navigation.
+HTML validation rejects empty, structurally incomplete, non-UTF-8, and Placeholder results. The HTML Adapter adds a generation-time CSP to newly produced Artifacts, but this is not the Preview trust boundary and historical files are not migrated or rewritten.
+
+Every HTML entering Artifact Review now passes through a Renderer-owned Preview security chain:
+
+```text
+original ArtifactReviewDocument.content
+→ ArtifactHTMLPreviewSecurityPolicy
+→ in-memory secured Preview HTML with Renderer CSP
+→ WKContentRuleList external-network blocking
+→ non-persistent WKWebView
+→ navigation scheme policy
+```
+
+The Renderer CSP is inserted at the start of the Preview document head even when the source already has its own CSP; missing-head and provenance-free historical HTML receive a safe in-memory fallback. It denies external/default sources, connections, form actions, base URLs, frames, objects, workers, and unsafe evaluation while retaining the current prototypes' required inline CSS, inline JavaScript / event handlers, and scoped `data:` / `blob:` image or media support. The WebKit content rules independently block HTTP, HTTPS, WS, WSS, and file requests across resource types and must compile before Artifact content is loaded; failure is closed. The website data store remains non-persistent, but is not treated as network isolation. Navigation permits only `about:` for `loadHTMLString` and same-document anchors; HTTP, HTTPS, file, mailto, data, blob, and all unrecognized navigation schemes are cancelled.
 
 The Prototype step now keeps only the tool-agnostic business goal. The frozen capability + Tool + Route resolve the concrete execution specification. For the current DeepSeek Harness → HTML Prototype Route, both the final prompt and Preview Expected Outputs require a complete runnable single-file HTML result; the obsolete “prepare an execution brief and wait for confirmation” wording has been removed.
 
@@ -277,9 +294,9 @@ Artifact Draft / historical Artifact
 → ArtifactReviewWorkspace
 ```
 
-Phase 1 registers only the HTML Renderer. The Workspace shell does not switch on HTML and can accept future Figma, Pixso, Image, and PDF renderers without changing Workflow, Artifact versioning, or adoption logic. HTML is displayed unchanged in a non-persistent real WKWebView; 375px / 390px device widths are layout constraints, not screenshot scaling or HTML rewriting.
+Phase 1 registers only the HTML Renderer. The Workspace shell does not switch on HTML and can accept future Figma, Pixso, Image, and PDF renderers without changing Workflow, Artifact versioning, or adoption logic. Source displays the unchanged original HTML; Preview renders only the secured in-memory copy in a non-persistent real WKWebView. The 375px / 390px device widths are layout constraints, not screenshot scaling or source-file rewriting.
 
-The adopted Artifact Detail entry now defaults to a Preview Workspace action instead of rendering HTML source as its primary body. Users can still explicitly select source view, and switching among V1 / V2 / V3 resets the entry to Preview. Both Draft and adopted Artifact entries construct an `ArtifactReviewDocument` and open the same `ArtifactReviewWindowManager`; unsupported types retain the Registry fallback, and historical Artifacts without provenance remain safe.
+The adopted Artifact Detail entry now defaults to a Preview Workspace action instead of rendering HTML source as its primary body. Users can still explicitly select source view, and switching among managed versions resets the entry to Preview. Both Draft and adopted Artifact entries construct an `ArtifactReviewDocument` and open the same `ArtifactReviewWindowManager`; unsupported types retain the Registry fallback, and historical Artifacts without provenance remain safe.
 
 ---
 
@@ -356,9 +373,10 @@ Current implementation focus:
 
 - The first HTML Adapter Registry / execution orchestration path is complete; other Tool Adapters remain future work.
 - Browser / desktop-width preview is not implemented; Phase 1 currently focuses on 375px / 390px mobile HTML review.
-- Artifact version comparison is not implemented; V1 / V2 / V3 can be opened independently but cannot yet be compared side by side or diffed.
+- Artifact version comparison is not implemented; managed versions can be opened independently but cannot yet be compared side by side or diffed.
 - Review annotations, anchored comments, approval notes, and markup are not implemented.
 - Figma, Pixso, Image, and PDF Preview Renderers are not registered yet; unsupported types use the safe fallback.
+- HTML Preview intentionally permits inline JavaScript / event handlers and scoped `data:` / `blob:` image or media resources for existing interactive prototypes. This is a compatibility boundary, not a general browser sandbox; any future relaxation or Browser Preview capability requires a separate threat review.
 - The current Artifact model and adoption / recovery paths remain partly HTML-first. A broader Artifact Abstraction Layer should be designed before real Figma / Pixso adoption is added, without disturbing the accepted HTML path prematurely.
 - DeepSeek Harness now has a scoped Runtime Compatibility Layer. Swift no longer pins a concrete DSH release-candidate version; it discovers the installed `dsh` executable, reads its reported version, verifies `--profile headless` support, and resolves `DSH_HOME` from the launch environment or Harness LaunchAgent.
 - Target runtime boundary:
@@ -460,12 +478,13 @@ Completed milestone capabilities:
 - Step 05 real HTML Prototype generation, validation, adoption, persistence, approval, and Step 06 unlock;
 - tool-independent Low-fi / Mid-fi / High-fi fidelity and style controls frozen into execution provenance;
 - type-independent Artifact Review Workspace with Phase 1 HTML Renderer, Source mode, Full Preview, and 375px / 390px real WebView mobile frames;
-- unified Draft and adopted V1 / V2 / V3 Review Workspace entry.
+- unified Draft and adopted / historical Artifact Review Workspace entry;
+- Renderer-owned HTML Preview CSP plus WebKit content rules, non-persistent storage, and navigation policy without modifying source Artifacts.
 
 Recommended next-session order:
 
-1. Perform the pending live UI acceptance for Fidelity controls and adopted Artifact Detail version switching.
-2. Decide whether the next Review priority is Browser Preview, Version Compare, or Annotation.
+1. Keep Browser Preview, Version Compare, Annotation, and new Renderers deferred until the next product decision.
+2. If the HTML Preview compatibility allowlist changes, threat-model inline script and `data:` / `blob:` behavior before implementation.
 3. Before implementing Figma / Pixso execution and adoption, define the required Artifact Abstraction Layer boundary and add the corresponding Renderer through the existing Registry.
 
 A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
@@ -501,5 +520,6 @@ Do not regress these verified decisions:
 - The last manually accepted Harness run used `@deepseek-ai/dsh@0.1.0-rc.6` with `DSH_HOME=$HOME/.dsh-rc8-clean`. Swift no longer pins that package version; the compatibility layer currently discovers the installed local `dsh` runtime and the same LaunchAgent-managed `DSH_HOME`. A post-change live smoke run remains pending.
 - Prototype Fidelity Control completed a macOS Debug Build and 30/30 Unit Tests on 2026-08-21. Live UI confirmation of profile selection, persistence, Preview display, and one Low-fi / High-fi Harness output remains pending.
 - Artifact Review Workspace Phase 1 plus adopted Artifact Detail entry completed a macOS Debug Build and 39/39 Unit Tests on 2026-08-21. Automated coverage includes V1 / V2 / V3 HTML review documents, Preview as the Artifact Detail default, Renderer Registry selection, and legacy Artifacts without provenance. Live UI confirmation of version switching, selected-version window content, independent-window sizing, mobile interactions, full-preview ergonomics, and Light/Dark Mode remains pending.
+- Artifact Review Renderer Security Boundary Phase 1 completed a Universal macOS Debug Build and 47/47 Unit Tests on 2026-08-21. Read-only UI smoke confirmed managed V1 / V3 / V4 Preview loading, V3 Preview / Source, 375px / 390px, scrolling, local button interaction, Full Preview, and V3 remaining adopted. V1-V4 file hashes and the Cosmos Toolbox UserDefaults domain hash were unchanged before and after the smoke test; unmanaged V2 remained untouched.
 - `git diff --check` completed successfully.
 - Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.

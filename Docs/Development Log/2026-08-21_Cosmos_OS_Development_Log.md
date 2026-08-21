@@ -205,3 +205,67 @@ Workflow 不关心 HTML；`prototypeDesign` 是 Capability，不是 Artifact 类
 - 工作树非 clean；本阶段源码、测试和文档尚未 commit。
 - 未 commit，未 push。
 - 建议一次性提交本 milestone，避免拆分后造成 Xcode 项目引用、新文件、测试和文档不完整。
+
+## 2026-08-21 Artifact Review Renderer Security Boundary Phase 1
+
+### 一、本次目标
+
+- 将 HTML Preview 的信任边界从生成期 Artifact CSP 提升到 Renderer / Preview 层。
+- 让新生成、历史版本、本地恢复、缺少 provenance 或没有 CSP 的 HTML 使用同一只读预览安全策略。
+- 保持 Source、Artifact 内容、本地文件、Workflow、版本逻辑与真实业务数据不变。
+
+### 二、根因与安全架构
+
+此前 HTML Adapter 会给新生成结果补充 CSP，但 `HTMLArtifactPreviewRenderer` 直接把 Artifact 原文交给 `WKWebView.loadHTMLString`。因此 Renderer 本身没有独立 CSP，历史或恢复内容的安全性依赖文件是否已有策略；non-persistent data store 和顶层导航取消也不能阻止子资源、fetch/XHR/WebSocket、表单等全部边界。
+
+本轮建立以下 Preview-only 链路：
+
+```text
+ArtifactReviewDocument.content 原文
+→ ArtifactHTMLPreviewSecurityPolicy
+→ 内存 secured Preview HTML
+→ WKContentRuleList 成功安装
+→ non-persistent WKWebView
+→ Navigation Policy
+```
+
+- Adapter CSP：仅是新 Artifact 的生成期质量 / 安全基线，不再被视为 Review 信任边界。
+- Renderer CSP：无论原文是否已有 CSP，都在内存 Preview 副本中独立加入；覆盖 default/connect/form/base/frame/object/worker/script/style/image/font/media 边界，不允许 `unsafe-eval`。
+- 兼容范围：保留现有原型必需的 inline CSS、inline JavaScript / event handlers；图片允许 `data:` / `blob:`，字体允许 `data:`，媒体允许 `data:` / `blob:`。
+- WebKit 内容规则：跨资源类型阻断 HTTP、HTTPS、WS、WSS 与 file；规则安装成功前不加载 Artifact，失败时只显示受控错误页。
+- non-persistent store：只负责会话数据不持久化，不替代网络隔离。
+- Navigation Policy：只允许 `about:`；HTTP、HTTPS、file、mailto、data、blob 与未知 scheme 导航均取消。`data:` / `blob:` 只保留为 CSP 允许的局部子资源。
+
+### 三、实现与测试
+
+- `ArtifactHTMLRenderer.swift`：新增可测试 Preview Security Policy、内存 CSP 处理、WebKit 内容规则编译、fail-closed 加载顺序和导航 scheme allowlist。
+- `ArtifactReviewWorkspaceTests.swift`：增加无 / 有 CSP、完整指令、内容规则、导航、真实 WKWebView 内联交互、Source / Artifact / Fixture 不变、无 head / provenance 历史降级与 Registry fallback 覆盖。
+- Unit Tests：47/47 passed，0 failed，0 skipped。
+- 测试结果包：`/tmp/CosmosToolboxRendererSecurityTests/Logs/Test/Test-Cosmos Toolbox-2026.08.21_16-36-40-+0800.xcresult`。
+- Universal macOS Debug Build：`BUILD SUCCEEDED`（generic macOS，arm64 + x86_64，`CODE_SIGNING_ALLOWED=NO`）。沙箱内首次运行因 Swift 宏插件 `sandbox-exec` 权限失败；同一命令在沙箱外复跑成功，确认不是源码编译错误。
+- `git diff --check`：通过。
+
+### 四、只读 UI Smoke Test
+
+- `浙江活动测试` Workflow 01-05 仍为已确认，06 客服文档仍为可开始。
+- 完整策划案当前采用仍为 V1；产品原型当前采用仍为 V3。
+- Artifact Detail 纳管 V1 / V3 / V4，三者 Preview 均可打开；选择历史版本只用于查看，未点击“设为当前版本”。
+- V3 Preview / Source、375px / 390px、页面滚动、现有按钮状态切换与 Full Preview 正常。
+- Source 首部仍显示原始 Artifact CSP，未出现 Renderer Preview marker，证明 Source 未被 secured Preview 副本替换。
+- 未运行 Harness，未生成新 Artifact，测试后已退出 App。
+
+### 五、数据不变证明
+
+- V1 SHA-256：`99aa1cf0db2f030a629e813d42744c60335a6175e619f798833c4dcd18c17823`
+- V2 SHA-256：`4587af3ecda7e1823b50567619dbf40c559f1bba6b22d2bfb3a1ac9937036eb6`（未纳管，仍在原位）
+- V3 SHA-256：`d8150faf51bac2f1b8ec11a4a007c4e70c5dcd821619c5d34531eb4dae0264ed`
+- V4 SHA-256：`6911e40666e459f6afa42fa08690d167503644de65565b45eedaba7f0d0bc489`
+- 上述哈希与验收前完全一致，文件大小与 mtime 未变化。
+- Cosmos Toolbox UserDefaults 域验收前后导出 SHA-256 均为 `3eab3d620b6a267ddb7ced411f5c706c2e3e45fa8a7ac26b913de975b9250b7c`。
+
+### 六、边界与剩余风险
+
+- 未修改 Workflow / Artifact Model、版本或 logical key、Validator、Harness / AI Adapter、Adoption、Recovery 或 Workspace File Manager。
+- Renderer 仍为兼容现有交互原型而允许 inline JavaScript / event handlers 及有限 `data:` / `blob:` 子资源；这是受限 Artifact Preview，不等同于通用 Browser sandbox。
+- Browser Preview、Version Compare、Annotation、新 Renderer 与“待确认 / TBD”质量校验均未处理。
+- 未 commit，未 push，未创建 Tag。
