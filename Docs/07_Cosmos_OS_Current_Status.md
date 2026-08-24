@@ -1,8 +1,8 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-24
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Step 05 prototype workflow milestone complete; Artifact Review Renderer security boundary established
+**Current stage:** Step 05 prototype workflow milestone complete; Artifact Version Compare Phase 1 implemented
 
 ---
 
@@ -112,6 +112,8 @@ Verified:
 - Preview CSP, WebKit content rules, a non-persistent data store, and a scheme allowlist form separate defense layers
 - Artifact Review Preview / Source modes and focused Full Preview mode preserve the original Artifact content
 - Review metadata is captured from Draft + immutable execution snapshot / Artifact provenance rather than current Workflow selections
+- Artifact Detail can open a stable, independent Version Compare window for any logical Artifact with at least two managed versions
+- Version Compare supports two UUID-selected managed versions, independent Preview / Source modes, shared 375px / 390px viewport, isolated scrolling / JavaScript state, and current-adopted marking without changing adoption
 
 ---
 
@@ -298,6 +300,21 @@ Phase 1 registers only the HTML Renderer. The Workspace shell does not switch on
 
 The adopted Artifact Detail entry now defaults to a Preview Workspace action instead of rendering HTML source as its primary body. Users can still explicitly select source view, and switching among managed versions resets the entry to Preview. Both Draft and adopted Artifact entries construct an `ArtifactReviewDocument` and open the same `ArtifactReviewWindowManager`; unsupported types retain the Registry fallback, and historical Artifacts without provenance remain safe.
 
+Artifact Version Compare Phase 1 adds a separate review surface without expanding the single-version Workspace into compare-specific branches:
+
+```text
+managed Artifact version collection
+→ UUID-based compare selection state
+→ ArtifactVersionCompareWorkspace
+→ left / right ArtifactReviewPane
+→ ArtifactPreviewRendererRegistry
+→ secured Renderer Preview or unchanged Source
+```
+
+Compare state is window-local SwiftUI state only. It is not written to UserDefaults, SceneStorage, Workflow, Artifact models, or Codable persistence. The default pair is the current adopted version on the left and the selected historical version on the right; when the selected version is current, the highest other managed version is used. Choosing the opposite side's UUID swaps the pair so both sides can never reference the same Artifact. The Compare window identity is stable by `campaignID + versionGroupKey`, independent of the selected pair, and an existing window is brought forward instead of duplicated.
+
+Both Compare sides reuse the same `ArtifactReviewPane` as the single-version Workspace. Each side resolves its Renderer through the existing Registry, so HTML Preview continues through the established Renderer Security Boundary and unsupported types continue through the safe fallback. Preview / Source are independent per side, while 375px / 390px is shared. A version change replaces that side's `ArtifactReviewDocument` and recreates only that Renderer subtree by the stable Artifact UUID, preventing prior DOM / JavaScript state from surviving or crossing between WebViews.
+
 ---
 
 ## 8. Current Artifact principles
@@ -373,7 +390,7 @@ Current implementation focus:
 
 - The first HTML Adapter Registry / execution orchestration path is complete; other Tool Adapters remain future work.
 - Browser / desktop-width preview is not implemented; Phase 1 currently focuses on 375px / 390px mobile HTML review.
-- Artifact version comparison is not implemented; managed versions can be opened independently but cannot yet be compared side by side or diffed.
+- Artifact Version Compare Phase 1 provides managed-version side-by-side review. Text / semantic Diff and difference highlighting are not implemented.
 - Review annotations, anchored comments, approval notes, and markup are not implemented.
 - Figma, Pixso, Image, and PDF Preview Renderers are not registered yet; unsupported types use the safe fallback.
 - HTML Preview intentionally permits inline JavaScript / event handlers and scoped `data:` / `blob:` image or media resources for existing interactive prototypes. This is a compatibility boundary, not a general browser sandbox; any future relaxation or Browser Preview capability requires a separate threat review.
@@ -480,10 +497,11 @@ Completed milestone capabilities:
 - type-independent Artifact Review Workspace with Phase 1 HTML Renderer, Source mode, Full Preview, and 375px / 390px real WebView mobile frames;
 - unified Draft and adopted / historical Artifact Review Workspace entry;
 - Renderer-owned HTML Preview CSP plus WebKit content rules, non-persistent storage, and navigation policy without modifying source Artifacts.
+- independent managed-version Compare Workspace with stable logical-Artifact window identity, UUID-based left / right selection, shared Review Pane / Renderer Registry, independent Preview / Source and scrolling, and shared 375px / 390px viewport.
 
 Recommended next-session order:
 
-1. Keep Browser Preview, Version Compare, Annotation, and new Renderers deferred until the next product decision.
+1. Keep semantic Diff / highlighting, Browser Preview, Annotation, and new Renderers deferred until the next product decision.
 2. If the HTML Preview compatibility allowlist changes, threat-model inline script and `data:` / `blob:` behavior before implementation.
 3. Before implementing Figma / Pixso execution and adoption, define the required Artifact Abstraction Layer boundary and add the corresponding Renderer through the existing Registry.
 
@@ -521,5 +539,6 @@ Do not regress these verified decisions:
 - Prototype Fidelity Control completed a macOS Debug Build and 30/30 Unit Tests on 2026-08-21. Live UI confirmation of profile selection, persistence, Preview display, and one Low-fi / High-fi Harness output remains pending.
 - Artifact Review Workspace Phase 1 plus adopted Artifact Detail entry completed a macOS Debug Build and 39/39 Unit Tests on 2026-08-21. Automated coverage includes V1 / V2 / V3 HTML review documents, Preview as the Artifact Detail default, Renderer Registry selection, and legacy Artifacts without provenance. Live UI confirmation of version switching, selected-version window content, independent-window sizing, mobile interactions, full-preview ergonomics, and Light/Dark Mode remains pending.
 - Artifact Review Renderer Security Boundary Phase 1 completed a Universal macOS Debug Build and 47/47 Unit Tests on 2026-08-21. Read-only UI smoke confirmed managed V1 / V3 / V4 Preview loading, V3 Preview / Source, 375px / 390px, scrolling, local button interaction, Full Preview, and V3 remaining adopted. V1-V4 file hashes and the Cosmos Toolbox UserDefaults domain hash were unchanged before and after the smoke test; unmanaged V2 remained untouched.
+- Artifact Version Compare Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 59/59 Unit Tests on 2026-08-24. Read-only UI smoke confirmed default V3 | V4, Detail-selected V1 opening V3 | V1, UUID swap behavior, independent Preview / Source and scrolling, shared 375px / 390px viewport, isolated WebView interaction state, stable Compare window reuse, native full screen / close / reopen, and unchanged single-version V1 / V3 / V4 Review plus Full Preview. The adopted prototype remained V3; Workflow and UserDefaults were unchanged; V1-V4 hashes remained identical and unmanaged V2 stayed untouched.
 - `git diff --check` completed successfully.
 - Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.

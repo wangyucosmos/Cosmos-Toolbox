@@ -1965,10 +1965,25 @@ private struct ZhuowangArtifactDetailView: View {
             spacing: CosmosDesign.spacingM
         ) {
 
-            CosmosSectionTitle(
-                title: "版本历史",
-                subtitle: "Version History"
-            )
+            HStack(alignment: .center) {
+                CosmosSectionTitle(
+                    title: "版本历史",
+                    subtitle: "Version History"
+                )
+
+                Spacer()
+
+                Button {
+                    openArtifactVersionCompareWorkspace()
+                } label: {
+                    Label(
+                        "比较版本",
+                        systemImage: "rectangle.split.2x1"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .disabled(!canCompareVersions)
+            }
 
             VStack(spacing: 0) {
 
@@ -2411,6 +2426,30 @@ private struct ZhuowangArtifactDetailView: View {
     }
 
 
+    private var canCompareVersions: Bool {
+        versions.count >= 2
+    }
+
+
+    private var comparisonItems:
+        [ArtifactVersionComparisonItem] {
+
+        versions.map { version in
+            ArtifactVersionComparisonItem(
+                artifactID: version.id,
+                version: version.version,
+                isCurrent: version.isApprovedVersion,
+                document: ArtifactReviewDocument(
+                    artifact: version,
+                    providerName: sourceAIName(
+                        for: version
+                    )
+                )
+            )
+        }
+    }
+
+
     private var artifact:
         ZhuowangArtifact? {
 
@@ -2624,13 +2663,27 @@ private struct ZhuowangArtifactDetailView: View {
             workflowStore.provider(id: $0)?.name
         }
         let document = ArtifactReviewDocument(
-            id: artifact.id,
             artifact: artifact,
             providerName: providerName
         )
 
         ArtifactReviewWindowManager.shared.open(
             document: document
+        )
+    }
+
+
+    private func openArtifactVersionCompareWorkspace() {
+        guard canCompareVersions else {
+            return
+        }
+
+        ArtifactVersionCompareWindowManager.shared.open(
+            campaignID: campaignID,
+            versionGroupKey: artifactName,
+            artifactName: artifact?.name ?? artifactName,
+            items: comparisonItems,
+            selectedArtifactID: selectedArtifactID
         )
     }
 

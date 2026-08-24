@@ -20,7 +20,7 @@ struct ArtifactReviewDocument:
     let executedAt: Date
 
     init(
-        id: UUID = UUID(),
+        id: UUID,
         draft: ZhuowangArtifactDraft,
         snapshot: ZhuowangWorkflowExecutionSnapshot?,
         providerName: String?
@@ -41,11 +41,10 @@ struct ArtifactReviewDocument:
     }
 
     init(
-        id: UUID = UUID(),
         artifact: ZhuowangArtifact,
         providerName: String? = nil
     ) {
-        self.id = id
+        id = artifact.id
         name = artifact.name
         versionLabel = "V\(artifact.version)"
         type = artifact.type

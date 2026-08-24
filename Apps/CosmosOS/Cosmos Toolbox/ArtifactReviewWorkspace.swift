@@ -36,7 +36,12 @@ struct ArtifactReviewWorkspace: View {
             workspaceToolbar
             Divider()
 
-            reviewContent
+            ArtifactReviewPane(
+                document: document,
+                rendererRegistry: rendererRegistry,
+                displayMode: reviewState.displayMode,
+                mobileViewport: reviewState.mobileViewport
+            )
         }
         .frame(minWidth: 900, minHeight: 680)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -165,16 +170,29 @@ struct ArtifactReviewWorkspace: View {
         .padding(.vertical, CosmosDesign.spacingS)
     }
 
+    private var selectedRenderer: any ArtifactPreviewRenderer {
+        rendererRegistry.renderer(for: document.type)
+    }
+}
 
-    // MARK: - Review Content
 
-    @ViewBuilder
-    private var reviewContent: some View {
-        switch reviewState.displayMode {
-        case .preview:
-            previewContent
-        case .source:
-            sourceContent
+// MARK: - Shared Review Pane
+
+struct ArtifactReviewPane: View {
+
+    let document: ArtifactReviewDocument
+    let rendererRegistry: ArtifactPreviewRendererRegistry
+    let displayMode: ArtifactReviewDisplayMode
+    let mobileViewport: ArtifactReviewMobileViewport
+
+    var body: some View {
+        Group {
+            switch displayMode {
+            case .preview:
+                previewContent
+            case .source:
+                sourceContent
+            }
         }
     }
 
@@ -186,8 +204,9 @@ struct ArtifactReviewWorkspace: View {
         case .adaptiveCanvas:
             selectedRenderer.makePreview(
                 document: document,
-                viewport: reviewState.mobileViewport
+                viewport: mobileViewport
             )
+            .id(document.id)
         }
     }
 
@@ -197,13 +216,14 @@ struct ArtifactReviewWorkspace: View {
 
             ScrollView([.horizontal, .vertical]) {
                 ArtifactMobileDeviceFrame(
-                    screenWidth: reviewState.mobileViewport.width,
+                    screenWidth: mobileViewport.width,
                     screenHeight: screenHeight
                 ) {
                     selectedRenderer.makePreview(
                         document: document,
-                        viewport: reviewState.mobileViewport
+                        viewport: mobileViewport
                     )
+                    .id(document.id)
                 }
                 .padding(CosmosDesign.spacingXL)
                 .frame(
@@ -238,7 +258,7 @@ struct ArtifactReviewWorkspace: View {
 
 // MARK: - Mobile Device Frame
 
-private struct ArtifactMobileDeviceFrame<Content: View>: View {
+struct ArtifactMobileDeviceFrame<Content: View>: View {
 
     let screenWidth: CGFloat
     let screenHeight: CGFloat

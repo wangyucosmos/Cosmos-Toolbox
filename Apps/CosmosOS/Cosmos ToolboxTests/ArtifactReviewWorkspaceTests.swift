@@ -339,6 +339,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
             )
         )
         let document = ArtifactReviewDocument(
+            id: UUID(),
             draft: makeDraft(),
             snapshot: snapshot,
             providerName: "DeepSeek Harness"
@@ -444,6 +445,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
             )
 
             XCTAssertEqual(document.versionLabel, "V\(version)")
+            XCTAssertEqual(document.id, artifact.id)
             XCTAssertEqual(document.content, html)
             XCTAssertEqual(
                 registry.rendererIdentifier(for: document.type),
@@ -461,6 +463,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
 
     private func makeDraftDocument() -> ArtifactReviewDocument {
         ArtifactReviewDocument(
+            id: UUID(),
             draft: makeDraft(),
             snapshot: makeSnapshot(profile: .default),
             providerName: "DeepSeek Harness"
