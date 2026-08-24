@@ -23,7 +23,13 @@ struct ArtifactReviewWorkspace: View {
         self.document = document
         self.rendererRegistry = rendererRegistry
         self.windowContext = windowContext
-        _reviewState = State(initialValue: initialState)
+        var normalizedState = initialState
+        normalizedState.normalize(
+            for: rendererRegistry
+                .renderer(for: document.previewInput)
+                .capabilities
+        )
+        _reviewState = State(initialValue: normalizedState)
     }
 
     var body: some View {
@@ -117,19 +123,21 @@ struct ArtifactReviewWorkspace: View {
 
     private var workspaceToolbar: some View {
         HStack(spacing: CosmosDesign.spacingM) {
-            Picker(
-                "Artifact 查看方式",
-                selection: $reviewState.displayMode
-            ) {
-                ForEach(ArtifactReviewDisplayMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+            if selectedRenderer.capabilities.supportsSource {
+                Picker(
+                    "Artifact 查看方式",
+                    selection: $reviewState.displayMode
+                ) {
+                    ForEach(ArtifactReviewDisplayMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
             }
-            .pickerStyle(.segmented)
-            .frame(width: 200)
 
             if reviewState.displayMode == .preview,
-               selectedRenderer.presentationStyle == .mobileDevice {
+               selectedRenderer.capabilities.supportsMobileViewport {
                 Picker(
                     "Mobile Viewport",
                     selection: $reviewState.mobileViewport
@@ -144,20 +152,22 @@ struct ArtifactReviewWorkspace: View {
 
             Spacer()
 
-            Button {
-                reviewState.toggleFullPreview()
-            } label: {
-                Label(
-                    reviewState.presentationMode == .fullPreview
-                        ? "退出完整预览"
-                        : "完整预览",
-                    systemImage:
+            if selectedRenderer.capabilities.supportsFullPreview {
+                Button {
+                    reviewState.toggleFullPreview()
+                } label: {
+                    Label(
                         reviewState.presentationMode == .fullPreview
-                        ? "arrow.down.right.and.arrow.up.left"
-                        : "arrow.up.left.and.arrow.down.right"
-                )
+                            ? "退出完整预览"
+                            : "完整预览",
+                        systemImage:
+                            reviewState.presentationMode == .fullPreview
+                            ? "arrow.down.right.and.arrow.up.left"
+                            : "arrow.up.left.and.arrow.down.right"
+                    )
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
 
             Button {
                 windowContext.close()
@@ -171,7 +181,7 @@ struct ArtifactReviewWorkspace: View {
     }
 
     private var selectedRenderer: any ArtifactPreviewRenderer {
-        rendererRegistry.renderer(for: document.type)
+        rendererRegistry.renderer(for: document.previewInput)
     }
 }
 
@@ -187,7 +197,7 @@ struct ArtifactReviewPane: View {
 
     var body: some View {
         Group {
-            switch displayMode {
+            switch effectiveDisplayMode {
             case .preview:
                 previewContent
             case .source:
@@ -204,7 +214,8 @@ struct ArtifactReviewPane: View {
         case .adaptiveCanvas:
             selectedRenderer.makePreview(
                 document: document,
-                viewport: mobileViewport
+                input: document.previewInput,
+                context: previewContext
             )
             .id(document.id)
         }
@@ -221,7 +232,8 @@ struct ArtifactReviewPane: View {
                 ) {
                     selectedRenderer.makePreview(
                         document: document,
-                        viewport: mobileViewport
+                        input: document.previewInput,
+                        context: previewContext
                     )
                     .id(document.id)
                 }
@@ -251,7 +263,23 @@ struct ArtifactReviewPane: View {
     }
 
     private var selectedRenderer: any ArtifactPreviewRenderer {
-        rendererRegistry.renderer(for: document.type)
+        rendererRegistry.renderer(for: document.previewInput)
+    }
+
+    private var effectiveDisplayMode: ArtifactReviewDisplayMode {
+        displayMode == .source
+            && !selectedRenderer.capabilities.supportsSource
+            ? .preview
+            : displayMode
+    }
+
+    private var previewContext: ArtifactPreviewContext {
+        ArtifactPreviewContext(
+            mobileViewport:
+                selectedRenderer.capabilities.supportsMobileViewport
+                ? mobileViewport
+                : nil
+        )
     }
 }
 

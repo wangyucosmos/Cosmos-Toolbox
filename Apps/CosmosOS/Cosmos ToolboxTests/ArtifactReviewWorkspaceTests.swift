@@ -16,7 +16,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
 
         XCTAssertEqual(document.type, .html)
         XCTAssertEqual(
-            registry.rendererIdentifier(for: document.type),
+            registry.rendererIdentifier(for: document.previewInput),
             .html
         )
         _ = workspace.body
@@ -35,13 +35,268 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         let registry = ArtifactPreviewRendererRegistry()
 
         XCTAssertEqual(
-            registry.rendererIdentifier(for: document.type),
+            registry.rendererIdentifier(for: document.previewInput),
             .unsupported
         )
         XCTAssertEqual(
-            registry.renderer(for: document.type).presentationStyle,
+            registry.renderer(for: document.previewInput).presentationStyle,
             .adaptiveCanvas
         )
+    }
+
+
+    func testLegacyInlineHTMLProjectsToTypedPayloadWithoutMutation() {
+        let artifact = ZhuowangArtifact(
+            campaignID: UUID(),
+            name: "Inline HTML",
+            type: .html,
+            content: "<html>  原始内容\n</html>",
+            version: 4
+        )
+        let originalArtifact = artifact
+        let projection = ArtifactReviewDocumentProjector.project(
+            artifact: artifact
+        )
+        let document = ArtifactReviewDocument(projection: projection)
+
+        guard case .inlineText(let inlineText) = projection.payload else {
+            return XCTFail("Legacy inline HTML should project as inline text")
+        }
+
+        XCTAssertEqual(inlineText.text, artifact.content)
+        XCTAssertEqual(inlineText.mediaType.classification, .html)
+        XCTAssertEqual(document.id, artifact.id)
+        XCTAssertEqual(document.content, artifact.content)
+        XCTAssertEqual(artifact, originalArtifact)
+    }
+
+
+    func testMarkdownAndPlainTextProjectionPreservesExactSource() {
+        let fixtures: [(ZhuowangArtifactType, String)] = [
+            (.markdown, "# 标题\n\n  保留空格  \n"),
+            (.prompt, "SYSTEM:\n  保留缩进\n")
+        ]
+
+        for (type, source) in fixtures {
+            let artifact = ZhuowangArtifact(
+                campaignID: UUID(),
+                name: "Text Fixture",
+                type: type,
+                content: source
+            )
+            let document = ArtifactReviewDocument(artifact: artifact)
+
+            XCTAssertEqual(document.content, source)
+            XCTAssertEqual(
+                document.previewInput.mediaType.classification,
+                .text
+            )
+        }
+    }
+
+
+    func testLocalUTF8HTMLProjectsReferenceThenResolvesPreviewInput()
+        throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).html")
+        let originalHTML = "<html><body>本地原文</body></html>\n"
+        try originalHTML.write(
+            to: fileURL,
+            atomically: true,
+            encoding: .utf8
+        )
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+
+        let artifact = ZhuowangArtifact(
+            campaignID: UUID(),
+            name: "Local HTML",
+            type: .html,
+            location: fileURL.path,
+            content: nil
+        )
+        let projection = ArtifactReviewDocumentProjector.project(
+            artifact: artifact
+        )
+
+        guard case .localFile(let reference) = projection.payload else {
+            return XCTFail("Local HTML should remain a file reference")
+        }
+        XCTAssertEqual(reference.url, fileURL)
+        XCTAssertEqual(reference.mediaType.classification, .html)
+
+        let document = ArtifactReviewDocument(projection: projection)
+        XCTAssertEqual(document.content, originalHTML)
+        XCTAssertEqual(
+            ArtifactPreviewRendererRegistry().rendererIdentifier(
+                for: document.previewInput
+            ),
+            .html
+        )
+    }
+
+
+    func testBinaryLocalFileNeverUsesUTF8TextReader() {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("binary-fixture.pdf")
+        let mediaType = ArtifactReviewMediaType(
+            uniformTypeIdentifier: "com.adobe.pdf",
+            mimeType: "application/pdf",
+            fileExtension: "pdf",
+            legacyArtifactType: .pdf
+        )
+        let payload = ArtifactReviewPayload.localFile(
+            ArtifactReviewLocalFileReference(
+                url: fileURL,
+                mediaType: mediaType
+            )
+        )
+        var readCount = 0
+        let resolver = ArtifactPreviewInputResolver(
+            fileExists: { _ in true },
+            readUTF8Text: { _ in
+                readCount += 1
+                return "must not be read"
+            }
+        )
+
+        let input = resolver.resolve(payload)
+
+        XCTAssertEqual(readCount, 0)
+        XCTAssertEqual(
+            input.resolvedContent,
+            .unavailable(.unsupportedMediaType)
+        )
+        XCTAssertEqual(
+            ArtifactPreviewRendererRegistry().rendererIdentifier(for: input),
+            .unsupported
+        )
+    }
+
+
+    func testMissingLocalFileResolvesUnavailableWithoutCrash() {
+        let artifact = ZhuowangArtifact(
+            campaignID: UUID(),
+            name: "Missing HTML",
+            type: .html,
+            location: "/tmp/\(UUID().uuidString).html",
+            content: nil
+        )
+        let document = ArtifactReviewDocument(artifact: artifact)
+
+        guard case .localFile = document.payload else {
+            return XCTFail("Missing file should retain its typed reference")
+        }
+        XCTAssertEqual(
+            document.previewInput.resolvedContent,
+            .unavailable(.fileMissing)
+        )
+        XCTAssertEqual(document.content, "")
+        XCTAssertEqual(
+            ArtifactPreviewRendererRegistry().rendererIdentifier(
+                for: document.previewInput
+            ),
+            .unsupported
+        )
+    }
+
+
+    func testEmptyArtifactWithoutLocationProjectsUnavailable() {
+        let document = ArtifactReviewDocument(
+            artifact: ZhuowangArtifact(
+                campaignID: UUID(),
+                name: "Unavailable",
+                type: .other
+            )
+        )
+
+        guard case .unavailable(let unavailable) = document.payload else {
+            return XCTFail("Missing content and location must be unavailable")
+        }
+        XCTAssertEqual(unavailable.reason, .missingLocation)
+        XCTAssertEqual(
+            document.previewInput.resolvedContent,
+            .unavailable(.missingLocation)
+        )
+
+        let workspace = ArtifactReviewWorkspace(
+            document: document,
+            windowContext: ArtifactReviewWindowContext(),
+            initialState: ArtifactReviewWorkspaceState(
+                displayMode: .source,
+                presentationMode: .fullPreview,
+                mobileViewport: .width390
+            )
+        )
+        _ = workspace.body
+    }
+
+
+    func testConflictingMediaHintsFailSafely() {
+        let mediaType = ArtifactReviewMediaType(
+            uniformTypeIdentifier: "public.html",
+            mimeType: "image/png",
+            fileExtension: "html",
+            legacyArtifactType: .html
+        )
+        let payload = ArtifactReviewPayload.inlineText(
+            ArtifactReviewInlineText(
+                text: "<html>Conflict</html>",
+                mediaType: mediaType
+            )
+        )
+        let input = ArtifactPreviewInputResolver().resolve(payload)
+
+        XCTAssertEqual(mediaType.classification, .conflicting)
+        XCTAssertEqual(
+            input.resolvedContent,
+            .unavailable(.conflictingMediaType)
+        )
+        XCTAssertEqual(
+            ArtifactPreviewRendererRegistry().rendererIdentifier(for: input),
+            .unsupported
+        )
+    }
+
+
+    func testLocationStringIsNotInferredAsExternalURL() {
+        let artifact = ZhuowangArtifact(
+            campaignID: UUID(),
+            name: "Legacy URL Shape",
+            type: .url,
+            location: "https://example.com/document",
+            content: nil
+        )
+        let projection = ArtifactReviewDocumentProjector.project(
+            artifact: artifact
+        )
+
+        guard case .localFile(let reference) = projection.payload else {
+            return XCTFail("Phase 1 must not infer an external URL payload")
+        }
+        XCTAssertEqual(reference.url.pathExtension, "")
+    }
+
+
+    func testRendererCapabilitiesControlInvalidWorkspaceState() {
+        XCTAssertEqual(
+            HTMLArtifactPreviewRenderer().capabilities,
+            .html
+        )
+        XCTAssertEqual(
+            UnsupportedArtifactPreviewRenderer().capabilities,
+            .fallback
+        )
+
+        var state = ArtifactReviewWorkspaceState(
+            displayMode: .source,
+            presentationMode: .fullPreview,
+            mobileViewport: .width375
+        )
+        state.normalize(for: .fallback)
+
+        XCTAssertEqual(state.displayMode, .preview)
+        XCTAssertEqual(state.presentationMode, .workspace)
+        XCTAssertEqual(state.mobileViewport, .width375)
     }
 
 
@@ -50,11 +305,13 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         let renderer = HTMLArtifactPreviewRenderer()
         let webView = ArtifactHTMLWebViewFactory.makeWebView()
 
-        XCTAssertTrue(renderer.supports(artifactType: .html))
-        XCTAssertFalse(renderer.supports(artifactType: .figma))
-        XCTAssertNotEqual(renderer.previewHTML(for: document), document.content)
+        XCTAssertTrue(renderer.supports(input: document.previewInput))
+        XCTAssertNotEqual(
+            renderer.previewHTML(for: document.previewInput),
+            document.content
+        )
         XCTAssertTrue(
-            renderer.previewHTML(for: document).contains(
+            renderer.previewHTML(for: document.previewInput).contains(
                 ArtifactHTMLPreviewSecurityPolicy.marker
             )
         )
@@ -285,7 +542,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         )
         let document = ArtifactReviewDocument(artifact: artifact)
         let securedHTML = HTMLArtifactPreviewRenderer()
-            .previewHTML(for: document)
+            .previewHTML(for: document.previewInput)
 
         XCTAssertEqual(document.content, originalHTML)
         XCTAssertNotEqual(securedHTML, originalHTML)
@@ -312,7 +569,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         )
         let document = ArtifactReviewDocument(artifact: artifact)
         let securedHTML = HTMLArtifactPreviewRenderer()
-            .previewHTML(for: document)
+            .previewHTML(for: document.previewInput)
 
         XCTAssertEqual(document.sourceName, "未记录")
         XCTAssertEqual(document.content, originalHTML)
@@ -363,10 +620,16 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         for viewport in ArtifactReviewMobileViewport.allCases {
             XCTAssertTrue([375, 390].contains(viewport.rawValue))
             XCTAssertEqual(document.content, originalHTML)
-            XCTAssertNotEqual(renderer.previewHTML(for: document), originalHTML)
+            XCTAssertNotEqual(
+                renderer.previewHTML(for: document.previewInput),
+                originalHTML
+            )
             _ = renderer.makePreview(
                 document: document,
-                viewport: viewport
+                input: document.previewInput,
+                context: ArtifactPreviewContext(
+                    mobileViewport: viewport
+                )
             )
         }
     }
@@ -420,7 +683,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         XCTAssertEqual(document.sourceName, "未记录")
         XCTAssertEqual(
             ArtifactPreviewRendererRegistry()
-                .rendererIdentifier(for: document.type),
+                .rendererIdentifier(for: document.previewInput),
             .html
         )
     }
@@ -448,7 +711,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
             XCTAssertEqual(document.id, artifact.id)
             XCTAssertEqual(document.content, html)
             XCTAssertEqual(
-                registry.rendererIdentifier(for: document.type),
+                registry.rendererIdentifier(for: document.previewInput),
                 .html
             )
         }

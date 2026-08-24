@@ -9,30 +9,40 @@ struct HTMLArtifactPreviewRenderer:
 
     let identifier: ArtifactPreviewRendererIdentifier = .html
     let presentationStyle: ArtifactPreviewPresentationStyle = .mobileDevice
+    let capabilities: ArtifactPreviewRendererCapabilities = .html
 
     func supports(
-        artifactType: ZhuowangArtifactType
+        input: ArtifactPreviewInput
     ) -> Bool {
-        artifactType == .html
+        input.mediaType.classification == .html
+            && input.sourceText != nil
     }
 
     func makePreview(
         document: ArtifactReviewDocument,
-        viewport: ArtifactReviewMobileViewport
+        input: ArtifactPreviewInput,
+        context: ArtifactPreviewContext
     ) -> AnyView {
         AnyView(
             HTMLArtifactRenderedContent(
-                securedHTML: previewHTML(for: document)
+                securedHTML: previewHTML(for: input)
             )
         )
     }
 
     /// Builds an in-memory Preview copy without mutating the Review Document.
     func previewHTML(
-        for document: ArtifactReviewDocument
+        for input: ArtifactPreviewInput
     ) -> String {
-        ArtifactHTMLPreviewSecurityPolicy.securedHTML(
-            from: document.content
+        guard supports(input: input),
+              let sourceHTML = input.sourceText
+        else {
+            return ArtifactHTMLPreviewSecurityPolicy
+                .unavailablePreviewHTML
+        }
+
+        return ArtifactHTMLPreviewSecurityPolicy.securedHTML(
+            from: sourceHTML
         )
     }
 }

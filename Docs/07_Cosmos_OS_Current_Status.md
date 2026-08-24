@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-08-24
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Step 05 prototype workflow milestone complete; Artifact Version Compare Phase 1 implemented
+**Current stage:** Step 05 prototype workflow milestone complete; Artifact Preview Abstraction Layer Phase 1 implemented
 
 ---
 
@@ -114,6 +114,9 @@ Verified:
 - Review metadata is captured from Draft + immutable execution snapshot / Artifact provenance rather than current Workflow selections
 - Artifact Detail can open a stable, independent Version Compare window for any logical Artifact with at least two managed versions
 - Version Compare supports two UUID-selected managed versions, independent Preview / Source modes, shared 375px / 390px viewport, isolated scrolling / JavaScript state, and current-adopted marking without changing adoption
+- Artifact Review projects legacy `content / location / type` into typed inline-text, local-file, or unavailable payloads without changing the persisted Artifact model
+- Preview file I/O is isolated in a read-only Resolver; only explicitly referenced supported text files are decoded as UTF-8, while binary, missing, unreadable, unknown, or conflicting media safely fall back
+- Renderer selection now uses typed Preview Input plus media classification, and Renderer capabilities independently declare Preview, Source, Full Preview, and Mobile Viewport support
 
 ---
 
@@ -290,13 +293,20 @@ Artifact review is now separated from execution and adoption:
 
 ```text
 Artifact Draft / historical Artifact
-→ ArtifactReviewDocument (immutable review provenance)
+→ ArtifactReviewDocumentProjector
+→ ArtifactReviewPayload (inlineText / localFile / unavailable)
+→ ArtifactPreviewInputResolver (read-only, controlled I/O)
+→ ArtifactReviewDocument (immutable provenance + typed input)
 → ArtifactPreviewRendererRegistry
 → registered Renderer or safe fallback
 → ArtifactReviewWorkspace
 ```
 
-Phase 1 registers only the HTML Renderer. The Workspace shell does not switch on HTML and can accept future Figma, Pixso, Image, and PDF renderers without changing Workflow, Artifact versioning, or adoption logic. Source displays the unchanged original HTML; Preview renders only the secured in-memory copy in a non-persistent real WKWebView. The 375px / 390px device widths are layout constraints, not screenshot scaling or source-file rewriting.
+The Artifact Preview Abstraction Layer Phase 1 is confined to Review projection and Renderer input. It does not modify `ZhuowangArtifact`, `ZhuowangArtifactType`, UserDefaults schema, Adoption, Recovery, Workspace File Manager, or Task Package construction. Legacy inline text is projected without normalization; a supported local HTML / Markdown / plain-text reference is read only while resolving Preview Input. Binary files are never decoded as `String`, arbitrary `location` values are not inferred as external URLs, and missing, unreadable, unknown, or conflicting media enter the safe fallback.
+
+Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. Phase 1 still registers only the HTML Renderer and the safe fallback; no Image, PDF, Figma, Pixso, or external-document Renderer has been added.
+
+Source displays the unchanged original HTML; Preview renders only the secured in-memory copy in a non-persistent real WKWebView. The existing HTML CSP, WKContentRuleList, Navigation Policy, and content-rule fail-closed behavior were not weakened or duplicated. The 375px / 390px device widths are layout constraints, not screenshot scaling or source-file rewriting.
 
 The adopted Artifact Detail entry now defaults to a Preview Workspace action instead of rendering HTML source as its primary body. Users can still explicitly select source view, and switching among managed versions resets the entry to Preview. Both Draft and adopted Artifact entries construct an `ArtifactReviewDocument` and open the same `ArtifactReviewWindowManager`; unsupported types retain the Registry fallback, and historical Artifacts without provenance remain safe.
 
@@ -313,7 +323,7 @@ managed Artifact version collection
 
 Compare state is window-local SwiftUI state only. It is not written to UserDefaults, SceneStorage, Workflow, Artifact models, or Codable persistence. The default pair is the current adopted version on the left and the selected historical version on the right; when the selected version is current, the highest other managed version is used. Choosing the opposite side's UUID swaps the pair so both sides can never reference the same Artifact. The Compare window identity is stable by `campaignID + versionGroupKey`, independent of the selected pair, and an existing window is brought forward instead of duplicated.
 
-Both Compare sides reuse the same `ArtifactReviewPane` as the single-version Workspace. Each side resolves its Renderer through the existing Registry, so HTML Preview continues through the established Renderer Security Boundary and unsupported types continue through the safe fallback. Preview / Source are independent per side, while 375px / 390px is shared. A version change replaces that side's `ArtifactReviewDocument` and recreates only that Renderer subtree by the stable Artifact UUID, preventing prior DOM / JavaScript state from surviving or crossing between WebViews.
+Both Compare sides reuse the same `ArtifactReviewPane` as the single-version Workspace. Each side resolves its Renderer from its own typed Preview Input, so HTML Preview continues through the established Renderer Security Boundary and unsupported / unavailable inputs continue through the safe fallback. Preview / Source are independent per side and Source is offered only when that Renderer declares support. The shared 375px / 390px control remains fully compatible for two HTML sides and is passed only to sides declaring Mobile Viewport support. A version change replaces that side's `ArtifactReviewDocument` and recreates only that Renderer subtree by the stable Artifact UUID, preventing prior DOM / JavaScript state from surviving or crossing between WebViews.
 
 ---
 
@@ -392,9 +402,9 @@ Current implementation focus:
 - Browser / desktop-width preview is not implemented; Phase 1 currently focuses on 375px / 390px mobile HTML review.
 - Artifact Version Compare Phase 1 provides managed-version side-by-side review. Text / semantic Diff and difference highlighting are not implemented.
 - Review annotations, anchored comments, approval notes, and markup are not implemented.
-- Figma, Pixso, Image, and PDF Preview Renderers are not registered yet; unsupported types use the safe fallback.
+- Figma, Pixso, Image, and PDF Preview Renderers are not registered yet; the typed Review boundary is ready, but unsupported or unavailable inputs still use the safe fallback.
 - HTML Preview intentionally permits inline JavaScript / event handlers and scoped `data:` / `blob:` image or media resources for existing interactive prototypes. This is a compatibility boundary, not a general browser sandbox; any future relaxation or Browser Preview capability requires a separate threat review.
-- The current Artifact model and adoption / recovery paths remain partly HTML-first. A broader Artifact Abstraction Layer should be designed before real Figma / Pixso adoption is added, without disturbing the accepted HTML path prematurely.
+- The persisted Artifact model and adoption / recovery paths remain partly HTML-first. Phase 1 intentionally stops at the Review projection boundary; a future real binary or external-document adoption path still needs an optional, backward-compatible persistent payload descriptor without rewriting historical data.
 - DeepSeek Harness now has a scoped Runtime Compatibility Layer. Swift no longer pins a concrete DSH release-candidate version; it discovers the installed `dsh` executable, reads its reported version, verifies `--profile headless` support, and resolves `DSH_HOME` from the launch environment or Harness LaunchAgent.
 - Target runtime boundary:
 
@@ -498,12 +508,13 @@ Completed milestone capabilities:
 - unified Draft and adopted / historical Artifact Review Workspace entry;
 - Renderer-owned HTML Preview CSP plus WebKit content rules, non-persistent storage, and navigation policy without modifying source Artifacts.
 - independent managed-version Compare Workspace with stable logical-Artifact window identity, UUID-based left / right selection, shared Review Pane / Renderer Registry, independent Preview / Source and scrolling, and shared 375px / 390px viewport.
+- typed Review Payload / Preview Input projection with controlled local-text resolution, safe binary / missing / conflicting fallback, and Renderer capability-driven controls without persistent schema changes.
 
 Recommended next-session order:
 
-1. Keep semantic Diff / highlighting, Browser Preview, Annotation, and new Renderers deferred until the next product decision.
+1. Choose the first binary Renderer Phase; Image Renderer is the recommended smallest next step because it validates typed local-file input, decoding limits, fit/original-size behavior, and Source absence without adding PDF navigation or external authentication complexity.
 2. If the HTML Preview compatibility allowlist changes, threat-model inline script and `data:` / `blob:` behavior before implementation.
-3. Before implementing Figma / Pixso execution and adoption, define the required Artifact Abstraction Layer boundary and add the corresponding Renderer through the existing Registry.
+3. Keep persistent Artifact payload descriptors, Sidecar Manifest, Figma / Pixso execution and external-document adoption deferred until a real write path requires them.
 
 A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
 
@@ -540,5 +551,6 @@ Do not regress these verified decisions:
 - Artifact Review Workspace Phase 1 plus adopted Artifact Detail entry completed a macOS Debug Build and 39/39 Unit Tests on 2026-08-21. Automated coverage includes V1 / V2 / V3 HTML review documents, Preview as the Artifact Detail default, Renderer Registry selection, and legacy Artifacts without provenance. Live UI confirmation of version switching, selected-version window content, independent-window sizing, mobile interactions, full-preview ergonomics, and Light/Dark Mode remains pending.
 - Artifact Review Renderer Security Boundary Phase 1 completed a Universal macOS Debug Build and 47/47 Unit Tests on 2026-08-21. Read-only UI smoke confirmed managed V1 / V3 / V4 Preview loading, V3 Preview / Source, 375px / 390px, scrolling, local button interaction, Full Preview, and V3 remaining adopted. V1-V4 file hashes and the Cosmos Toolbox UserDefaults domain hash were unchanged before and after the smoke test; unmanaged V2 remained untouched.
 - Artifact Version Compare Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 59/59 Unit Tests on 2026-08-24. Read-only UI smoke confirmed default V3 | V4, Detail-selected V1 opening V3 | V1, UUID swap behavior, independent Preview / Source and scrolling, shared 375px / 390px viewport, isolated WebView interaction state, stable Compare window reuse, native full screen / close / reopen, and unchanged single-version V1 / V3 / V4 Review plus Full Preview. The adopted prototype remained V3; Workflow and UserDefaults were unchanged; V1-V4 hashes remained identical and unmanaged V2 stayed untouched.
+- Artifact Preview Abstraction Layer Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 70/70 Unit Tests on 2026-08-24. Automated coverage verifies legacy inline/local text projection, exact Source preservation, binary files bypassing UTF-8 decoding, missing/unreadable/conflicting fallback, stable IDs and provenance, typed Registry selection, capability-driven UI normalization, unchanged HTML security, and mixed Compare compatibility. Read-only UI smoke reconfirmed V1 / V3 / V4 Review, V3 | V1 and default V3 | V4 Compare, independent Preview / Source and scrolling, shared 375px / 390px, isolated button state, Full Preview, native full screen / close / reopen, adopted V3, and Workflow 01–05 approved / 06 ready. Prototype file hashes remained unchanged, including unmanaged V2. The application preference plist was reserialized during the native-window smoke session because it contains `NSWindow Frame` / split-view state, so its whole-file hash changed; no business-data mutation was invoked, and the live Workflow/adoption state remained unchanged.
 - `git diff --check` completed successfully.
 - Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.

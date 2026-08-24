@@ -153,7 +153,9 @@ final class ArtifactVersionCompareWorkspaceTests: XCTestCase {
 
         for item in items {
             let originalSource = item.document.content
-            let previewHTML = renderer.previewHTML(for: item.document)
+            let previewHTML = renderer.previewHTML(
+                for: item.document.previewInput
+            )
 
             XCTAssertEqual(item.document.content, originalSource)
             XCTAssertNotEqual(previewHTML, originalSource)
@@ -178,10 +180,74 @@ final class ArtifactVersionCompareWorkspaceTests: XCTestCase {
         let registry = ArtifactPreviewRendererRegistry()
 
         XCTAssertEqual(
-            registry.rendererIdentifier(for: document.type),
+            registry.rendererIdentifier(for: document.previewInput),
             .unsupported
         )
         XCTAssertEqual(document.id, artifact.id)
+    }
+
+
+    func testMixedCompareNormalizesOnlyUnsupportedSourceMode() throws {
+        var items = makeItems()
+        let unsupportedArtifact = ZhuowangArtifact(
+            campaignID: campaignID,
+            name: "未来版本",
+            type: .other,
+            logicalKey: logicalKey,
+            content: "Unsupported",
+            version: 5
+        )
+        let unsupportedItem = ArtifactVersionComparisonItem(
+            artifactID: unsupportedArtifact.id,
+            version: unsupportedArtifact.version,
+            isCurrent: false,
+            document: ArtifactReviewDocument(artifact: unsupportedArtifact)
+        )
+        items.append(unsupportedItem)
+        var state = try XCTUnwrap(
+            ArtifactVersionCompareState(
+                items: items,
+                selectedArtifactID: unsupportedArtifact.id
+            )
+        )
+        state.leftDisplayMode = .source
+        state.rightDisplayMode = .source
+
+        state.normalizeDisplayModes(
+            leftSupportsSource: true,
+            rightSupportsSource: false
+        )
+
+        XCTAssertEqual(state.leftDisplayMode, .source)
+        XCTAssertEqual(state.rightDisplayMode, .preview)
+        XCTAssertEqual(
+            ArtifactPreviewRendererRegistry()
+                .renderer(for: unsupportedItem.document.previewInput)
+                .capabilities,
+            .fallback
+        )
+
+        let workspace = ArtifactVersionCompareWorkspace(
+            artifactName: "产品原型设计",
+            items: items,
+            windowContext: ArtifactReviewWindowContext(),
+            initialState: state
+        )
+        _ = workspace.body
+    }
+
+
+    func testHTMLCompareKeepsSharedMobileViewportCapability() {
+        let registry = ArtifactPreviewRendererRegistry()
+
+        for item in makeItems() {
+            let renderer = registry.renderer(
+                for: item.document.previewInput
+            )
+            XCTAssertTrue(renderer.capabilities.supportsMobileViewport)
+            XCTAssertTrue(renderer.capabilities.supportsSource)
+            XCTAssertEqual(renderer.identifier, .html)
+        }
     }
 
     func testCompareWindowIdentityIgnoresSelectedPairAndOrder() {

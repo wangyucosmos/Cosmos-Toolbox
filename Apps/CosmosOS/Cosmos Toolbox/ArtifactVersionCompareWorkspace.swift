@@ -84,6 +84,20 @@ struct ArtifactVersionCompareState: Equatable {
 
         rightArtifactID = artifactID
     }
+
+    mutating func normalizeDisplayModes(
+        leftSupportsSource: Bool,
+        rightSupportsSource: Bool
+    ) {
+        if leftDisplayMode == .source,
+           !leftSupportsSource {
+            leftDisplayMode = .preview
+        }
+        if rightDisplayMode == .source,
+           !rightSupportsSource {
+            rightDisplayMode = .preview
+        }
+    }
 }
 
 
@@ -117,13 +131,28 @@ struct ArtifactVersionCompareWorkspace: View {
         windowContext: ArtifactReviewWindowContext,
         initialState: ArtifactVersionCompareState
     ) {
-        self.artifactName = artifactName
-        self.items = items.sorted {
+        let orderedItems = items.sorted {
             $0.version > $1.version
         }
+        var normalizedState = initialState
+        normalizedState.normalizeDisplayModes(
+            leftSupportsSource: Self.supportsSource(
+                artifactID: normalizedState.leftArtifactID,
+                items: orderedItems,
+                rendererRegistry: rendererRegistry
+            ),
+            rightSupportsSource: Self.supportsSource(
+                artifactID: normalizedState.rightArtifactID,
+                items: orderedItems,
+                rendererRegistry: rendererRegistry
+            )
+        )
+
+        self.artifactName = artifactName
+        self.items = orderedItems
         self.rendererRegistry = rendererRegistry
         self.windowContext = windowContext
-        _compareState = State(initialValue: initialState)
+        _compareState = State(initialValue: normalizedState)
     }
 
     var body: some View {
@@ -242,16 +271,18 @@ struct ArtifactVersionCompareWorkspace: View {
 
                 Spacer(minLength: CosmosDesign.spacingS)
 
-                Picker(
-                    "Artifact 查看方式",
-                    selection: displayMode
-                ) {
-                    ForEach(ArtifactReviewDisplayMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                if supportsSource(item: item) {
+                    Picker(
+                        "Artifact 查看方式",
+                        selection: displayMode
+                    ) {
+                        ForEach(ArtifactReviewDisplayMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 180)
             }
             .padding(.horizontal, CosmosDesign.spacingM)
             .padding(.vertical, CosmosDesign.spacingS)
@@ -282,6 +313,7 @@ struct ArtifactVersionCompareWorkspace: View {
                     artifactID,
                     availableArtifactIDs: availableArtifactIDs
                 )
+                normalizeDisplayModes()
             }
         )
     }
@@ -294,6 +326,7 @@ struct ArtifactVersionCompareWorkspace: View {
                     artifactID,
                     availableArtifactIDs: availableArtifactIDs
                 )
+                normalizeDisplayModes()
             }
         )
     }
@@ -332,8 +365,41 @@ struct ArtifactVersionCompareWorkspace: View {
         }
 
         return rendererRegistry
-            .renderer(for: item.document.type)
-            .presentationStyle == .mobileDevice
+            .renderer(for: item.document.previewInput)
+            .capabilities.supportsMobileViewport
+    }
+
+    private func supportsSource(
+        item: ArtifactVersionComparisonItem?
+    ) -> Bool {
+        guard let item else {
+            return false
+        }
+        return rendererRegistry
+            .renderer(for: item.document.previewInput)
+            .capabilities.supportsSource
+    }
+
+    private func normalizeDisplayModes() {
+        compareState.normalizeDisplayModes(
+            leftSupportsSource: supportsSource(item: leftItem),
+            rightSupportsSource: supportsSource(item: rightItem)
+        )
+    }
+
+    private static func supportsSource(
+        artifactID: UUID,
+        items: [ArtifactVersionComparisonItem],
+        rendererRegistry: ArtifactPreviewRendererRegistry
+    ) -> Bool {
+        guard let item = items.first(where: {
+            $0.artifactID == artifactID
+        }) else {
+            return false
+        }
+        return rendererRegistry
+            .renderer(for: item.document.previewInput)
+            .capabilities.supportsSource
     }
 
     private func item(

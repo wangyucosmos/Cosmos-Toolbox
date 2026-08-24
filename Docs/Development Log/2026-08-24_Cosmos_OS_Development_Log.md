@@ -77,3 +77,92 @@ managed Artifact version collection
 - Compare Phase 1 不包含文本 / 语义 Diff、差异高亮、Annotation、Browser / Desktop Preview 或其他 Renderer。
 - 双 WebView 自动测试与真实 UI 交互均通过，未观察到 WKContentRuleList 并发问题；未来扩大 Renderer 或网络能力时仍需重新核对该安全边界。
 - 本轮未 commit、未 push、未创建 Tag，也未进行暂存。
+
+---
+
+## 2026-08-24 Artifact Preview Abstraction Layer Phase 1
+
+### 一、本次目标
+
+- 解除 Artifact Review 对单一 `String content` 和固定 Mobile Viewport Renderer 接口的硬依赖。
+- 只在 Review 投影与 Renderer 输入层建立类型化边界，不修改持久化 Artifact、UserDefaults Schema、Workflow、Adoption、Recovery 或 Workspace File Manager。
+- 保持现有 HTML 单版本 Review、Version Compare 和 Renderer Security Boundary 完全兼容。
+
+### 二、最终数据流
+
+```text
+legacy Artifact / Draft
+→ ArtifactReviewDocumentProjector
+→ ArtifactReviewPayload
+   ├─ inlineText
+   ├─ localFile
+   └─ unavailable
+→ ArtifactPreviewInputResolver
+→ typed ArtifactPreviewInput
+→ ArtifactPreviewRendererRegistry
+→ Renderer capabilities
+→ secured HTML Preview or safe fallback
+```
+
+- Payload 只表达权威内容种类和只读引用，不隐藏文件 I/O。
+- Resolver 只读取 Artifact 明确指向、媒体提示一致且受支持的本地文本文件，不扫描目录、不搜索主目录、不自动把 `location` 推断为外部 URL。
+- PDF、图片和其他二进制在本阶段保留 typed local-file 引用，但不执行 UTF-8 解码，进入安全 fallback。
+- 文件缺失、不可读、类型未知或 UTType / MIME / extension / legacy type 冲突均 fail safely。
+
+### 三、Renderer 与 Workspace
+
+- Registry 从只按 `ZhuowangArtifactType` 选择，升级为按 typed Preview Input 和 Media Type 选择。
+- Renderer 明确声明 Preview、Source、Full Preview、Mobile Viewport 四项最小 capabilities。
+- HTML Renderer 继续支持全部四项能力，并只进行 typed input 适配；CSP、WKContentRuleList、non-persistent store 和 Navigation Policy 均未修改或复制。
+- Unsupported / unavailable fallback 不提供 Source、Full Preview 或 Mobile Viewport，不运行脚本或网络。
+- 单版本 Workspace 和 Compare 根据 capabilities 显示控件；非法 Source / Full Preview 临时状态自动回退到 Preview / Workspace。
+- Compare 两侧分别按自身 typed input 选择 Renderer；两个 HTML 侧继续共享 375px / 390px，其他侧只接收自己声明支持的能力。
+
+### 四、修改文件
+
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactReviewModels.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactPreviewRenderer.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactHTMLRenderer.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactReviewWorkspace.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactVersionCompareWorkspace.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/ArtifactReviewWorkspaceTests.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/ArtifactVersionCompareWorkspaceTests.swift`
+- `Docs/07_Cosmos_OS_Current_Status.md`
+- `Docs/Development Log/2026-08-24_Cosmos_OS_Development_Log.md`
+
+未修改 Xcode project、持久化 Model、Store、Transition、Adoption、Recovery、File Manager、Task Package、Harness / AI Adapter 或 Renderer Security Policy。
+
+### 五、自动验证
+
+- Universal macOS Debug Build：`BUILD SUCCEEDED`，arm64 + x86_64，`CODE_SIGNING_ALLOWED=NO`。
+- Unit Tests：70/70 passed，0 failed，0 skipped；在 59 项基线上新增 11 项 Review projection / typed input / capabilities / mixed Compare 覆盖。
+- 新增覆盖包括：inline HTML、Markdown 和 plain text 原文；本地 UTF-8 HTML 引用与受控解析；二进制不调用 UTF-8 reader；缺失和冲突媒体 fallback；URL 字符串不被推断为外部引用；Document 稳定 ID；Artifact 不变；capability 状态规范化；mixed Compare 单侧 Source 回退；双 HTML Mobile Viewport 能力保持。
+- 现有 HTML CSP、内容规则编译、Navigation Policy、内联按钮交互、Source 不变、双 WKWebView 隔离、Adoption / Recovery 和版本逻辑测试全部继续通过。
+- 沙箱内首次测试仍会因 Swift Preview 宏插件 `sandbox-exec` 权限失败；同一命令在系统 Xcode 环境中复跑成功，不是源码编译失败。
+
+### 六、只读 UI Smoke Test
+
+- 单版本 V1、V3、V4 Preview 均打开正确版本；V3 Preview / Source、375px / 390px、Full Preview、滚动和本地按钮交互正常。
+- Source 显示原始 HTML；Renderer 注入的 Preview CSP 未出现在 Source 中。
+- Detail 选择 V1 后 Compare 为 V3 | V1；选择当前 V3 后默认 Compare 为 V3 | V4。
+- Compare 左右 Preview / Source 独立，375px / 390px 共享；左右页面独立滚动，左侧签到反馈未改变右侧 DOM 状态。
+- Compare 原生全屏、关闭和重开正常；当前采用标记始终为 V3。
+- 真实业务数据中没有 unsupported/unavailable Artifact，因此该 UI fallback 使用独立 Fixture 构建 Workspace 验证，没有向 Store 注入测试数据。
+- 未运行 Harness，未生成 Artifact，未点击 Adoption 或“设为当前版本”。
+
+### 七、真实数据复核
+
+- V1：`99aa1cf0db2f030a629e813d42744c60335a6175e619f798833c4dcd18c17823`
+- V2：`4587af3ecda7e1823b50567619dbf40c559f1bba6b22d2bfb3a1ac9937036eb6`（未纳管，未导入、修改或删除）
+- V3：`d8150faf51bac2f1b8ec11a4a007c4e70c5dcd821619c5d34531eb4dae0264ed`
+- V4：`6911e40666e459f6afa42fa08690d167503644de65565b45eedaba7f0d0bc489`
+- 上述文件哈希与实施前完全一致；历史目录中的 V1 / V2 副本哈希也未变化。
+- UI 实时确认产品原型当前采用仍为 V3，Workflow 01–05 已确认、06 可开始。
+- 应用偏好 plist 包含 `NSWindow Frame` 和 split-view 状态，真实 UI smoke 后文件被 macOS 重新序列化，whole-file SHA-256 从 `137df849...` 变为 `f05bf4f3...`。本轮未调用业务 Store 写入；实时 Workflow / adoption 状态未变化。后续若要求 UserDefaults 字节级证明，应在启动前分别快照业务键的 canonical value，而不能以包含窗口状态的整个 plist 文件哈希作为唯一证据。
+
+### 八、范围与后续
+
+- Phase 1 没有新增 Image、PDF、Figma、Pixso、External URL 或 External Document Renderer。
+- 没有修改持久化 `ZhuowangArtifact` 或 Codable Schema，也没有迁移、回写历史 Artifact。
+- 推荐下一最小阶段为 Image Renderer Phase 1：复用 typed local-file input，增加受限 ImageIO 解码、fit / original size / zoom 和无 Source 能力，继续暂缓持久化 payload descriptor。
+- 本轮未暂存、未 commit、未 push、未创建 Tag。

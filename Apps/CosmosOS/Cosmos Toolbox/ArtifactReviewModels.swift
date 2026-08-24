@@ -1,4 +1,465 @@
 import Foundation
+import UniformTypeIdentifiers
+
+
+// MARK: - Review Payload
+
+struct ArtifactReviewMediaType: Equatable {
+
+    let uniformTypeIdentifier: String?
+    let mimeType: String?
+    let fileExtension: String?
+    let legacyArtifactType: ZhuowangArtifactType
+
+    init(
+        uniformTypeIdentifier: String? = nil,
+        mimeType: String? = nil,
+        fileExtension: String? = nil,
+        legacyArtifactType: ZhuowangArtifactType
+    ) {
+        self.uniformTypeIdentifier = uniformTypeIdentifier
+        self.mimeType = mimeType
+        self.fileExtension = fileExtension?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        self.legacyArtifactType = legacyArtifactType
+    }
+
+    static func inlineText(
+        artifactType: ZhuowangArtifactType
+    ) -> ArtifactReviewMediaType {
+        switch artifactType {
+        case .html:
+            return ArtifactReviewMediaType(
+                uniformTypeIdentifier: "public.html",
+                mimeType: "text/html",
+                legacyArtifactType: artifactType
+            )
+        case .markdown:
+            return ArtifactReviewMediaType(
+                uniformTypeIdentifier: "net.daringfireball.markdown",
+                mimeType: "text/markdown",
+                legacyArtifactType: artifactType
+            )
+        case .prompt, .flowchart:
+            return ArtifactReviewMediaType(
+                uniformTypeIdentifier: "public.plain-text",
+                mimeType: "text/plain",
+                legacyArtifactType: artifactType
+            )
+        default:
+            return ArtifactReviewMediaType(
+                legacyArtifactType: artifactType
+            )
+        }
+    }
+
+    static func localFile(
+        url: URL,
+        artifactType: ZhuowangArtifactType
+    ) -> ArtifactReviewMediaType {
+        let fileExtension = url.pathExtension.lowercased()
+        let uniformType = fileExtension.isEmpty
+            ? nil
+            : UTType(filenameExtension: fileExtension)
+
+        return ArtifactReviewMediaType(
+            uniformTypeIdentifier: uniformType?.identifier,
+            mimeType: uniformType?.preferredMIMEType,
+            fileExtension: fileExtension.isEmpty ? nil : fileExtension,
+            legacyArtifactType: artifactType
+        )
+    }
+
+    var classification: ArtifactReviewMediaClassification {
+        let classifications = [
+            Self.classification(
+                uniformTypeIdentifier: uniformTypeIdentifier
+            ),
+            Self.classification(mimeType: mimeType),
+            Self.classification(fileExtension: fileExtension),
+            Self.classification(artifactType: legacyArtifactType)
+        ].compactMap { $0 }
+
+        guard let first = classifications.first else {
+            return .unknown
+        }
+
+        return classifications.dropFirst().allSatisfy { $0 == first }
+            ? first
+            : .conflicting
+    }
+
+    private static func classification(
+        uniformTypeIdentifier: String?
+    ) -> ArtifactReviewMediaClassification? {
+        guard let uniformTypeIdentifier,
+              let type = UTType(uniformTypeIdentifier)
+        else {
+            return nil
+        }
+
+        if type.conforms(to: .html) {
+            return .html
+        }
+        if type.conforms(to: .text) {
+            return .text
+        }
+        if type.conforms(to: .image)
+            || type.conforms(to: .pdf)
+            || type.conforms(to: .data) {
+            return .binary
+        }
+        return nil
+    }
+
+    private static func classification(
+        mimeType: String?
+    ) -> ArtifactReviewMediaClassification? {
+        let cleanMIME = mimeType?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard let cleanMIME, !cleanMIME.isEmpty else {
+            return nil
+        }
+
+        if cleanMIME == "text/html"
+            || cleanMIME == "application/xhtml+xml" {
+            return .html
+        }
+        if cleanMIME.hasPrefix("text/")
+            || cleanMIME == "application/json" {
+            return .text
+        }
+        if cleanMIME.hasPrefix("image/")
+            || cleanMIME == "application/pdf"
+            || cleanMIME == "application/octet-stream" {
+            return .binary
+        }
+        return nil
+    }
+
+    private static func classification(
+        fileExtension: String?
+    ) -> ArtifactReviewMediaClassification? {
+        switch fileExtension?.lowercased() {
+        case "html", "htm":
+            return .html
+        case "md", "markdown", "txt", "json":
+            return .text
+        case "pdf", "png", "jpg", "jpeg", "gif", "heic", "webp":
+            return .binary
+        default:
+            return nil
+        }
+    }
+
+    private static func classification(
+        artifactType: ZhuowangArtifactType
+    ) -> ArtifactReviewMediaClassification? {
+        switch artifactType {
+        case .html:
+            return .html
+        case .markdown, .prompt, .flowchart:
+            return .text
+        case .pdf, .image, .word, .excel:
+            return .binary
+        default:
+            return nil
+        }
+    }
+}
+
+
+enum ArtifactReviewMediaClassification: Equatable {
+    case html
+    case text
+    case binary
+    case unknown
+    case conflicting
+}
+
+
+struct ArtifactReviewInlineText: Equatable {
+    let text: String
+    let mediaType: ArtifactReviewMediaType
+}
+
+
+struct ArtifactReviewLocalFileReference: Equatable {
+    let url: URL
+    let mediaType: ArtifactReviewMediaType
+}
+
+
+enum ArtifactReviewUnavailableReason: Equatable {
+    case missingLocation
+    case fileMissing
+    case unreadableFile
+    case unsupportedMediaType
+    case conflictingMediaType
+}
+
+
+struct ArtifactReviewUnavailablePayload: Equatable {
+    let reason: ArtifactReviewUnavailableReason
+    let mediaType: ArtifactReviewMediaType
+}
+
+
+enum ArtifactReviewPayload: Equatable {
+    case inlineText(ArtifactReviewInlineText)
+    case localFile(ArtifactReviewLocalFileReference)
+    case unavailable(ArtifactReviewUnavailablePayload)
+
+    var mediaType: ArtifactReviewMediaType {
+        switch self {
+        case .inlineText(let payload):
+            return payload.mediaType
+        case .localFile(let reference):
+            return reference.mediaType
+        case .unavailable(let payload):
+            return payload.mediaType
+        }
+    }
+}
+
+
+enum ArtifactPreviewResolvedContent: Equatable {
+    case text(String)
+    case unavailable(ArtifactReviewUnavailableReason)
+}
+
+
+struct ArtifactPreviewInput: Equatable {
+    let payload: ArtifactReviewPayload
+    let resolvedContent: ArtifactPreviewResolvedContent
+
+    var mediaType: ArtifactReviewMediaType {
+        payload.mediaType
+    }
+
+    var sourceText: String? {
+        guard case .text(let text) = resolvedContent else {
+            return nil
+        }
+        return text
+    }
+}
+
+
+struct ArtifactPreviewInputResolver {
+
+    private let fileExists: (URL) -> Bool
+    private let readUTF8Text: (URL) throws -> String
+
+    init(
+        fileExists: @escaping (URL) -> Bool = {
+            FileManager.default.fileExists(atPath: $0.path)
+        },
+        readUTF8Text: @escaping (URL) throws -> String = {
+            try String(contentsOf: $0, encoding: .utf8)
+        }
+    ) {
+        self.fileExists = fileExists
+        self.readUTF8Text = readUTF8Text
+    }
+
+    func resolve(
+        _ payload: ArtifactReviewPayload
+    ) -> ArtifactPreviewInput {
+        switch payload {
+        case .inlineText(let inlineText):
+            guard inlineText.mediaType.classification != .conflicting else {
+                return unavailableInput(
+                    payload: payload,
+                    reason: .conflictingMediaType
+                )
+            }
+            return ArtifactPreviewInput(
+                payload: payload,
+                resolvedContent: .text(inlineText.text)
+            )
+
+        case .localFile(let reference):
+            guard fileExists(reference.url) else {
+                return unavailableInput(
+                    payload: payload,
+                    reason: .fileMissing
+                )
+            }
+
+            switch reference.mediaType.classification {
+            case .html, .text:
+                do {
+                    return ArtifactPreviewInput(
+                        payload: payload,
+                        resolvedContent: .text(
+                            try readUTF8Text(reference.url)
+                        )
+                    )
+                } catch {
+                    return unavailableInput(
+                        payload: payload,
+                        reason: .unreadableFile
+                    )
+                }
+            case .conflicting:
+                return unavailableInput(
+                    payload: payload,
+                    reason: .conflictingMediaType
+                )
+            case .binary, .unknown:
+                return unavailableInput(
+                    payload: payload,
+                    reason: .unsupportedMediaType
+                )
+            }
+
+        case .unavailable(let unavailable):
+            return ArtifactPreviewInput(
+                payload: payload,
+                resolvedContent: .unavailable(unavailable.reason)
+            )
+        }
+    }
+
+    private func unavailableInput(
+        payload: ArtifactReviewPayload,
+        reason: ArtifactReviewUnavailableReason
+    ) -> ArtifactPreviewInput {
+        ArtifactPreviewInput(
+            payload: payload,
+            resolvedContent: .unavailable(reason)
+        )
+    }
+}
+
+
+struct ArtifactReviewDocumentProjection: Equatable {
+    let id: UUID
+    let name: String
+    let versionLabel: String
+    let type: ZhuowangArtifactType
+    let payload: ArtifactReviewPayload
+    let prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile?
+    let sourceProviderID: UUID?
+    let sourceName: String
+    let executedAt: Date
+}
+
+
+enum ArtifactReviewDocumentProjector {
+
+    static func project(
+        artifact: ZhuowangArtifact,
+        providerName: String? = nil
+    ) -> ArtifactReviewDocumentProjection {
+        ArtifactReviewDocumentProjection(
+            id: artifact.id,
+            name: artifact.name,
+            versionLabel: "V\(artifact.version)",
+            type: artifact.type,
+            payload: payload(for: artifact),
+            prototypeExecutionProfile:
+                artifact.prototypeExecutionProfile,
+            sourceProviderID: artifact.providerID,
+            sourceName: displaySourceName(
+                providerName: providerName,
+                providerID: artifact.providerID
+            ),
+            executedAt: artifact.createdAt
+        )
+    }
+
+    static func project(
+        id: UUID,
+        draft: ZhuowangArtifactDraft,
+        snapshot: ZhuowangWorkflowExecutionSnapshot?,
+        providerName: String?
+    ) -> ArtifactReviewDocumentProjection {
+        ArtifactReviewDocumentProjection(
+            id: id,
+            name: draft.name,
+            versionLabel: "Draft",
+            type: draft.type,
+            payload: .inlineText(
+                ArtifactReviewInlineText(
+                    text: draft.content,
+                    mediaType: .inlineText(
+                        artifactType: draft.type
+                    )
+                )
+            ),
+            prototypeExecutionProfile:
+                snapshot?.prototypeExecutionProfile,
+            sourceProviderID: snapshot?.providerID,
+            sourceName: displaySourceName(
+                providerName: providerName,
+                providerID: snapshot?.providerID
+            ),
+            executedAt: snapshot?.createdAt ?? Date()
+        )
+    }
+
+    private static func payload(
+        for artifact: ZhuowangArtifact
+    ) -> ArtifactReviewPayload {
+        if let content = artifact.content,
+           !content.isEmpty {
+            return .inlineText(
+                ArtifactReviewInlineText(
+                    text: content,
+                    mediaType: .inlineText(
+                        artifactType: artifact.type
+                    )
+                )
+            )
+        }
+
+        let location = artifact.location
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !location.isEmpty else {
+            return .unavailable(
+                ArtifactReviewUnavailablePayload(
+                    reason: .missingLocation,
+                    mediaType: .inlineText(
+                        artifactType: artifact.type
+                    )
+                )
+            )
+        }
+
+        let fileURL = URL(fileURLWithPath: location)
+        return .localFile(
+            ArtifactReviewLocalFileReference(
+                url: fileURL,
+                mediaType: .localFile(
+                    url: fileURL,
+                    artifactType: artifact.type
+                )
+            )
+        )
+    }
+
+    private static func displaySourceName(
+        providerName: String?,
+        providerID: UUID?
+    ) -> String {
+        let cleanName = providerName?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? ""
+
+        if !cleanName.isEmpty {
+            return cleanName
+        }
+
+        return providerID == nil
+            ? "未记录"
+            : "已记录 Provider"
+    }
+}
 
 
 // MARK: - Artifact Review Document
@@ -13,7 +474,8 @@ struct ArtifactReviewDocument:
     let name: String
     let versionLabel: String
     let type: ZhuowangArtifactType
-    let content: String
+    let payload: ArtifactReviewPayload
+    let previewInput: ArtifactPreviewInput
     let prototypeExecutionProfile: ZhuowangPrototypeExecutionProfile?
     let sourceProviderID: UUID?
     let sourceName: String
@@ -25,38 +487,47 @@ struct ArtifactReviewDocument:
         snapshot: ZhuowangWorkflowExecutionSnapshot?,
         providerName: String?
     ) {
-        self.id = id
-        name = draft.name
-        versionLabel = "Draft"
-        type = draft.type
-        content = draft.content
-        prototypeExecutionProfile =
-            snapshot?.prototypeExecutionProfile
-        sourceProviderID = snapshot?.providerID
-        sourceName = Self.displaySourceName(
-            providerName: providerName,
-            providerID: snapshot?.providerID
+        self.init(
+            projection: ArtifactReviewDocumentProjector.project(
+                id: id,
+                draft: draft,
+                snapshot: snapshot,
+                providerName: providerName
+            )
         )
-        executedAt = snapshot?.createdAt ?? Date()
     }
 
     init(
         artifact: ZhuowangArtifact,
         providerName: String? = nil
     ) {
-        id = artifact.id
-        name = artifact.name
-        versionLabel = "V\(artifact.version)"
-        type = artifact.type
-        content = Self.reviewContent(for: artifact)
-        prototypeExecutionProfile =
-            artifact.prototypeExecutionProfile
-        sourceProviderID = artifact.providerID
-        sourceName = Self.displaySourceName(
-            providerName: providerName,
-            providerID: artifact.providerID
+        self.init(
+            projection: ArtifactReviewDocumentProjector.project(
+                artifact: artifact,
+                providerName: providerName
+            )
         )
-        executedAt = artifact.createdAt
+    }
+
+    init(
+        projection: ArtifactReviewDocumentProjection,
+        resolver: ArtifactPreviewInputResolver = .init()
+    ) {
+        id = projection.id
+        name = projection.name
+        versionLabel = projection.versionLabel
+        type = projection.type
+        payload = projection.payload
+        previewInput = resolver.resolve(projection.payload)
+        prototypeExecutionProfile =
+            projection.prototypeExecutionProfile
+        sourceProviderID = projection.sourceProviderID
+        sourceName = projection.sourceName
+        executedAt = projection.executedAt
+    }
+
+    var content: String {
+        previewInput.sourceText ?? ""
     }
 
     var typeDisplayName: String {
@@ -84,43 +555,6 @@ struct ArtifactReviewDocument:
             ?? "未记录"
     }
 
-    private static func displaySourceName(
-        providerName: String?,
-        providerID: UUID?
-    ) -> String {
-        let cleanName = providerName?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            ?? ""
-
-        if !cleanName.isEmpty {
-            return cleanName
-        }
-
-        return providerID == nil
-            ? "未记录"
-            : "已记录 Provider"
-    }
-
-    private static func reviewContent(
-        for artifact: ZhuowangArtifact
-    ) -> String {
-        if let content = artifact.content,
-           !content.isEmpty {
-            return content
-        }
-
-        let location = artifact.location
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !location.isEmpty else {
-            return ""
-        }
-
-        return (try? String(
-            contentsOfFile: location,
-            encoding: .utf8
-        )) ?? ""
-    }
 }
 
 
@@ -183,6 +617,19 @@ struct ArtifactReviewWorkspaceState: Equatable {
         presentationMode = presentationMode == .workspace
             ? .fullPreview
             : .workspace
+    }
+
+    mutating func normalize(
+        for capabilities: ArtifactPreviewRendererCapabilities
+    ) {
+        if displayMode == .source,
+           !capabilities.supportsSource {
+            displayMode = .preview
+        }
+        if presentationMode == .fullPreview,
+           !capabilities.supportsFullPreview {
+            presentationMode = .workspace
+        }
     }
 }
 
