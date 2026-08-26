@@ -12,6 +12,9 @@ struct ArtifactPreviewRendererIdentifier:
     static let html =
         ArtifactPreviewRendererIdentifier(rawValue: "html")
 
+    static let image =
+        ArtifactPreviewRendererIdentifier(rawValue: "image")
+
     static let unsupported =
         ArtifactPreviewRendererIdentifier(rawValue: "unsupported")
 }
@@ -40,6 +43,13 @@ struct ArtifactPreviewRendererCapabilities: Equatable {
         supportsPreview: true,
         supportsSource: false,
         supportsFullPreview: false,
+        supportsMobileViewport: false
+    )
+
+    static let image = ArtifactPreviewRendererCapabilities(
+        supportsPreview: true,
+        supportsSource: false,
+        supportsFullPreview: true,
         supportsMobileViewport: false
     )
 }
@@ -78,7 +88,8 @@ struct ArtifactPreviewRendererRegistry {
 
     init(
         renderers: [any ArtifactPreviewRenderer] = [
-            HTMLArtifactPreviewRenderer()
+            HTMLArtifactPreviewRenderer(),
+            ArtifactImagePreviewRenderer()
         ],
         fallbackRenderer: any ArtifactPreviewRenderer =
             UnsupportedArtifactPreviewRenderer()

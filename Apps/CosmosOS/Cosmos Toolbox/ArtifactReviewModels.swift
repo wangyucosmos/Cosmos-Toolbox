@@ -105,8 +105,10 @@ struct ArtifactReviewMediaType: Equatable {
         if type.conforms(to: .text) {
             return .text
         }
-        if type.conforms(to: .image)
-            || type.conforms(to: .pdf)
+        if type.conforms(to: .image) {
+            return .image
+        }
+        if type.conforms(to: .pdf)
             || type.conforms(to: .data) {
             return .binary
         }
@@ -132,8 +134,10 @@ struct ArtifactReviewMediaType: Equatable {
             || cleanMIME == "application/json" {
             return .text
         }
-        if cleanMIME.hasPrefix("image/")
-            || cleanMIME == "application/pdf"
+        if cleanMIME.hasPrefix("image/") {
+            return .image
+        }
+        if cleanMIME == "application/pdf"
             || cleanMIME == "application/octet-stream" {
             return .binary
         }
@@ -148,7 +152,10 @@ struct ArtifactReviewMediaType: Equatable {
             return .html
         case "md", "markdown", "txt", "json":
             return .text
-        case "pdf", "png", "jpg", "jpeg", "gif", "heic", "webp":
+        case "png", "jpg", "jpeg", "gif", "apng", "heic", "heif",
+             "webp", "tif", "tiff", "svg":
+            return .image
+        case "pdf":
             return .binary
         default:
             return nil
@@ -163,7 +170,9 @@ struct ArtifactReviewMediaType: Equatable {
             return .html
         case .markdown, .prompt, .flowchart:
             return .text
-        case .pdf, .image, .word, .excel:
+        case .image:
+            return .image
+        case .pdf, .word, .excel:
             return .binary
         default:
             return nil
@@ -175,6 +184,7 @@ struct ArtifactReviewMediaType: Equatable {
 enum ArtifactReviewMediaClassification: Equatable {
     case html
     case text
+    case image
     case binary
     case unknown
     case conflicting
@@ -228,6 +238,7 @@ enum ArtifactReviewPayload: Equatable {
 
 enum ArtifactPreviewResolvedContent: Equatable {
     case text(String)
+    case localFile(ArtifactReviewLocalFileReference)
     case unavailable(ArtifactReviewUnavailableReason)
 }
 
@@ -245,6 +256,13 @@ struct ArtifactPreviewInput: Equatable {
             return nil
         }
         return text
+    }
+
+    var localFileReference: ArtifactReviewLocalFileReference? {
+        guard case .localFile(let reference) = resolvedContent else {
+            return nil
+        }
+        return reference
     }
 }
 
@@ -305,6 +323,11 @@ struct ArtifactPreviewInputResolver {
                         reason: .unreadableFile
                     )
                 }
+            case .image:
+                return ArtifactPreviewInput(
+                    payload: payload,
+                    resolvedContent: .localFile(reference)
+                )
             case .conflicting:
                 return unavailableInput(
                     payload: payload,
