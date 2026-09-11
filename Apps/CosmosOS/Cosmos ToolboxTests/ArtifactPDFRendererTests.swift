@@ -1006,7 +1006,7 @@ final class ArtifactPDFRendererTests: XCTestCase {
         var retainedPDFViews: [ArtifactSecurePDFView] = []
         var retainedSessions: [ArtifactPDFRendererBindingSession] = []
         for (window, expectedCount) in expectedWindows {
-            guard let views = waitForPDFViews(
+            guard let views = try await waitForPDFViews(
                 in: window,
                 expectedCount: expectedCount
             ) else {
@@ -1030,6 +1030,12 @@ final class ArtifactPDFRendererTests: XCTestCase {
         XCTAssertEqual(retainedPDFViews.count, 6)
         XCTAssertEqual(retainedSessions.count, 6)
         XCTAssertTrue(retainedPDFViews.allSatisfy { $0.document != nil })
+        let maximumObservedLoadCount =
+            await ArtifactPDFLoadGate.shared.maximumObservedOperationCount
+        let activeLoadCount =
+            await ArtifactPDFLoadGate.shared.activeOperationCount
+        XCTAssertEqual(maximumObservedLoadCount, 1)
+        XCTAssertEqual(activeLoadCount, 0)
         let retainedViewModels = retainedSessions.compactMap(\.viewModel)
         XCTAssertEqual(retainedViewModels.count, 6)
 
@@ -1039,17 +1045,23 @@ final class ArtifactPDFRendererTests: XCTestCase {
         compareWindows.forEach { $0.close() }
         allWindows.forEach { $0.contentViewController = nil }
 
-        let didRelease = waitUntil(timeout: 3) {
+        let didRelease = try await waitUntil(timeout: .seconds(3)) {
             retainedPDFViews.allSatisfy {
                 $0.document == nil
+                    && $0.delegate == nil
                     && !$0.hasActiveSecurityDelegate
                     && !$0.hasRetainedSecurityDelegate
+                    && $0.rendererBindingSession == nil
                     && $0.didTearDownRendererBindings
-            }
+                }
                 && retainedSessions.allSatisfy {
-                    $0.observerTokenCount == 0
+                    $0.securityDelegate == nil
+                        && $0.observerTokenCount == 0
                         && !$0.hasPendingStatePublication
                         && $0.didTearDownRendererBindings
+                }
+                && allWindows.allSatisfy {
+                    !$0.isVisible && $0.contentViewController == nil
                 }
         }
         XCTAssertTrue(
@@ -1119,9 +1131,12 @@ final class ArtifactPDFRendererTests: XCTestCase {
     private func waitForPDFViews(
         in window: NSWindow,
         expectedCount: Int,
-        timeout: TimeInterval = 8
-    ) -> [ArtifactSecurePDFView]? {
-        guard waitUntil(timeout: timeout, condition: {
+        timeout: Duration = .seconds(8)
+    ) async throws -> [ArtifactSecurePDFView]? {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+
+        guard try await waitUntil(clock: clock, deadline: deadline, condition: {
             window.isVisible
                 && window.contentViewController?.view.window === window
         }) else {
@@ -1132,13 +1147,46 @@ final class ArtifactPDFRendererTests: XCTestCase {
             return nil
         }
 
-        guard waitUntil(timeout: timeout, condition: {
+        guard try await waitUntil(clock: clock, deadline: deadline, condition: {
+            securePDFViews(in: window).count == expectedCount
+        }) else {
+            XCTFail(
+                "PDF Renderer view count did not become ready: expected="
+                    + "\(expectedCount), "
+                    + rendererDiagnostics(in: window)
+            )
+            return nil
+        }
+
+        guard try await waitUntil(clock: clock, deadline: deadline, condition: {
             let views = securePDFViews(in: window)
             return views.count == expectedCount
                 && views.allSatisfy { $0.document != nil }
         }) else {
             XCTFail(
-                "PDF Renderer did not become ready: expected="
+                "PDF Renderer document did not become ready: expected="
+                    + "\(expectedCount), "
+                    + rendererDiagnostics(in: window)
+            )
+            return nil
+        }
+
+        guard try await waitUntil(clock: clock, deadline: deadline, condition: {
+            let views = securePDFViews(in: window)
+            return views.count == expectedCount
+                && views.allSatisfy { view in
+                    guard let session = view.rendererBindingSession else {
+                        return false
+                    }
+                    return view.hasActiveSecurityDelegate
+                        && view.hasRetainedSecurityDelegate
+                        && session.securityDelegate != nil
+                        && session.observerTokenCount == 2
+                        && !session.didTearDownRendererBindings
+                }
+        }) else {
+            XCTFail(
+                "PDF Renderer bindings did not become ready: expected="
                     + "\(expectedCount), "
                     + rendererDiagnostics(in: window)
             )
@@ -1157,19 +1205,46 @@ final class ArtifactPDFRendererTests: XCTestCase {
         return views
     }
 
+    @MainActor
     private func waitUntil(
-        timeout: TimeInterval,
-        condition: () -> Bool
-    ) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while !condition(), Date() < deadline {
-            let nextSlice = min(
-                deadline,
-                Date().addingTimeInterval(0.01)
+        timeout: Duration,
+        pollingInterval: Duration = .milliseconds(20),
+        condition: @MainActor () -> Bool
+    ) async throws -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+
+        return try await waitUntil(
+            clock: clock,
+            deadline: deadline,
+            pollingInterval: pollingInterval,
+            condition: condition
+        )
+    }
+
+    @MainActor
+    private func waitUntil(
+        clock: ContinuousClock,
+        deadline: ContinuousClock.Instant,
+        pollingInterval: Duration = .milliseconds(20),
+        condition: @MainActor () -> Bool
+    ) async throws -> Bool {
+
+        while !condition() {
+            try Task.checkCancellation()
+            let now = clock.now
+            guard now < deadline else {
+                return condition()
+            }
+            try await clock.sleep(
+                until: min(
+                    deadline,
+                    now.advanced(by: pollingInterval)
+                ),
+                tolerance: .milliseconds(2)
             )
-            _ = RunLoop.current.run(mode: .default, before: nextSlice)
         }
-        return condition()
+        return true
     }
 
     private func rendererDiagnostics(in window: NSWindow) -> String {
@@ -1208,12 +1283,37 @@ final class ArtifactPDFRendererTests: XCTestCase {
                     }
             )
         ).sorted().joined(separator: ",")
+        let pdfViewStates = pdfViews.map { view in
+            let session = view.rendererBindingSession
+            let loadState: String
+            switch session?.viewModel?.loadState {
+            case .idle:
+                loadState = "idle"
+            case .loading:
+                loadState = "loading"
+            case .ready:
+                loadState = "ready"
+            case .failed(let error):
+                loadState = "failed(\(error.title))"
+            case nil:
+                loadState = "unavailable"
+            }
+            return "document=\(view.document != nil), "
+                + "delegate=\(view.delegate != nil), "
+                + "retainedDelegate=\(view.hasRetainedSecurityDelegate), "
+                + "session=\(session != nil), "
+                + "observers=\(session?.observerTokenCount ?? 0), "
+                + "tornDown="
+                + "\(session?.didTearDownRendererBindings ?? false), "
+                + "loadState=\(loadState)"
+        }
         return "title=\(window.title), "
             + "identifier=\(window.identifier?.rawValue ?? "none"), "
             + "visible=\(window.isVisible), state=\(state), "
             + "pdfViews=\(pdfViews.count), "
             + "pdfText=\(visiblePDFText), "
-            + "rendererTypes=[\(rendererTypes)]"
+            + "rendererTypes=[\(rendererTypes)], "
+            + "pdfViewStates=[\(pdfViewStates.joined(separator: " | "))]"
     }
 
     private func securePDFViews(
