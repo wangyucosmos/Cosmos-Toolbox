@@ -1,8 +1,8 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-08-26
+**Last updated:** 2026-09-11
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Step 05 prototype workflow milestone complete; Image Renderer Phase 1 implemented
+**Current stage:** Step 05 prototype workflow milestone complete; PDF Renderer Phase 1 implemented and formally verified
 
 ---
 
@@ -120,6 +120,13 @@ Verified:
 - Image Renderer Phase 1 safely previews explicitly referenced local, single-frame PNG / JPEG files without decoding binary content as text or changing persistent Artifact data
 - Image Preview uses ImageIO signature verification, bounded asynchronous decoding, pre/post file fingerprint checks, orientation-aware dimensions, controlled color-space handling, and Renderer-local Fit / 100% / 10%–400% zoom state
 - single-version Review supports Image Full Preview; Version Compare supports Image | Image and HTML | Image combinations with independent image state while Mobile Viewport remains HTML-only
+- PDF Renderer Phase 1 accepts typed local-file PDF input and is selected by the Registry only for exact PDF media classification; PDF binary content never enters the UTF-8 Reader
+- PDF Preview is limited to local, unencrypted files that pass bounded loading and the PDF security policy; the Renderer keeps only a bounded in-memory Data snapshot, a PDFKit document, minimal metadata, and Renderer-local transient state
+- PDFKit Preview supports continuous vertical scrolling, Fit Page, Fit Width, 10%–400% zoom, current / total page display, previous / next page, page-number navigation, page count, page size, file size, text selection, permission-dependent copy, and same-document internal GoTo
+- single-version Review and Full Preview support PDF; Version Compare supports PDF | PDF, HTML | PDF, Image | PDF, and PDF | Unsupported
+- each PDF Compare pane owns an independent PDFView, page state, zoom state, scroll state, binding session, delegate, and observers; actions on one side do not update the other
+- PDF capabilities do not expose Source or the 375px / 390px Mobile Viewport controls
+- PDF load, document, page, scale, delegate, observer, and security state remain Renderer-local and are not written to Store, Workflow, UserDefaults, or the Artifact model
 
 ---
 
@@ -307,7 +314,7 @@ Artifact Draft / historical Artifact
 
 The Artifact Preview Abstraction Layer Phase 1 is confined to Review projection and Renderer input. It does not modify `ZhuowangArtifact`, `ZhuowangArtifactType`, UserDefaults schema, Adoption, Recovery, Workspace File Manager, or Task Package construction. Legacy inline text is projected without normalization; a supported local HTML / Markdown / plain-text reference is read only while resolving Preview Input. Binary files are never decoded as `String`, arbitrary `location` values are not inferred as external URLs, and missing, unreadable, unknown, or conflicting media enter the safe fallback.
 
-Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. The Registry currently contains HTML and Image Renderers plus the safe fallback; PDF, Figma, Pixso, external URL, and external-document Renderers remain deferred.
+Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. The Registry currently contains HTML, Image, and PDF Renderers plus the safe fallback; Figma, Pixso, external URL, and other external-document Renderers remain deferred.
 
 Image Renderer Phase 1 extends the Review-only typed boundary without changing persistence:
 
@@ -325,6 +332,30 @@ ArtifactReviewPayload.localFile
 Only local, single-frame PNG and JPEG are accepted. The Loader verifies the actual ImageIO type against declared UTType / MIME / extension evidence and rejects damaged, disguised, conflicting, multi-frame, or unsupported files rather than falling back to WebView or `NSImage`. Hard limits are 50 MiB file size, 16,384 px per side, 36 MP total pixels, and a 224 MiB estimated peak decompression budget; oversized files are rejected rather than downsampled. Decode work is asynchronous and globally serialized to one heavy operation, with cancellation and document-generation guards. File size, modification time, and resource identity are checked before and after decoding so changed results are discarded.
 
 Image Preview supports Fit, backing-scale-aware 100%, zoom from 10% to 400%, reset, two-axis scrolling, transparent-image checkerboard, and minimal format / pixel / file-size information. It does not expose Source or Mobile Viewport. Image-specific state remains inside each Renderer instance, so Compare panes do not share zoom, load, error, or decoded-image state. Single-version Full Preview is supported; Compare intentionally continues without Full Preview.
+
+PDF Renderer Phase 1 extends the same typed local-binary Review boundary:
+
+```text
+ArtifactReviewPayload.localFile
+→ ArtifactPreviewInputResolver (reference only; no UTF-8 decode)
+→ exact PDF media classification
+→ ArtifactPreviewRendererRegistry
+→ ArtifactPDFPreviewLoader
+→ bounded Data snapshot + fingerprint checks
+→ ArtifactPDFPreviewSecurityPolicy
+→ PDFKit PDFDocument
+→ ArtifactSecurePDFView + Renderer-local binding session
+```
+
+The Loader accepts only an explicitly referenced local PDF whose declared and detected media evidence agrees. It enforces file-size, page-count, page-dimension, and page-area limits; rejects encrypted documents; and discards results when cancellation, document generation, or the file fingerprint changes. Expensive PDF loading is serialized through one app-wide gate. The gate's verified maximum concurrent operation count is one and returns to zero after completion.
+
+The security inspection rejects AcroForm / Widget content; JavaScript, OpenAction, Additional Actions, Launch, URI, RemoteGoTo, disallowed Named Actions, attachments, Sound, Movie, RichMedia, 3D, and unknown actions fail closed. Runtime PDFView delegation permits same-document internal GoTo while external HTTP / HTTPS, file, mailto, RemoteGoTo, Print, and other external actions do not launch another application. The UI does not provide Print, Save, Export, or Annotation editing. Error messages expose a sanitized reason rather than the full absolute file path.
+
+PDF Preview uses continuous vertical PDFKit layout with Fit Page, Fit Width, 10%–400% zoom, page navigation, minimal page / size metadata, text selection, and copy only when the document permissions allow it. Review and Full Preview share the same Renderer. Compare creates one independent Renderer and PDFView per side for PDF | PDF and keeps mixed HTML | PDF, Image | PDF, and PDF | Unsupported capabilities isolated. Source and Mobile Viewport controls remain hidden for PDF.
+
+`ArtifactPDFRendererBindingSession` makes cleanup explicit and idempotent. The View Model retains the active session; the session owns the safe delegate, observer tokens, and deferred publications while weakly referencing the View Model and PDFView; the Coordinator retains the session. Cancellation or dismantling invalidates the generation, cancels pending work, removes observers, clears both delegate references and the document, and disconnects the session. Teardown does not depend on object deinitialization or only on `dismantleNSView`, and late notifications or an old generation cannot write state back.
+
+This is a bounded in-process preview boundary, not a claim that arbitrary hostile PDFs are safe. PDFKit and Core Graphics still parse inside the Cosmos OS process. Phase 1 cannot precisely cap PDF internal object counts, framework caches, or synchronous parse time, and a logical timeout cannot forcibly terminate work that has already entered synchronous PDFKit parsing. A materially stronger boundary requires a future XPC or separate-process Renderer.
 
 Source displays the unchanged original HTML; Preview renders only the secured in-memory copy in a non-persistent real WKWebView. The existing HTML CSP, WKContentRuleList, Navigation Policy, and content-rule fail-closed behavior were not weakened or duplicated. The 375px / 390px device widths are layout constraints, not screenshot scaling or source-file rewriting.
 
@@ -422,8 +453,10 @@ Current implementation focus:
 - Browser / desktop-width preview is not implemented; Phase 1 currently focuses on 375px / 390px mobile HTML review.
 - Artifact Version Compare Phase 1 provides managed-version side-by-side review. Text / semantic Diff and difference highlighting are not implemented.
 - Review annotations, anchored comments, approval notes, and markup are not implemented.
-- Figma, Pixso, and PDF Preview Renderers are not registered yet; unsupported or unavailable inputs still use the safe fallback. Image Phase 1 is local-file review only and does not add Image Adoption, persistent payload changes, recovery, thumbnails, editing, OCR, annotation, animated images, or external URL images.
+- Figma, Pixso, external URL, and other external-document Preview Renderers are not registered yet; unsupported or unavailable inputs still use the safe fallback. Image and PDF Phase 1 remain local-file review only and do not add binary Artifact Adoption, persistent payload changes, recovery, search, thumbnails, Outline, form interaction, editing, OCR, annotation, printing, saving, export, password handling, or external URL documents.
 - ImageIO decode calls cannot be interrupted once inside the framework. Cancellation prevents queued work and discards late results, but a currently executing decode may consume its bounded budget until ImageIO returns.
+- PDFKit and Core Graphics parse PDF content inside the Cosmos OS application process. File, page, dimension, area, action, and concurrency limits reduce exposure but do not provide process isolation or guarantee safe handling of arbitrary malicious PDFs.
+- PDF internal object counts, framework caches, and synchronous PDFKit parsing time cannot be precisely bounded at the current layer. Cancellation and logical timeout prevent stale publication but cannot forcibly terminate framework work already executing synchronously; a stronger trust boundary requires a future XPC or separate-process Renderer.
 - Local Image Preview currently relies on the explicit URL already projected into the Review document. Durable security-scoped bookmark persistence and cross-Mac file relocation remain part of a future persistent payload / recovery phase.
 - HTML Preview intentionally permits inline JavaScript / event handlers and scoped `data:` / `blob:` image or media resources for existing interactive prototypes. This is a compatibility boundary, not a general browser sandbox; any future relaxation or Browser Preview capability requires a separate threat review.
 - The persisted Artifact model and adoption / recovery paths remain partly HTML-first. Phase 1 intentionally stops at the Review projection boundary; a future real binary or external-document adoption path still needs an optional, backward-compatible persistent payload descriptor without rewriting historical data.
@@ -532,13 +565,14 @@ Completed milestone capabilities:
 - independent managed-version Compare Workspace with stable logical-Artifact window identity, UUID-based left / right selection, shared Review Pane / Renderer Registry, independent Preview / Source and scrolling, and shared 375px / 390px viewport.
 - typed Review Payload / Preview Input projection with controlled local-text resolution, safe binary / missing / conflicting fallback, and Renderer capability-driven controls without persistent schema changes;
 - local static PNG / JPEG Image Renderer with ImageIO validation, bounded asynchronous decoding, file consistency checks, Renderer-local zoom, Full Preview, and mixed-type Version Compare.
+- local PDF Renderer with exact media classification, bounded Data loading, fail-closed action inspection, secure PDFView delegation, continuous reading and navigation controls, explicit binding teardown, Full Preview, and independent PDF / mixed-type Compare panes.
 
 Recommended next-session order:
 
-1. Perform product-owner visual acceptance of Image Renderer controls with isolated PNG / JPEG Fixtures if pixel-level UI judgment is required; do not import them into the real Workflow.
-2. Design PDF Renderer Phase 1 as the next typed local-binary validation step, with explicit page, link-navigation, file-size, and memory boundaries before implementation.
+1. Complete formal review and Git integration of PDF Renderer Phase 1 without changing the accepted Workflow or importing test PDFs into real business data.
+2. Evaluate a future XPC or separate-process Renderer before expanding PDF support toward less trusted inputs; do not describe the current in-process limits as a sandbox.
 3. If the HTML Preview compatibility allowlist changes, threat-model inline script and `data:` / `blob:` behavior before implementation.
-4. Keep persistent Artifact payload descriptors, Image Adoption, Sidecar Manifest, Figma / Pixso execution and external-document adoption deferred until a real write path requires them.
+4. Keep persistent Artifact payload descriptors, Image / PDF Adoption, Sidecar Manifest, Figma / Pixso execution and external-document adoption deferred until a real write path requires them.
 
 A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
 
@@ -576,5 +610,9 @@ Do not regress these verified decisions:
 - Artifact Review Renderer Security Boundary Phase 1 completed a Universal macOS Debug Build and 47/47 Unit Tests on 2026-08-21. Read-only UI smoke confirmed managed V1 / V3 / V4 Preview loading, V3 Preview / Source, 375px / 390px, scrolling, local button interaction, Full Preview, and V3 remaining adopted. V1-V4 file hashes and the Cosmos Toolbox UserDefaults domain hash were unchanged before and after the smoke test; unmanaged V2 remained untouched.
 - Artifact Version Compare Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 59/59 Unit Tests on 2026-08-24. Read-only UI smoke confirmed default V3 | V4, Detail-selected V1 opening V3 | V1, UUID swap behavior, independent Preview / Source and scrolling, shared 375px / 390px viewport, isolated WebView interaction state, stable Compare window reuse, native full screen / close / reopen, and unchanged single-version V1 / V3 / V4 Review plus Full Preview. The adopted prototype remained V3; Workflow and UserDefaults were unchanged; V1-V4 hashes remained identical and unmanaged V2 stayed untouched.
 - Artifact Preview Abstraction Layer Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 70/70 Unit Tests on 2026-08-24. Automated coverage verifies legacy inline/local text projection, exact Source preservation, binary files bypassing UTF-8 decoding, missing/unreadable/conflicting fallback, stable IDs and provenance, typed Registry selection, capability-driven UI normalization, unchanged HTML security, and mixed Compare compatibility. Read-only UI smoke reconfirmed V1 / V3 / V4 Review, V3 | V1 and default V3 | V4 Compare, independent Preview / Source and scrolling, shared 375px / 390px, isolated button state, Full Preview, native full screen / close / reopen, adopted V3, and Workflow 01–05 approved / 06 ready. Prototype file hashes remained unchanged, including unmanaged V2. The application preference plist was reserialized during the native-window smoke session because it contains `NSWindow Frame` / split-view state, so its whole-file hash changed; no business-data mutation was invoked, and the live Workflow/adoption state remained unchanged.
+- Artifact PDF Renderer Phase 1 completed 115/115 Unit Tests with 0 failed and 0 skipped, plus a Universal macOS Debug Build for arm64 + x86_64 with `ONLY_ACTIVE_ARCH=NO` and `CODE_SIGNING_ALLOWED=NO`. `git diff --check` passed. The focused Fixture smoke passed five consecutive runs; the final post-acceptance Fixture smoke passed in 2.420 seconds. Security policy focused tests passed 5/5, lifecycle coverage passed, and the app-wide PDF load gate reached a maximum concurrency of one and returned to zero.
+- PDF Fixture acceptance used only dynamically generated temporary files and did not read or import a real business PDF. Six business-shaped Fixture windows reached ready and contained seven real PDFViews. Human-observed and automated interaction coverage confirmed PDF display, continuous scrolling, page navigation and page entry, Fit Page, Fit Width, 100%, 10%–400% limits, independent PDF | PDF page / zoom state, Full Preview close / native close / reopen / resize / native full screen, HTML | PDF, Image | PDF, PDF | Unsupported, Light / Dark appearance, and the corrected temporary WindowContext close path. No PDF Publishing warning, crash, hang, or abnormal CPU use was observed.
+- Manual acceptance did not completely cover the final system clipboard contents after text selection, a viewable-but-copy-prohibited PDF, or clicking every dangerous PDF action. Those boundaries have automated policy coverage and are explicit Phase 1 acceptance gaps rather than claims of complete manual security validation. A focused combined run also recorded two SwiftUI `@State` warnings caused by construction in other Compare tests; they were not PDF Publishing warnings and did not fail the tests. This was kept out of the PDF Phase 1 scope for separate follow-up.
+- PDF verification did not run Harness, generate, import, or adopt an Artifact, or modify business UserDefaults. The canonical Workflow SHA-256 remained `a7e3dd5f7e2dc1c62f62d0e7490b660df59b3947eb0f90e293d7ad617dd02b61`; Workflow remained 01–05 approved and 06 ready; adopted prototype remained V3; managed versions remained V1 / V3 / V4 and V2 remained unmanaged; the established V1–V4 file hashes remained unchanged.
 - `git diff --check` completed successfully.
 - Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.
