@@ -135,7 +135,7 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
     }
 
 
-    func testBinaryLocalFileNeverUsesUTF8TextReader() {
+    func testPDFLocalFileNeverUsesUTF8TextReader() {
         let fileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("binary-fixture.pdf")
         let mediaType = ArtifactReviewMediaType(
@@ -162,13 +162,11 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
         let input = resolver.resolve(payload)
 
         XCTAssertEqual(readCount, 0)
-        XCTAssertEqual(
-            input.resolvedContent,
-            .unavailable(.unsupportedMediaType)
-        )
+        XCTAssertNotNil(input.localFileReference)
+        XCTAssertEqual(input.mediaType.classification, .pdf)
         XCTAssertEqual(
             ArtifactPreviewRendererRegistry().rendererIdentifier(for: input),
-            .unsupported
+            .pdf
         )
     }
 

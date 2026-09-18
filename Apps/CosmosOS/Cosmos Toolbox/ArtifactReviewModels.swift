@@ -108,8 +108,10 @@ struct ArtifactReviewMediaType: Equatable {
         if type.conforms(to: .image) {
             return .image
         }
-        if type.conforms(to: .pdf)
-            || type.conforms(to: .data) {
+        if type.conforms(to: .pdf) {
+            return .pdf
+        }
+        if type.conforms(to: .data) {
             return .binary
         }
         return nil
@@ -137,8 +139,10 @@ struct ArtifactReviewMediaType: Equatable {
         if cleanMIME.hasPrefix("image/") {
             return .image
         }
-        if cleanMIME == "application/pdf"
-            || cleanMIME == "application/octet-stream" {
+        if cleanMIME == "application/pdf" {
+            return .pdf
+        }
+        if cleanMIME == "application/octet-stream" {
             return .binary
         }
         return nil
@@ -156,7 +160,7 @@ struct ArtifactReviewMediaType: Equatable {
              "webp", "tif", "tiff", "svg":
             return .image
         case "pdf":
-            return .binary
+            return .pdf
         default:
             return nil
         }
@@ -172,7 +176,9 @@ struct ArtifactReviewMediaType: Equatable {
             return .text
         case .image:
             return .image
-        case .pdf, .word, .excel:
+        case .pdf:
+            return .pdf
+        case .word, .excel:
             return .binary
         default:
             return nil
@@ -185,6 +191,7 @@ enum ArtifactReviewMediaClassification: Equatable {
     case html
     case text
     case image
+    case pdf
     case binary
     case unknown
     case conflicting
@@ -323,7 +330,7 @@ struct ArtifactPreviewInputResolver {
                         reason: .unreadableFile
                     )
                 }
-            case .image:
+            case .image, .pdf:
                 return ArtifactPreviewInput(
                     payload: payload,
                     resolvedContent: .localFile(reference)
