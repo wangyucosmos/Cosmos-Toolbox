@@ -4,43 +4,70 @@ import Combine
 final class ZhuowangWorkspaceStore: ObservableObject {
 
     @Published
-    var modules: [ZhuowangModule]
+    private(set) var modules: [ZhuowangModule] = []
 
     @Published
-    var provinces: [ZhuowangProvince]
+    private(set) var provinces: [ZhuowangProvince] = []
 
     @Published
-    var categories: [ZhuowangCategory]
+    private(set) var categories: [ZhuowangCategory] = []
 
-    private let storageKey =
+    @Published
+    private(set) var persistenceState:
+        ZhuowangStorePersistenceState = .healthy
+
+    static let storageKey =
         "cosmos.zhuowang.workspace.v1"
 
-    init() {
-        self.modules = Self.defaultModules
-        self.provinces = Self.defaultProvinces
-        self.categories = Self.defaultCategories
+    static let backupKey =
+        "cosmos.zhuowang.workspace.v1.backup"
+
+    let persistenceConfiguration:
+        ZhuowangStorePersistenceConfiguration
+
+    private let persistence:
+        ZhuowangProtectedPersistence<ZhuowangWorkspaceSnapshot>
+
+    private var baselineData: Data?
+
+
+    init(
+        persistenceConfiguration:
+            ZhuowangStorePersistenceConfiguration = .production
+    ) {
+        self.persistenceConfiguration =
+            persistenceConfiguration
+
+        self.persistence =
+            ZhuowangProtectedPersistence(
+                dataSource:
+                    persistenceConfiguration.dataSource,
+                primaryKey: Self.storageKey,
+                backupKey: Self.backupKey
+            )
 
         load()
-
-        // 第一次启动时也立即保存默认工作区，
-        // 确保省份 UUID 后续启动保持一致。
-        save()
     }
 
 
     // MARK: - Add Province
 
+    @discardableResult
     func addProvince(
         name: String,
         englishName: String
-    ) {
+    ) -> ZhuowangStoreMutationResult {
         let cleanName =
             name.trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
 
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
         guard !cleanName.isEmpty else {
-            return
+            return .rejected(.invalidInput)
         }
 
         let cleanEnglish =
@@ -58,25 +85,37 @@ final class ZhuowangWorkspaceStore: ObservableObject {
                     : cleanEnglish
             )
 
-        provinces.append(province)
-
-        save()
+        return transact { snapshot in
+            var provinces = snapshot.provinces
+            provinces.append(province)
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: snapshot.modules,
+                provinces: provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
     }
 
 
     // MARK: - Add Category
 
+    @discardableResult
     func addCategory(
         name: String,
         englishName: String
-    ) {
+    ) -> ZhuowangStoreMutationResult {
         let cleanName =
             name.trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
 
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
         guard !cleanName.isEmpty else {
-            return
+            return .rejected(.invalidInput)
         }
 
         let cleanEnglish =
@@ -96,26 +135,38 @@ final class ZhuowangWorkspaceStore: ObservableObject {
                 icon: "folder"
             )
 
-        categories.append(category)
-
-        save()
+        return transact { snapshot in
+            var categories = snapshot.categories
+            categories.append(category)
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: snapshot.modules,
+                provinces: snapshot.provinces,
+                categories: categories
+            )
+            return true
+        }
     }
 
 
     // MARK: - Add Module
 
+    @discardableResult
     func addModule(
         name: String,
         englishName: String,
         usesProvinces: Bool
-    ) {
+    ) -> ZhuowangStoreMutationResult {
         let cleanName =
             name.trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
 
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
         guard !cleanName.isEmpty else {
-            return
+            return .rejected(.invalidInput)
         }
 
         let cleanEnglish =
@@ -138,62 +189,264 @@ final class ZhuowangWorkspaceStore: ObservableObject {
                     usesProvinces
             )
 
-        modules.append(module)
+        return transact { snapshot in
+            var modules = snapshot.modules
+            modules.append(module)
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: modules,
+                provinces: snapshot.provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
 
-        save()
+
+    // MARK: - Update Module
+
+    @discardableResult
+    func updateModule(
+        _ module: ZhuowangModule
+    ) -> ZhuowangStoreMutationResult {
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
+        let cleanName =
+            module.name.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !cleanName.isEmpty else {
+            return .rejected(.invalidInput)
+        }
+
+        let cleanEnglish =
+            module.englishName.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        var updatedModule = module
+        updatedModule.name = cleanName
+        updatedModule.englishName =
+            cleanEnglish.isEmpty
+            ? cleanName
+            : cleanEnglish
+
+        return transact(
+            rejectedMutationFailure: .itemNotFound
+        ) { snapshot in
+            guard
+                let index =
+                    snapshot.modules.firstIndex(
+                        where: {
+                            $0.id == module.id
+                        }
+                    )
+            else {
+                return false
+            }
+
+            var modules = snapshot.modules
+            modules[index] = updatedModule
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: modules,
+                provinces: snapshot.provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
+
+
+    // MARK: - Delete Module
+
+    @discardableResult
+    func deleteModule(
+        id: String
+    ) -> ZhuowangStoreMutationResult {
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
+        return transact(
+            rejectedMutationFailure: .itemNotFound
+        ) { snapshot in
+            guard
+                let index =
+                    snapshot.modules.firstIndex(
+                        where: { $0.id == id }
+                    )
+            else {
+                return false
+            }
+
+            var modules = snapshot.modules
+            modules.remove(at: index)
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: modules,
+                provinces: snapshot.provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
+
+
+    @discardableResult
+    func deleteModule(
+        _ module: ZhuowangModule
+    ) -> ZhuowangStoreMutationResult {
+        deleteModule(id: module.id)
     }
 
 
     // MARK: - Persistence
 
-    private func save() {
-        let snapshot =
-            ZhuowangWorkspaceSnapshot(
-                modules: modules,
-                provinces: provinces,
-                categories: categories
-            )
+    private func load() {
+        switch persistence.loadOrInitialize(
+            defaultValue: Self.defaultSnapshot
+        ) {
+        case .loaded(
+            let snapshot,
+            let baselineData
+        ):
+            publish(snapshot)
+            self.baselineData = baselineData
+            persistenceState = .healthy
 
-        guard
-            let data =
-                try? JSONEncoder()
-                .encode(snapshot)
-        else {
-            return
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            clearPublishedState()
+            baselineData = nil
+            persistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+
+        case .writeVerificationFailed:
+            clearPublishedState()
+            baselineData = nil
+            persistenceState =
+                .writeVerificationFailed
         }
-
-        UserDefaults.standard.set(
-            data,
-            forKey: storageKey
-        )
     }
 
 
-    private func load() {
+    private func transact(
+        rejectedMutationFailure:
+            ZhuowangStoreMutationFailure = .invalidInput,
+        mutation:
+            (inout ZhuowangWorkspaceSnapshot) -> Bool
+    ) -> ZhuowangStoreMutationResult {
         guard
-            let data =
-                UserDefaults.standard
-                .data(
-                    forKey: storageKey
-                ),
-            let snapshot =
-                try? JSONDecoder()
-                .decode(
-                    ZhuowangWorkspaceSnapshot.self,
-                    from: data
-                )
+            persistenceState.allowsMutations,
+            let baselineData
         else {
-            return
+            return lockedMutationResult
         }
 
-        modules =
-            snapshot.modules
+        switch persistence.transact(
+            baselineData: baselineData,
+            mutate: mutation
+        ) {
+        case .committed(
+            let snapshot,
+            let newBaselineData
+        ):
+            publish(snapshot)
+            self.baselineData = newBaselineData
+            persistenceState = .healthy
+            return .succeeded
 
-        provinces =
-            snapshot.provinces
+        case .rejectedMutation:
+            return .rejected(
+                rejectedMutationFailure
+            )
 
-        categories =
-            snapshot.categories
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            persistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+            return .rejected(
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+            )
+
+        case .staleConflict:
+            persistenceState = .staleConflict
+            return .rejected(.staleConflict)
+
+        case .writeVerificationFailed:
+            persistenceState =
+                .writeVerificationFailed
+            return .rejected(
+                .writeVerificationFailed
+            )
+        }
+    }
+
+
+    private func publish(
+        _ snapshot: ZhuowangWorkspaceSnapshot
+    ) {
+        modules = snapshot.modules
+        provinces = snapshot.provinces
+        categories = snapshot.categories
+    }
+
+
+    private func clearPublishedState() {
+        modules = []
+        provinces = []
+        categories = []
+    }
+
+
+    private var lockedMutationResult:
+        ZhuowangStoreMutationResult {
+        switch persistenceState {
+        case .healthy:
+            return .rejected(
+                .writeVerificationFailed
+            )
+
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            return .rejected(
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+            )
+
+        case .staleConflict:
+            return .rejected(.staleConflict)
+
+        case .writeVerificationFailed:
+            return .rejected(
+                .writeVerificationFailed
+            )
+        }
+    }
+
+
+    private static var defaultSnapshot:
+        ZhuowangWorkspaceSnapshot {
+        ZhuowangWorkspaceSnapshot(
+            modules: defaultModules,
+            provinces: defaultProvinces,
+            categories: defaultCategories
+        )
     }
 
 

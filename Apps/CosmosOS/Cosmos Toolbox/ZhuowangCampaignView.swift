@@ -22,6 +22,32 @@ struct ZhuowangCampaignView: View {
 
             header
 
+            if let message =
+                store.persistenceState.userMessage {
+                Label(
+                    message,
+                    systemImage:
+                        "lock.trianglebadge.exclamationmark"
+                )
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .padding(CosmosDesign.spacingM)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+                .background(
+                    Color.orange.opacity(0.08)
+                )
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius:
+                            CosmosDesign.cornerRadiusMedium,
+                        style: .continuous
+                    )
+                )
+            }
+
             filterBar
 
             if filteredCampaigns.isEmpty {
@@ -75,6 +101,10 @@ struct ZhuowangCampaignView: View {
                 )
             }
             .buttonStyle(.borderedProminent)
+            .disabled(
+                !store.persistenceState
+                    .allowsMutations
+            )
         }
         .sheet(isPresented: $showCreateSheet) {
             ZhuowangCampaignCreateView(
@@ -290,6 +320,10 @@ struct ZhuowangCampaignView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 4)
+                .disabled(
+                    !store.persistenceState
+                        .allowsMutations
+                )
             }
         }
         .frame(
@@ -799,6 +833,12 @@ struct ZhuowangCampaignCreateView: View {
     @State
     private var notes = ""
 
+    @State
+    private var mutationMessage = ""
+
+    @State
+    private var showMutationAlert = false
+
     var body: some View {
         VStack(spacing: 0) {
 
@@ -892,6 +932,14 @@ struct ZhuowangCampaignCreateView: View {
             minWidth: 560,
             minHeight: 620
         )
+        .alert(
+            "Campaign Store",
+            isPresented: $showMutationAlert
+        ) {
+            Button("知道了") { }
+        } message: {
+            Text(mutationMessage)
+        }
     }
 
 
@@ -931,6 +979,8 @@ struct ZhuowangCampaignCreateView: View {
                     in: .whitespacesAndNewlines
                 )
                 .isEmpty
+                || !store.persistenceState
+                    .allowsMutations
             )
         }
         .padding(20)
@@ -941,9 +991,11 @@ struct ZhuowangCampaignCreateView: View {
 
     private func createCampaign() {
 
+        let result: ZhuowangStoreMutationResult
+
         if let province {
 
-            store.addCampaign(
+            result = store.addCampaign(
                 name: name,
                 englishName: englishName,
                 scopeType: .province,
@@ -957,7 +1009,7 @@ struct ZhuowangCampaignCreateView: View {
 
         } else if let module {
 
-            store.addCampaign(
+            result = store.addCampaign(
                 name: name,
                 englishName: englishName,
                 scopeType:
@@ -973,7 +1025,7 @@ struct ZhuowangCampaignCreateView: View {
 
         } else {
 
-            store.addCampaign(
+            result = store.addCampaign(
                 name: name,
                 englishName: englishName,
                 scopeType: .other,
@@ -982,6 +1034,14 @@ struct ZhuowangCampaignCreateView: View {
                 status: status,
                 notes: notes
             )
+        }
+
+        guard result.succeeded else {
+            mutationMessage =
+                result.userMessage
+                ?? "活动未保存。"
+            showMutationAlert = true
+            return
         }
 
         dismiss()
@@ -1023,4 +1083,3 @@ struct ZhuowangCampaignCreateView: View {
         height: 720
     )
 }
-

@@ -1,8 +1,8 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-19
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Step 05 prototype workflow milestone complete; PDF Renderer Phase 1 implemented and formally verified
+**Current stage:** Campaign / Workspace Store persistence protection Phase 1 implemented, reviewed, tested and accepted through the formal Campaign UI in an isolated environment (2026-09-20); temporary acceptance data cleaned under explicit authorisation; not yet committed or pushed
 
 ---
 
@@ -160,6 +160,36 @@ Fixes implemented:
 - reconstruction of missing Artifact metadata;
 - reconstruction of completed Workflow steps;
 - reconstruction of the next actionable step.
+
+Campaign / Workspace Store persistence protection Phase 1 now adds:
+
+- no-op startup loads preserve an existing valid primary payload byte-for-byte and do not create a backup;
+- initialization writes defaults only when the primary key is genuinely missing;
+- corrupt primary payloads lock the Store, preserve the original bytes, detect but do not automatically restore a valid backup, and reject mutations;
+- successful mutations create one last-known-good backup from the currently decoded primary before writing the candidate;
+- stale in-process Store instances reject writes after rereading the current primary under a shared process-local lock;
+- write verification failures do not publish the candidate into the Store's public in-memory state;
+- Campaign create / update / delete (Store API **and** formal UI: `ZhuowangCampaignView`, `ZhuowangCampaignDetailView`) use the protected transaction boundary;
+- Workspace create (province / category / module) is exposed in the formal Workspace Manager UI; Workspace module **update / delete are Store API capabilities only** (`updateModule`, `deleteModule`) covered by XCTest — there is no formal UI for them and none is claimed;
+- DEBUG-only suite injection is UUID-scoped, fails closed when invalid, and never falls back to the production UserDefaults domain; it is additionally accepted **only** when the running Bundle ID starts with the temporary UI prefix `com.wangyucosmos.cosmostoolbox.persistenceui.` — under the production Bundle ID, an empty / unreadable Bundle ID, or any other Bundle ID the App is blocked before any Store is created (the Workflow / AI Stores still read `UserDefaults.standard`, so a suite under the wrong Bundle would only be a partial, misleading isolation);
+- Release builds do not compile the suite-injection bootstrap path, the isolation banner, the isolation metadata (`isIsolated` / `isolationSuiteName` / `isolatedSuite(named:)`), or any test-only string (verified by scanning the Universal Release binary);
+- the main window's direct root is the stable, internal `CosmosRootView` in both Debug and Release, so AppKit window-state keys no longer embed a random `(unknown context at $ADDR)` type name;
+- the DEBUG isolation banner is rendered only in the DEBUG isolated branch as `VStack(spacing: 0) { banner; navigationContent }`; the non-isolated Debug path and Release return the unchanged `NavigationSplitView` content directly (an earlier `.safeAreaInset(edge: .top)` variant overlapped the sidebar and was replaced).
+
+Current formal Workspace persistence baselines after the recorded no-op re-encoding incident are:
+
+```text
+raw SHA-256       163b2189391e52019f31cb427b211d26fab85a888f13506591a89b0a54e9c4b0
+canonical SHA-256 711fd948e14f10e31f465731f84c25dd75c5360f2b18e2004942beacd4c0843b
+```
+
+The incident changed JSON object key order only. Exhaustive reconstruction matched both raw encodings from the same semantic object; all fields, UUIDs, and array order remained equal. No recovery or overwrite was performed.
+
+Phase 1 is intentionally limited to a process-local lock and UserDefaults read-back verification. It does not provide cross-process transactions, automatic recovery, backup rotation, or a disk-level durability guarantee. When any persistence verification fails (initial write, encoding, backup write / read-back, primary write / read-back) the Store locks and the UI does not publish the change; the persisted primary and/or backup may already have changed, so the user is told to stop and verify before restarting. The wording promises neither that the backup is valid nor that the primary is unchanged. No automatic rollback is performed.
+
+Formal data gate: business integrity is gated by the per-key SHA-256 of the 11 business `Data` keys plus decode checks. The whole-plist SHA-256 of `com.wangyucosmos.Cosmos-Toolbox.plist` is a diagnostic indicator only, because it also contains AppKit window-state keys that any process using the production Bundle ID (including the XCTest host) legitimately updates.
+
+Review status (2026-09-19): Claude's independent read-only review found P0 = 0, P1 = 0, P2 = 4, P3 = 10. All four P2 findings (unstable Debug root view type; DEBUG stand-in views replacing the formal Campaign UI during acceptance; self-referential "no re-encode" tests; Dashboard layout wrapped in a VStack) and P3-1 / P3-3 / P3-9 / P3-10 were fixed by Claude in a directed follow-up and re-verified (41 Store-focused tests, 156 total XCTest, Universal Debug and Release builds). A second independent re-review closed the four P2 items and raised **P2-A** (isolated suite accepted under the production Bundle ID), which is now fixed as described above. The P2-A resolver tests were actually executed on 2026-09-20 (Store-focused 43 / complete suite 158, all passed) with the 11 business `Data` keys byte-identical before and after; the empty `Tests`-prefixed suite plists left in `~/Library/Preferences` are a known test by-product awaiting separate cleanup authorisation. Formal Campaign UI acceptance was then completed on 2026-09-20 under a temporary Bundle ID + temporary suite (Round 6): create, edit, first restart with the edit retained, delete through the formal `ZhuowangCampaignDetailView`, second restart with the deletion retained (primary `[]`, backup = the pre-delete edited record), no lock, no error alert, and no obvious visual regression on Dashboard, Workspace overview, Campaign list or detail. The Workflow / AI Stores created by the formal Campaign UI wrote only into the temporary Bundle domain. All 11 business `Data` keys were byte-identical before and after every launch. The temporary Round 5 / Round 6 domains, the old temporary UI domain and the 346 empty test-suite plists were removed afterwards under explicit, path-exact authorisation; `/tmp` acceptance evidence is retained for now. Deferred P3 items: finer error enumeration, built-in module deletion rule, whole-Store `@MainActor` migration, stale-conflict reload, duplicate `allowsMutations` guards.
 
 Recovery was manually verified.
 
@@ -445,7 +475,7 @@ Current implementation focus:
 - Long-term business persistence should move toward a more robust structured persistence strategy.
 - Schema migration and recovery must remain safe.
 - Workflow, AI Provider, AI Connection, Tool Integration, and Agent/Tool Route payloads now have decode protection and backup recovery.
-- Campaign Store and Workspace Store do not yet have the same backup / write-lock boundary.
+- Campaign Store and Workspace Store now share the Phase 1 protected transaction boundary. Cross-process coordination, backup rotation, automatic recovery, and disk-level durability remain future work.
 
 ### P1
 
@@ -569,10 +599,10 @@ Completed milestone capabilities:
 
 Recommended next-session order:
 
-1. Complete formal review and Git integration of PDF Renderer Phase 1 without changing the accepted Workflow or importing test PDFs into real business data.
-2. Evaluate a future XPC or separate-process Renderer before expanding PDF support toward less trusted inputs; do not describe the current in-process limits as a sandbox.
-3. If the HTML Preview compatibility allowlist changes, threat-model inline script and `data:` / `blob:` behavior before implementation.
-4. Keep persistent Artifact payload descriptors, Image / PDF Adoption, Sidecar Manifest, Figma / Pixso execution and external-document adoption deferred until a real write path requires them.
+1. Commit and push Phase 1 after explicit user authorisation (the working tree is the accepted state: 8 modified files + 7 new source / test / log files; no build by-products).
+2. Keep Step 06 implementation paused until this persistence boundary is accepted and the next milestone scope is approved.
+3. Treat cross-process transactions, automatic recovery, backup rotation, and persistence-format migration as separate future milestones.
+4. Keep persistent Artifact payload descriptors, Image / PDF Adoption, Sidecar Manifest, Figma / Pixso execution, external-document adoption, and PDF process isolation deferred until their write paths receive separate review.
 
 A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
 

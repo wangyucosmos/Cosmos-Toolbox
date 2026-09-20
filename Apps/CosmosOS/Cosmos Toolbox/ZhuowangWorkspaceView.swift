@@ -5,30 +5,55 @@ import Combine
 
 struct ZhuowangWorkspaceView: View {
 
-    @StateObject private var store = ZhuowangWorkspaceStore()
-    @StateObject private var campaignStore = ZhuowangCampaignStore()
+    @StateObject private var store: ZhuowangWorkspaceStore
+    @StateObject private var campaignStore: ZhuowangCampaignStore
     @State private var selectedNavigation: ZhuowangNavigationItem?
     @State private var selectedCategoryID = "overview"
     @State private var showManager = false
 
 
+    init(
+        persistenceConfiguration:
+            ZhuowangStorePersistenceConfiguration = .production
+    ) {
+        _store = StateObject(
+            wrappedValue: ZhuowangWorkspaceStore(
+                persistenceConfiguration:
+                    persistenceConfiguration
+            )
+        )
+
+        _campaignStore = StateObject(
+            wrappedValue: ZhuowangCampaignStore(
+                persistenceConfiguration:
+                    persistenceConfiguration
+            )
+        )
+    }
+
+
     var body: some View {
+        VStack(spacing: 0) {
+            if store.persistenceState.allowsMutations {
+                HSplitView {
+                    workspaceSidebar
+                        .frame(
+                            minWidth: 190,
+                            idealWidth: 235,
+                            maxWidth: 360
+                        )
 
-        HSplitView {
+                    workspaceDetail
+                        .frame(
+                            minWidth: 620,
+                            maxWidth: .infinity,
+                            maxHeight: .infinity
+                        )
+                }
 
-            workspaceSidebar
-                .frame(
-                    minWidth: 190,
-                    idealWidth: 235,
-                    maxWidth: 360
-                )
-
-            workspaceDetail
-                .frame(
-                    minWidth: 620,
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
+            } else {
+                lockedWorkspaceContent
+            }
         }
         .background {
 
@@ -61,6 +86,26 @@ struct ZhuowangWorkspaceView: View {
                 store: store
             )
         }
+    }
+
+
+    private var lockedWorkspaceContent: some View {
+        ContentUnavailableView {
+            Label(
+                "Workspace 数据已锁定",
+                systemImage:
+                    "lock.trianglebadge.exclamationmark"
+            )
+        } description: {
+            Text(
+                store.persistenceState.userMessage
+                ?? "当前数据不可写。"
+            )
+        }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
     }
 
 
@@ -187,6 +232,10 @@ struct ZhuowangWorkspaceView: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help("管理工作区")
+            .disabled(
+                !store.persistenceState
+                    .allowsMutations
+            )
         }
         .padding(
             .horizontal,
@@ -1994,6 +2043,12 @@ struct ZhuowangWorkspaceManagerView: View {
     @State
     private var newModuleUsesProvinces = true
 
+    @State
+    private var mutationMessage = ""
+
+    @State
+    private var showMutationAlert = false
+
     var body: some View {
 
         VStack(spacing: 0) {
@@ -2049,15 +2104,19 @@ struct ZhuowangWorkspaceManagerView: View {
                         "添加省份"
                     ) {
 
-                        store.addProvince(
+                        let result = store.addProvince(
                             name:
                                 newProvinceName,
                             englishName:
                                 newProvinceEnglishName
                         )
 
-                        newProvinceName = ""
-                        newProvinceEnglishName = ""
+                        if result.succeeded {
+                            newProvinceName = ""
+                            newProvinceEnglishName = ""
+                        } else {
+                            showFailure(result)
+                        }
                     }
                     .disabled(
                         newProvinceName
@@ -2065,6 +2124,8 @@ struct ZhuowangWorkspaceManagerView: View {
                                 in: .whitespaces
                             )
                             .isEmpty
+                        || !store.persistenceState
+                            .allowsMutations
                     )
                 }
 
@@ -2089,15 +2150,19 @@ struct ZhuowangWorkspaceManagerView: View {
                         "添加内容分类"
                     ) {
 
-                        store.addCategory(
+                        let result = store.addCategory(
                             name:
                                 newCategoryName,
                             englishName:
                                 newCategoryEnglishName
                         )
 
-                        newCategoryName = ""
-                        newCategoryEnglishName = ""
+                        if result.succeeded {
+                            newCategoryName = ""
+                            newCategoryEnglishName = ""
+                        } else {
+                            showFailure(result)
+                        }
                     }
                     .disabled(
                         newCategoryName
@@ -2105,6 +2170,8 @@ struct ZhuowangWorkspaceManagerView: View {
                                 in: .whitespaces
                             )
                             .isEmpty
+                        || !store.persistenceState
+                            .allowsMutations
                     )
                 }
 
@@ -2135,7 +2202,7 @@ struct ZhuowangWorkspaceManagerView: View {
                         "添加工作模块"
                     ) {
 
-                        store.addModule(
+                        let result = store.addModule(
                             name:
                                 newModuleName,
                             englishName:
@@ -2144,9 +2211,13 @@ struct ZhuowangWorkspaceManagerView: View {
                                 newModuleUsesProvinces
                         )
 
-                        newModuleName = ""
-                        newModuleEnglishName = ""
-                        newModuleUsesProvinces = true
+                        if result.succeeded {
+                            newModuleName = ""
+                            newModuleEnglishName = ""
+                            newModuleUsesProvinces = true
+                        } else {
+                            showFailure(result)
+                        }
                     }
                     .disabled(
                         newModuleName
@@ -2154,6 +2225,8 @@ struct ZhuowangWorkspaceManagerView: View {
                                 in: .whitespaces
                             )
                             .isEmpty
+                        || !store.persistenceState
+                            .allowsMutations
                     )
                 }
 
@@ -2181,6 +2254,24 @@ struct ZhuowangWorkspaceManagerView: View {
             minWidth: 520,
             minHeight: 620
         )
+        .alert(
+            "Workspace Store",
+            isPresented: $showMutationAlert
+        ) {
+            Button("知道了") { }
+        } message: {
+            Text(mutationMessage)
+        }
+    }
+
+
+    private func showFailure(
+        _ result: ZhuowangStoreMutationResult
+    ) {
+        mutationMessage =
+            result.userMessage
+            ?? "操作失败，未保存任何修改。"
+        showMutationAlert = true
     }
 }
 
@@ -2203,4 +2294,3 @@ struct ZhuowangWorkspaceManagerView: View {
             height: 820
         )
 }
-

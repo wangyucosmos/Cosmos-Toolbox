@@ -3,7 +3,34 @@ import SwiftUI
 struct DashboardView: View {
     @State private var selection: SidebarItem? = .dashboard
 
+    let storePersistenceConfiguration:
+        ZhuowangStorePersistenceConfiguration
+
+    init(
+        storePersistenceConfiguration:
+            ZhuowangStorePersistenceConfiguration = .production
+    ) {
+        self.storePersistenceConfiguration =
+            storePersistenceConfiguration
+    }
+
     var body: some View {
+#if DEBUG
+        if storePersistenceConfiguration.isIsolated {
+            VStack(spacing: 0) {
+                isolatedSuiteBanner
+                navigationContent
+            }
+        } else {
+            navigationContent
+        }
+#else
+        navigationContent
+#endif
+    }
+
+
+    private var navigationContent: some View {
         NavigationSplitView {
             List(selection: $selection) {
 
@@ -61,7 +88,10 @@ struct DashboardView: View {
 
                 } else if selection == .zhuowang {
 
-                    ZhuowangWorkspaceView()
+                    ZhuowangWorkspaceView(
+                        persistenceConfiguration:
+                            storePersistenceConfiguration
+                    )
                         .id(SidebarItem.zhuowang)
                         .transition(
                             .asymmetric(
@@ -108,6 +138,59 @@ struct DashboardView: View {
             )
         }
     }
+
+
+#if DEBUG
+    private var isolatedSuiteBanner: some View {
+        HStack(spacing: CosmosDesign.spacingS) {
+            Image(systemName: "testtube.2")
+
+            Text("Store Phase 1 隔离测试数据")
+                .fontWeight(.semibold)
+
+            VStack(
+                alignment: .leading,
+                spacing: 2
+            ) {
+                Text(
+                    "Bundle: "
+                    + (
+                        storePersistenceConfiguration
+                            .isolationBundleIdentifier
+                        ?? "未知 Bundle"
+                    )
+                )
+
+                Text(
+                    "suite: "
+                    + (
+                        storePersistenceConfiguration
+                            .isolationSuiteName
+                        ?? "未知 suite"
+                    )
+                )
+            }
+            .font(.caption.monospaced())
+            .lineLimit(1)
+            .textSelection(.enabled)
+
+            Spacer()
+        }
+        .font(.callout)
+        .padding(
+            .horizontal,
+            CosmosDesign.spacingL
+        )
+        .padding(
+            .vertical,
+            CosmosDesign.spacingS
+        )
+        .foregroundStyle(.orange)
+        .background(
+            Color.orange.opacity(0.10)
+        )
+    }
+#endif
 
     @ViewBuilder
     private func sidebarRow(

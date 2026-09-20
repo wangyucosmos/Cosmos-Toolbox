@@ -6,19 +6,49 @@ final class ZhuowangCampaignStore: ObservableObject {
     @Published
     private(set) var campaigns: [ZhuowangCampaign] = []
 
-    private let storageKey =
+    @Published
+    private(set) var persistenceState:
+        ZhuowangStorePersistenceState = .healthy
+
+    static let storageKey =
         "cosmos.zhuowang.campaigns.v1"
+
+    static let backupKey =
+        "cosmos.zhuowang.campaigns.v1.backup"
+
+    let persistenceConfiguration:
+        ZhuowangStorePersistenceConfiguration
+
+    private let persistence:
+        ZhuowangProtectedPersistence<[ZhuowangCampaign]>
+
+    private var baselineData: Data?
 
 
     // MARK: - Init
 
-    init() {
+    init(
+        persistenceConfiguration:
+            ZhuowangStorePersistenceConfiguration = .production
+    ) {
+        self.persistenceConfiguration =
+            persistenceConfiguration
+
+        self.persistence =
+            ZhuowangProtectedPersistence(
+                dataSource:
+                    persistenceConfiguration.dataSource,
+                primaryKey: Self.storageKey,
+                backupKey: Self.backupKey
+            )
+
         load()
     }
 
 
     // MARK: - Create
 
+    @discardableResult
     func addCampaign(
         name: String,
         englishName: String = "",
@@ -29,7 +59,15 @@ final class ZhuowangCampaignStore: ObservableObject {
         endDate: Date,
         status: ZhuowangCampaignStatus = .planning,
         notes: String = ""
-    ) {
+    ) -> ZhuowangStoreMutationResult {
+        guard
+            persistenceState.allowsMutations,
+            baselineData != nil
+        else {
+            return .rejected(
+                failureForCurrentState
+            )
+        }
 
         let cleanName =
             name.trimmingCharacters(
@@ -37,90 +75,122 @@ final class ZhuowangCampaignStore: ObservableObject {
             )
 
         guard !cleanName.isEmpty else {
-            return
+            return .rejected(.invalidInput)
         }
-
-        let cleanEnglishName =
-            englishName.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-
-        let cleanNotes =
-            notes.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
 
         let campaign =
             ZhuowangCampaign(
                 name: cleanName,
-                englishName: cleanEnglishName,
+                englishName:
+                    englishName.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    ),
                 scopeType: scopeType,
                 provinceID: provinceID,
                 moduleID: moduleID,
                 startDate: startDate,
                 endDate: endDate,
                 status: status,
-                notes: cleanNotes
+                notes:
+                    notes.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
             )
 
-        campaigns.append(campaign)
-
-        sortCampaigns()
-
-        save()
+        return transact { campaigns in
+            campaigns.append(campaign)
+            Self.sortCampaigns(&campaigns)
+            return true
+        }
     }
 
 
     // MARK: - Update
 
+    @discardableResult
     func updateCampaign(
         _ campaign: ZhuowangCampaign
-    ) {
-
+    ) -> ZhuowangStoreMutationResult {
         guard
-            let index =
-                campaigns.firstIndex(
-                    where: {
-                        $0.id == campaign.id
-                    }
-                )
+            persistenceState.allowsMutations,
+            baselineData != nil
         else {
-            return
+            return .rejected(
+                failureForCurrentState
+            )
         }
 
-        var updatedCampaign = campaign
-        updatedCampaign.updatedAt = Date()
+        guard
+            !campaign.name
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .isEmpty
+        else {
+            return .rejected(.invalidInput)
+        }
 
-        campaigns[index] =
-            updatedCampaign
+        return transact(
+            rejectedMutationFailure: .itemNotFound
+        ) { campaigns in
+            guard
+                let index =
+                    campaigns.firstIndex(
+                        where: {
+                            $0.id == campaign.id
+                        }
+                    )
+            else {
+                return false
+            }
 
-        sortCampaigns()
-
-        save()
+            var updatedCampaign = campaign
+            updatedCampaign.updatedAt = Date()
+            campaigns[index] = updatedCampaign
+            Self.sortCampaigns(&campaigns)
+            return true
+        }
     }
 
 
     // MARK: - Delete
 
+    @discardableResult
     func deleteCampaign(
         id: UUID
-    ) {
-
-        campaigns.removeAll {
-            $0.id == id
+    ) -> ZhuowangStoreMutationResult {
+        guard
+            persistenceState.allowsMutations,
+            baselineData != nil
+        else {
+            return .rejected(
+                failureForCurrentState
+            )
         }
 
-        save()
+        return transact(
+            rejectedMutationFailure: .itemNotFound
+        ) { campaigns in
+            guard
+                let index =
+                    campaigns.firstIndex(
+                        where: { $0.id == id }
+                    )
+            else {
+                return false
+            }
+
+            campaigns.remove(at: index)
+            return true
+        }
     }
 
 
+    @discardableResult
     func deleteCampaign(
         _ campaign: ZhuowangCampaign
-    ) {
-
-        deleteCampaign(
-            id: campaign.id
-        )
+    ) -> ZhuowangStoreMutationResult {
+        deleteCampaign(id: campaign.id)
     }
 
 
@@ -129,61 +199,46 @@ final class ZhuowangCampaignStore: ObservableObject {
     func campaign(
         id: UUID
     ) -> ZhuowangCampaign? {
-
-        campaigns.first {
-            $0.id == id
-        }
+        campaigns.first { $0.id == id }
     }
 
 
-    // MARK: - Province Filtering
+    // MARK: - Filtering
 
     func campaigns(
         forProvinceID provinceID: UUID
     ) -> [ZhuowangCampaign] {
-
         campaigns.filter {
-
             $0.scopeType == .province
             && $0.provinceID == provinceID
         }
     }
 
 
-    // MARK: - Module Filtering
-
     func campaigns(
         forModuleID moduleID: String
     ) -> [ZhuowangCampaign] {
-
         campaigns.filter {
             $0.moduleID == moduleID
         }
     }
 
 
-    // MARK: - Status Filtering
-
     func campaigns(
         withStatus status:
             ZhuowangCampaignStatus
     ) -> [ZhuowangCampaign] {
-
         campaigns.filter {
             $0.status == status
         }
     }
 
 
-    // MARK: - Province + Status
-
     func campaigns(
         forProvinceID provinceID: UUID,
         status: ZhuowangCampaignStatus
     ) -> [ZhuowangCampaign] {
-
         campaigns.filter {
-
             $0.scopeType == .province
             && $0.provinceID == provinceID
             && $0.status == status
@@ -191,15 +246,11 @@ final class ZhuowangCampaignStore: ObservableObject {
     }
 
 
-    // MARK: - Module + Status
-
     func campaigns(
         forModuleID moduleID: String,
         status: ZhuowangCampaignStatus
     ) -> [ZhuowangCampaign] {
-
         campaigns.filter {
-
             $0.moduleID == moduleID
             && $0.status == status
         }
@@ -214,7 +265,6 @@ final class ZhuowangCampaignStore: ObservableObject {
 
 
     var activeCount: Int {
-
         campaigns.filter {
             $0.status == .active
         }
@@ -223,7 +273,6 @@ final class ZhuowangCampaignStore: ObservableObject {
 
 
     var planningCount: Int {
-
         campaigns.filter {
             $0.status == .planning
         }
@@ -232,7 +281,6 @@ final class ZhuowangCampaignStore: ObservableObject {
 
 
     var pendingLaunchCount: Int {
-
         campaigns.filter {
             $0.status == .pendingLaunch
         }
@@ -242,64 +290,133 @@ final class ZhuowangCampaignStore: ObservableObject {
 
     // MARK: - Persistence
 
-    private func save() {
-
-        guard
-            let data =
-                try? JSONEncoder()
-                .encode(campaigns)
-        else {
-            return
-        }
-
-        UserDefaults.standard.set(
-            data,
-            forKey: storageKey
-        )
-    }
-
-
     private func load() {
+        switch persistence.loadOrInitialize(
+            defaultValue: []
+        ) {
+        case .loaded(
+            var value,
+            let baselineData
+        ):
+            Self.sortCampaigns(&value)
+            campaigns = value
+            self.baselineData = baselineData
+            persistenceState = .healthy
 
-        guard
-            let data =
-                UserDefaults.standard
-                .data(
-                    forKey: storageKey
-                ),
-            let savedCampaigns =
-                try? JSONDecoder()
-                .decode(
-                    [ZhuowangCampaign].self,
-                    from: data
-                )
-        else {
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
             campaigns = []
-            return
+            baselineData = nil
+            persistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+
+        case .writeVerificationFailed:
+            campaigns = []
+            baselineData = nil
+            persistenceState =
+                .writeVerificationFailed
         }
-
-        campaigns =
-            savedCampaigns
-
-        sortCampaigns()
     }
 
 
-    // MARK: - Sorting
+    private func transact(
+        rejectedMutationFailure:
+            ZhuowangStoreMutationFailure = .invalidInput,
+        mutation:
+            (inout [ZhuowangCampaign]) -> Bool
+    ) -> ZhuowangStoreMutationResult {
+        guard
+            persistenceState.allowsMutations,
+            let baselineData
+        else {
+            return .rejected(
+                failureForCurrentState
+            )
+        }
 
-    private func sortCampaigns() {
+        switch persistence.transact(
+            baselineData: baselineData,
+            mutate: mutation
+        ) {
+        case .committed(
+            let value,
+            let newBaselineData
+        ):
+            campaigns = value
+            self.baselineData = newBaselineData
+            persistenceState = .healthy
+            return .succeeded
 
+        case .rejectedMutation:
+            return .rejected(
+                rejectedMutationFailure
+            )
+
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            persistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+            return .rejected(
+                .lockedCorruptPrimary(
+                    hasValidBackup:
+                        hasValidBackup
+                )
+            )
+
+        case .staleConflict:
+            persistenceState = .staleConflict
+            return .rejected(.staleConflict)
+
+        case .writeVerificationFailed:
+            persistenceState =
+                .writeVerificationFailed
+            return .rejected(
+                .writeVerificationFailed
+            )
+        }
+    }
+
+
+    private var failureForCurrentState:
+        ZhuowangStoreMutationFailure {
+        switch persistenceState {
+        case .healthy:
+            return .writeVerificationFailed
+
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            return .lockedCorruptPrimary(
+                hasValidBackup:
+                    hasValidBackup
+            )
+
+        case .staleConflict:
+            return .staleConflict
+
+        case .writeVerificationFailed:
+            return .writeVerificationFailed
+        }
+    }
+
+
+    private static func sortCampaigns(
+        _ campaigns: inout [ZhuowangCampaign]
+    ) {
         campaigns.sort {
-
-            if $0.updatedAt
-                != $1.updatedAt {
-
-                return $0.updatedAt
-                    > $1.updatedAt
+            if $0.updatedAt != $1.updatedAt {
+                return $0.updatedAt > $1.updatedAt
             }
 
-            return $0.createdAt
-                > $1.createdAt
+            return $0.createdAt > $1.createdAt
         }
     }
 }

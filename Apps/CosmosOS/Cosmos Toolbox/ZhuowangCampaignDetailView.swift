@@ -36,6 +36,27 @@ struct ZhuowangCampaignDetailView: View {
 
             Divider()
 
+            if let message =
+                store.persistenceState.userMessage {
+                Label(
+                    message,
+                    systemImage:
+                        "lock.trianglebadge.exclamationmark"
+                )
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .padding(CosmosDesign.spacingM)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+                .background(
+                    Color.orange.opacity(0.08)
+                )
+
+                Divider()
+            }
+
             if let campaign {
 
                 VStack(spacing: 0) {
@@ -200,6 +221,8 @@ struct ZhuowangCampaignDetailView: View {
                             in: .whitespacesAndNewlines
                         )
                         .isEmpty
+                        || !store.persistenceState
+                            .allowsMutations
                     )
 
                 } else {
@@ -243,6 +266,10 @@ struct ZhuowangCampaignDetailView: View {
                         )
                     }
                     .menuStyle(.borderlessButton)
+                    .disabled(
+                        !store.persistenceState
+                            .allowsMutations
+                    )
 
                     Button {
                         beginEditing()
@@ -253,6 +280,10 @@ struct ZhuowangCampaignDetailView: View {
                         )
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(
+                        !store.persistenceState
+                            .allowsMutations
+                    )
                 }
             }
         }
@@ -1536,9 +1567,17 @@ struct ZhuowangCampaignDetailView: View {
                 in: .whitespacesAndNewlines
             )
 
-        store.updateCampaign(
+        let result = store.updateCampaign(
             campaign
         )
+
+        guard result.succeeded else {
+            workspaceMessage =
+                result.userMessage
+                ?? "活动未保存。"
+            showWorkspaceAlert = true
+            return
+        }
 
         loadDraft()
 
@@ -1630,9 +1669,17 @@ struct ZhuowangCampaignDetailView: View {
 
     private func deleteCampaign() {
 
-        store.deleteCampaign(
+        let result = store.deleteCampaign(
             id: campaignID
         )
+
+        guard result.succeeded else {
+            workspaceMessage =
+                result.userMessage
+                ?? "活动未删除。"
+            showWorkspaceAlert = true
+            return
+        }
 
         dismiss()
     }
