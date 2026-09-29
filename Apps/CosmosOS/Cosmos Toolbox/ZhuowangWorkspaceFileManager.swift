@@ -639,6 +639,13 @@ final class ZhuowangWorkspaceFileManager {
                         continue
                     }
 
+                    if stepKind == .customerService,
+                       !Self.isFormalCustomerServiceFileName(
+                           fileURL.lastPathComponent
+                       ) {
+                        continue
+                    }
+
                     guard
                         seenPaths.insert(
                             fileURL.path
@@ -810,6 +817,16 @@ final class ZhuowangWorkspaceFileManager {
             ),
             version
         )
+    }
+
+
+    static func isFormalCustomerServiceFileName(
+        _ fileName: String
+    ) -> Bool {
+        fileName.range(
+            of: #"^客服文档_V[0-9]+\.md$"#,
+            options: .regularExpression
+        ) != nil
     }
 
 

@@ -39,10 +39,14 @@ final class ZhuowangWorkflowStore: ObservableObject {
     @Published
     private(set) var providers: [ZhuowangAIProvider] = []
 
+    @Published
+    private(set) var workflowPersistenceState:
+        ZhuowangStorePersistenceState = .healthy
+
 
     // MARK: - Storage Keys
 
-    private let workflowStorageKey =
+    static let workflowStorageKey =
         "cosmos.zhuowang.workflows.v1"
 
     private let providerStorageKey =
@@ -53,8 +57,21 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     /// Last known workflow payload before a successful overwrite.
     /// Used as a lightweight safety net for future model migrations.
-    private let workflowBackupStorageKey =
+    static let workflowBackupStorageKey =
         "cosmos.zhuowang.workflows.v1.backup"
+
+    let persistenceConfiguration:
+        ZhuowangStorePersistenceConfiguration
+
+    private let workflowPersistence:
+        ZhuowangProtectedPersistence<[
+            ZhuowangCampaignWorkflow
+        ]>
+
+    private let workspaceFileManager:
+        ZhuowangWorkspaceFileManager
+
+    private var workflowBaselineData: Data?
 
     /// If persisted workflow data exists but cannot be decoded,
     /// block writes so a fresh empty workflow cannot overwrite it.
@@ -73,7 +90,28 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     // MARK: - Init
 
-    init() {
+    init(
+        persistenceConfiguration:
+            ZhuowangStorePersistenceConfiguration = .production,
+        workspaceFileManager:
+            ZhuowangWorkspaceFileManager = .shared
+    ) {
+        self.persistenceConfiguration =
+            persistenceConfiguration
+
+        self.workflowPersistence =
+            ZhuowangProtectedPersistence(
+                dataSource:
+                    persistenceConfiguration.dataSource,
+                primaryKey:
+                    Self.workflowStorageKey,
+                backupKey:
+                    Self.workflowBackupStorageKey
+            )
+
+        self.workspaceFileManager =
+            workspaceFileManager
+
         loadProviders()
         loadWorkflows()
 
@@ -1218,8 +1256,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                     do {
 
                         let fileURL =
-                            try ZhuowangWorkspaceFileManager
-                                .shared
+                            try workspaceFileManager
                                 .writeMarkdownArtifact(
                                     provinceName:
                                         provinceName,
@@ -1365,8 +1402,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         do {
 
             fileURL =
-                try ZhuowangWorkspaceFileManager
-                    .shared
+                try workspaceFileManager
                     .writeMarkdownArtifact(
                         provinceName:
                             provinceName,
@@ -1434,6 +1470,336 @@ final class ZhuowangWorkflowStore: ObservableObject {
     }
 
 
+    // MARK: - Adopt Customer Service Result
+
+    /// Safely adopts the Phase 1 DeepSeek Markdown result for Step 06.
+    ///
+    /// The versioned file is written while the protected persistence lock is
+    /// held and only after the current baseline has been accepted. Workflow
+    /// memory is published only after the candidate payload has been written
+    /// and read back successfully. If metadata persistence fails, the newly
+    /// written file is intentionally retained as an unadopted recovery source.
+    @discardableResult
+    func adoptCustomerServiceResult(
+        workflowID: UUID,
+        campaignID: UUID,
+        campaignName: String,
+        provinceName: String?,
+        stepID: UUID,
+        provider: ZhuowangAIProvider,
+        connectionID: UUID,
+        adapterIdentifier: String,
+        inputText: String,
+        outputText: String
+    ) -> ZhuowangCustomerServiceAdoptionResult {
+
+        let cleanOutput =
+            outputText.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !cleanOutput.isEmpty else {
+            return .rejected(.invalidInput)
+        }
+
+        guard provider.kind == .deepSeekHarness else {
+            return .rejected(.unsupportedProvider)
+        }
+
+        guard let baselineData = workflowBaselineData else {
+            return .rejected(.persistenceUnavailable)
+        }
+
+        let cleanAdapterIdentifier =
+            adapterIdentifier.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        var mutationFailure:
+            ZhuowangCustomerServiceAdoptionFailure?
+
+        var adoptedArtifact: ZhuowangArtifact?
+        var reusedExisting = false
+
+        let transaction = workflowPersistence.transact(
+            baselineData: baselineData
+        ) { candidateWorkflows in
+
+            guard
+                let workflowIndex =
+                    candidateWorkflows.firstIndex(
+                        where: { $0.id == workflowID }
+                    )
+            else {
+                mutationFailure = .workflowNotFound
+                return false
+            }
+
+            guard
+                let stepIndex =
+                    candidateWorkflows[workflowIndex]
+                    .steps.firstIndex(
+                        where: { $0.id == stepID }
+                    )
+            else {
+                mutationFailure = .stepNotFound
+                return false
+            }
+
+            let step = candidateWorkflows[workflowIndex]
+                .steps[stepIndex]
+
+            guard step.kind == .customerService else {
+                mutationFailure = .wrongStepKind
+                return false
+            }
+
+            guard
+                step.status == .ready
+                || step.status == .approved
+            else {
+                mutationFailure = .stepNotReady
+                return false
+            }
+
+            let existingRun =
+                candidateWorkflows[workflowIndex]
+                .aiRuns.last {
+                    $0.stepID == stepID
+                    && $0.providerID == provider.id
+                    && $0.status == .succeeded
+                    && $0.outputText == cleanOutput
+                }
+
+            if let existingRun,
+               candidateWorkflows[workflowIndex]
+                .approvals.contains(
+                    where: {
+                        $0.runID == existingRun.id
+                        && $0.decision == .approved
+                    }
+                ),
+               let existingArtifact =
+                candidateWorkflows[workflowIndex]
+                .artifacts.first(
+                    where: {
+                        $0.runID == existingRun.id
+                        && $0.versionGroupKey
+                            == ZhuowangCustomerServiceArtifact
+                                .logicalKey
+                    }
+                ) {
+
+                var workflow =
+                    candidateWorkflows[workflowIndex]
+
+                workflow.artifacts =
+                    ZhuowangWorkflowTransitionLogic
+                    .selectingCurrentVersion(
+                        artifacts: workflow.artifacts,
+                        artifactID: existingArtifact.id
+                    )
+
+                workflow.steps[stepIndex]
+                    .selectedProviderID = provider.id
+
+                workflow =
+                    ZhuowangWorkflowTransitionLogic
+                    .approvingStepAndUnlockingNext(
+                        workflow: workflow,
+                        stepID: stepID
+                    )
+
+                candidateWorkflows[workflowIndex] = workflow
+                adoptedArtifact = existingArtifact
+                reusedExisting = true
+                return true
+            }
+
+            let workflow =
+                candidateWorkflows[workflowIndex]
+
+            let nextRunVersion =
+                (workflow.aiRuns
+                    .filter { $0.stepID == stepID }
+                    .map(\.version)
+                    .max() ?? 0) + 1
+
+            let workspaceVersions =
+                workspaceFileManager
+                .existingArtifactVersions(
+                    provinceName: provinceName,
+                    campaignName: campaignName,
+                    stepKind: .customerService,
+                    artifactName:
+                        ZhuowangCustomerServiceArtifact.name,
+                    fileExtension: "md"
+                )
+
+            let nextArtifactVersion =
+                ZhuowangWorkflowTransitionLogic
+                .nextArtifactVersion(
+                    artifacts: workflow.artifacts,
+                    logicalKey:
+                        ZhuowangCustomerServiceArtifact
+                            .logicalKey,
+                    workspaceVersions: workspaceVersions
+                )
+
+            let fileURL: URL
+
+            do {
+                fileURL = try workspaceFileManager
+                    .writeMarkdownArtifact(
+                        provinceName: provinceName,
+                        campaignName: campaignName,
+                        stepKind: .customerService,
+                        artifactName:
+                            ZhuowangCustomerServiceArtifact.name,
+                        version: nextArtifactVersion,
+                        content: cleanOutput
+                    )
+            } catch {
+                mutationFailure = .fileWriteFailed(
+                    error.localizedDescription
+                )
+                return false
+            }
+
+            let now = Date()
+
+            let run = ZhuowangAIRun(
+                stepID: stepID,
+                providerID: provider.id,
+                connectionID: connectionID,
+                adapterIdentifier:
+                    cleanAdapterIdentifier.isEmpty
+                    ? "deepseek-harness"
+                    : cleanAdapterIdentifier,
+                modelName: provider.modelName,
+                status: .succeeded,
+                inputText: inputText,
+                outputText: cleanOutput,
+                version: nextRunVersion,
+                startedAt: now,
+                completedAt: now
+            )
+
+            let approval = ZhuowangApproval(
+                stepID: stepID,
+                runID: run.id,
+                decision: .approved,
+                feedback: "",
+                createdAt: now,
+                decidedAt: now
+            )
+
+            let artifact = ZhuowangArtifact(
+                campaignID: campaignID,
+                stepID: stepID,
+                runID: run.id,
+                name: ZhuowangCustomerServiceArtifact.name,
+                type: .markdown,
+                logicalKey:
+                    ZhuowangCustomerServiceArtifact.logicalKey,
+                providerID: provider.id,
+                connectionID: connectionID,
+                adapterIdentifier:
+                    cleanAdapterIdentifier.isEmpty
+                    ? "deepseek-harness"
+                    : cleanAdapterIdentifier,
+                location: fileURL.path,
+                content: cleanOutput,
+                version: nextArtifactVersion,
+                isApprovedVersion: true,
+                createdAt: now,
+                updatedAt: now
+            )
+
+            var updatedWorkflow = workflow
+            updatedWorkflow.aiRuns.append(run)
+            updatedWorkflow.approvals.append(approval)
+            updatedWorkflow.artifacts.append(artifact)
+            updatedWorkflow.artifacts =
+                ZhuowangWorkflowTransitionLogic
+                .selectingCurrentVersion(
+                    artifacts: updatedWorkflow.artifacts,
+                    artifactID: artifact.id
+                )
+
+            updatedWorkflow.steps[stepIndex]
+                .selectedProviderID = provider.id
+
+            updatedWorkflow =
+                ZhuowangWorkflowTransitionLogic
+                .approvingStepAndUnlockingNext(
+                    workflow: updatedWorkflow,
+                    stepID: stepID
+                )
+
+            candidateWorkflows[workflowIndex] =
+                updatedWorkflow
+
+            adoptedArtifact = artifact
+            return true
+        }
+
+        switch transaction {
+        case .committed(
+            let value,
+            let newBaselineData
+        ):
+            guard let adoptedArtifact else {
+                workflowPersistenceState =
+                    .writeVerificationFailed
+                return .rejected(
+                    .writeVerificationFailed
+                )
+            }
+
+            workflows = value
+            workflowBaselineData = newBaselineData
+            workflowPersistenceState = .healthy
+
+            return .succeeded(
+                artifactID: adoptedArtifact.id,
+                version: adoptedArtifact.version,
+                reusedExisting: reusedExisting
+            )
+
+        case .rejectedMutation:
+            return .rejected(
+                mutationFailure ?? .invalidInput
+            )
+
+        case .lockedCorruptPrimary(
+            let hasValidBackup
+        ):
+            workflowPersistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup: hasValidBackup
+                )
+
+            return .rejected(
+                .lockedCorruptPrimary(
+                    hasValidBackup: hasValidBackup
+                )
+            )
+
+        case .staleConflict:
+            workflowPersistenceState = .staleConflict
+            return .rejected(.staleConflict)
+
+        case .writeVerificationFailed:
+            workflowPersistenceState =
+                .writeVerificationFailed
+            return .rejected(
+                .writeVerificationFailed
+            )
+        }
+    }
+
+
     // MARK: - Adopt Tool Artifact Result
 
     /// Adopts a validated Tool Artifact only after its versioned file has been
@@ -1488,8 +1854,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 .max() ?? 0) + 1
 
         let workspaceArtifactVersions =
-            ZhuowangWorkspaceFileManager
-                .shared
+            workspaceFileManager
                 .existingArtifactVersions(
                     provinceName: provinceName,
                     campaignName: campaignName,
@@ -1511,8 +1876,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         do {
             switch draft.type {
             case .html:
-                fileURL = try ZhuowangWorkspaceFileManager
-                    .shared
+                fileURL = try workspaceFileManager
                     .writeHTMLArtifact(
                         provinceName: provinceName,
                         campaignName: campaignName,
@@ -1523,8 +1887,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                     )
 
             case .markdown:
-                fileURL = try ZhuowangWorkspaceFileManager
-                    .shared
+                fileURL = try workspaceFileManager
                     .writeMarkdownArtifact(
                         provinceName: provinceName,
                         campaignName: campaignName,
@@ -1628,7 +1991,8 @@ final class ZhuowangWorkflowStore: ObservableObject {
     /// Recovery is idempotent:
     /// - existing Artifact records are not duplicated
     /// - existing approved-version choices are preserved
-    /// - additional disk versions are not imported into a managed group
+    /// - existing managed groups keep their historical import behavior
+    /// - Step 06 orphan Markdown may be imported only as unadopted
     /// - local files are read only
     /// - only missing metadata is reconstructed
     ///
@@ -1642,8 +2006,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
     ) -> ZhuowangWorkflowRecoverySummary {
 
         let discovered =
-            ZhuowangWorkspaceFileManager
-                .shared
+            workspaceFileManager
                 .discoverLocalArtifacts(
                     provinceName:
                         provinceName,
@@ -1717,12 +2080,23 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         )
                     }
 
-            let recoveredLogicalKey =
-                item.stepKind == .prototype
-                && item.type == .html
-                && item.artifactName == "产品原型设计"
-                ? "workflow.prototypeDesign.primary"
-                : nil
+            let recoveredLogicalKey: String?
+
+            if item.stepKind == .prototype,
+               item.type == .html,
+               item.artifactName == "产品原型设计" {
+                recoveredLogicalKey =
+                    "workflow.prototypeDesign.primary"
+
+            } else if item.stepKind == .customerService,
+                      item.type == .markdown {
+                recoveredLogicalKey =
+                    ZhuowangCustomerServiceArtifact
+                        .logicalKey
+
+            } else {
+                recoveredLogicalKey = nil
+            }
 
             let recoveredVersionGroupKey =
                 recoveredLogicalKey
@@ -1730,6 +2104,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
             guard
                 alreadyExists
+                || item.stepKind == .customerService
                 || ZhuowangWorkflowTransitionLogic
                     .shouldRecoverMissingArtifact(
                         existingArtifactsAtRecoveryStart:
@@ -1744,9 +2119,14 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 continue
             }
 
-            recoveredStepIDs.insert(
-                stepID
-            )
+            // Step 06 requires explicit human adoption. A local Markdown file
+            // may be recovered as an unadopted Artifact, but it must never
+            // restore the step to approved by itself.
+            if item.stepKind != .customerService {
+                recoveredStepIDs.insert(
+                    stepID
+                )
+            }
 
             if !alreadyExists {
 
@@ -1877,6 +2257,23 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 let fallback =
                     sorted.first
             else {
+                continue
+            }
+
+            let isCustomerServiceGroup =
+                fallback.stepID.flatMap { fallbackStepID in
+                    workflows[workflowIndex]
+                        .steps.first(
+                            where: {
+                                $0.id == fallbackStepID
+                            }
+                        )?
+                        .kind
+                } == .customerService
+
+            // Recovered Step 06 files remain explicitly unadopted until the
+            // user accepts a generated result through the formal workflow.
+            if isCustomerServiceGroup {
                 continue
             }
 
@@ -2072,8 +2469,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 let fileURL: URL
 
                 if artifact.type == .html {
-                    fileURL = try ZhuowangWorkspaceFileManager
-                        .shared
+                    fileURL = try workspaceFileManager
                         .writeHTMLArtifact(
                             provinceName:
                                 provinceName,
@@ -2089,8 +2485,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                                 content
                         )
                 } else {
-                    fileURL = try ZhuowangWorkspaceFileManager
-                        .shared
+                    fileURL = try workspaceFileManager
                         .writeMarkdownArtifact(
                             provinceName:
                                 provinceName,
@@ -2312,26 +2707,26 @@ final class ZhuowangWorkflowStore: ObservableObject {
             return
         }
 
-        let defaults =
-            UserDefaults.standard
+        let dataSource =
+            persistenceConfiguration.dataSource
 
         if skipNextWorkflowBackup {
 
             skipNextWorkflowBackup = false
 
         } else if let currentData =
-            defaults.data(
+            dataSource.data(
                 forKey:
-                    workflowStorageKey
+                    Self.workflowStorageKey
             ) {
 
             if canDecodeWorkflows(
                 currentData
             ) {
-                defaults.set(
+                dataSource.set(
                     currentData,
                     forKey:
-                        workflowBackupStorageKey
+                        Self.workflowBackupStorageKey
                 )
             } else {
                 print(
@@ -2340,29 +2735,47 @@ final class ZhuowangWorkflowStore: ObservableObject {
             }
         }
 
-        defaults.set(
+        dataSource.set(
             data,
             forKey:
-                workflowStorageKey
+                Self.workflowStorageKey
         )
+
+        guard
+            let readBack = dataSource.data(
+                forKey: Self.workflowStorageKey
+            ),
+            readBack == data,
+            canDecodeWorkflows(readBack)
+        else {
+            workflowBaselineData = nil
+            workflowPersistenceState =
+                .writeVerificationFailed
+            return
+        }
+
+        workflowBaselineData = readBack
+        workflowPersistenceState = .healthy
     }
 
 
     private func loadWorkflows() {
 
-        let defaults =
-            UserDefaults.standard
+        let dataSource =
+            persistenceConfiguration.dataSource
 
         guard
             let data =
-                defaults.data(
+                dataSource.data(
                     forKey:
-                        workflowStorageKey
+                        Self.workflowStorageKey
                 )
         else {
 
             workflows = []
             workflowPersistenceLocked = false
+            workflowBaselineData = nil
+            workflowPersistenceState = .healthy
 
             return
         }
@@ -2377,14 +2790,16 @@ final class ZhuowangWorkflowStore: ObservableObject {
                 )
 
             workflowPersistenceLocked = false
+            workflowBaselineData = data
+            workflowPersistenceState = .healthy
 
         } catch {
 
             // Try the previous payload before giving up.
             if let backupData =
-                defaults.data(
+                dataSource.data(
                     forKey:
-                        workflowBackupStorageKey
+                        Self.workflowBackupStorageKey
                 ),
                let backupWorkflows =
                 try? JSONDecoder()
@@ -2398,6 +2813,11 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
                 workflowPersistenceLocked = false
                 skipNextWorkflowBackup = true
+                workflowBaselineData = data
+                workflowPersistenceState =
+                    .lockedCorruptPrimary(
+                        hasValidBackup: true
+                    )
 
                 print(
                     "[Cosmos OS] Current workflow payload could not be decoded. Recovered from backup: \(error.localizedDescription)"
@@ -2410,6 +2830,11 @@ final class ZhuowangWorkflowStore: ObservableObject {
             // Keep them untouched instead of replacing them with a new empty workflow.
             workflows = []
             workflowPersistenceLocked = true
+            workflowBaselineData = data
+            workflowPersistenceState =
+                .lockedCorruptPrimary(
+                    hasValidBackup: false
+                )
 
             print(
                 "[Cosmos OS] Workflow decode failed. Existing persisted data has been protected from overwrite: \(error.localizedDescription)"
@@ -2435,13 +2860,14 @@ final class ZhuowangWorkflowStore: ObservableObject {
             return
         }
 
-        let defaults = UserDefaults.standard
+        let dataSource =
+            persistenceConfiguration.dataSource
 
         if skipNextProviderBackup {
             skipNextProviderBackup = false
 
         } else if let currentData =
-            defaults.data(
+            dataSource.data(
                 forKey:
                     providerStorageKey
             ) {
@@ -2449,7 +2875,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             if canDecodeProviders(
                 currentData
             ) {
-                defaults.set(
+                dataSource.set(
                     currentData,
                     forKey:
                         providerBackupStorageKey
@@ -2461,7 +2887,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             }
         }
 
-        defaults.set(
+        dataSource.set(
             data,
             forKey:
                 providerStorageKey
@@ -2471,10 +2897,11 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
     private func loadProviders() {
 
-        let defaults = UserDefaults.standard
+        let dataSource =
+            persistenceConfiguration.dataSource
 
         guard let data =
-            defaults.data(
+            dataSource.data(
                 forKey:
                     providerStorageKey
             )
@@ -2499,7 +2926,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         } catch {
 
             if let backupData =
-                defaults.data(
+                dataSource.data(
                     forKey:
                         providerBackupStorageKey
                 ),

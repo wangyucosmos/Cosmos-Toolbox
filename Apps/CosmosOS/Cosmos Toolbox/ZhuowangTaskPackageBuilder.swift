@@ -21,6 +21,7 @@ struct ZhuowangTaskPackageBuilder {
         return ZhuowangAITaskPackage(
             campaignID: campaign.id,
             workflowStepID: step.id,
+            workflowStepKind: step.kind,
             executionSnapshot: executionSnapshot,
             title: taskTitle(
                 campaign: campaign,
@@ -102,12 +103,18 @@ struct ZhuowangTaskPackageBuilder {
         let previousContext =
             previousApprovedArtifactsText(
                 workflow: workflow,
-                currentStep: step
+                currentStep: step,
+                includeLocalPaths:
+                    step.kind != .customerService
             )
 
         let toolInstruction =
             executionSpecification?.instruction
             ?? ""
+
+        let sourceRule = step.kind == .customerService
+            ? "仅使用本任务包内提供的文本内容，不查找本机文件或其他项目资料。"
+            : "优先遵循卓望项目既有规范与当前活动上下文。"
 
         return """
         你正在处理 Cosmos OS 中的卓望工作项目。
@@ -135,7 +142,7 @@ struct ZhuowangTaskPackageBuilder {
         \(toolInstruction)
 
         【执行原则】
-        1. 优先遵循卓望项目既有规范与当前活动上下文。
+        1. \(sourceRule)
         2. 不擅自改变已经确认的业务口径。
         3. 如果信息不足，明确指出缺失信息，不要自行虚构关键业务条件。
         4. 输出内容应便于后续继续进入 Cosmos OS Workflow。
@@ -328,10 +335,13 @@ struct ZhuowangTaskPackageBuilder {
     ) -> [String] {
 
         var references: [String] = [
-            "卓望.md",
             "Campaign：\(campaign.name)",
             "Workflow Step：\(step.title)"
         ]
+
+        if step.kind != .customerService {
+            references.insert("卓望.md", at: 0)
+        }
 
         let upstreamArtifacts =
             approvedUpstreamArtifacts(
@@ -562,7 +572,8 @@ struct ZhuowangTaskPackageBuilder {
 
     private static func previousApprovedArtifactsText(
         workflow: ZhuowangCampaignWorkflow,
-        currentStep: ZhuowangWorkflowStep
+        currentStep: ZhuowangWorkflowStep,
+        includeLocalPaths: Bool
     ) -> String {
 
         let upstreamArtifacts =
@@ -585,16 +596,16 @@ struct ZhuowangTaskPackageBuilder {
                         )
                     ?? ""
 
-                let location =
-                    item.artifact.location
+                let locationLine: String
+                if includeLocalPaths {
+                    let location = item.artifact.location
                         .trimmingCharacters(
                             in: .whitespacesAndNewlines
                         )
-
-                let locationText =
-                    location.isEmpty
-                    ? "未记录本地路径"
-                    : location
+                    locationLine = "本地文件：\(location.isEmpty ? "未记录本地路径" : location)"
+                } else {
+                    locationLine = ""
+                }
 
                 let contentText =
                     content.isEmpty
@@ -606,7 +617,7 @@ struct ZhuowangTaskPackageBuilder {
                 步骤：\(item.step.title)
                 Artifact：\(item.artifact.name)
                 当前采用版本：V\(item.artifact.version)
-                本地文件：\(locationText)
+                \(locationLine)
 
                 【正文】
                 \(contentText)

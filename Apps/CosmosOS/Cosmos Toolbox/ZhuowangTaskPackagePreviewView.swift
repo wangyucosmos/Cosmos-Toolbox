@@ -12,7 +12,7 @@ struct ZhuowangTaskPackagePreviewView: View {
     let onAdoptResult: (
         String,
         ZhuowangWorkflowExecutionResult?
-    ) -> Bool
+    ) -> ZhuowangArtifactAdoptionPresentationResult
 
     @Environment(\.dismiss)
     private var dismiss
@@ -34,6 +34,9 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     @State private var workflowExecutionResult:
         ZhuowangWorkflowExecutionResult?
+
+    @State private var artifactDraft:
+        ZhuowangArtifactDraft?
 
 
     var body: some View {
@@ -96,7 +99,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 connection:
                     connection,
                 artifactDraft:
-                    workflowExecutionResult?.artifactDraft,
+                    artifactDraft,
                 resultText:
                     executionResultText,
                 errorText:
@@ -105,17 +108,17 @@ struct ZhuowangTaskPackagePreviewView: View {
                     executionState,
                 onAdopt: {
 
-                    let adopted = onAdoptResult(
+                    let result = onAdoptResult(
                         executionResultText,
                         workflowExecutionResult
                     )
 
-                    if adopted {
+                    if result.succeeded {
                         showExecutionResult = false
                         dismiss()
                     }
 
-                    return adopted
+                    return result
                 },
                 onRequestRevision: {
                     feedback in
@@ -781,6 +784,7 @@ struct ZhuowangTaskPackagePreviewView: View {
         executionErrorText = ""
         currentRevisionFeedback = ""
         workflowExecutionResult = nil
+        artifactDraft = nil
         executionState = .running
         showExecutionResult = true
 
@@ -794,6 +798,7 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                     await MainActor.run {
                         workflowExecutionResult = result
+                        artifactDraft = result.artifactDraft
                         executionResultText =
                             result.artifactDraft.content
                         executionState = .succeeded
@@ -801,6 +806,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 } catch {
                     await MainActor.run {
                         workflowExecutionResult = nil
+                        artifactDraft = nil
                         executionResultText = ""
                         executionErrorText =
                             error.localizedDescription
@@ -846,6 +852,13 @@ struct ZhuowangTaskPackagePreviewView: View {
                     executionResultText =
                         result.output
 
+                    artifactDraft =
+                        ZhuowangCustomerServiceArtifact
+                        .makeDraft(
+                            taskPackage: taskPackage,
+                            outputText: result.output
+                        )
+
                     executionErrorText =
                         result.errorOutput
 
@@ -858,6 +871,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 await MainActor.run {
 
                     executionResultText = ""
+                    artifactDraft = nil
 
                     executionErrorText =
                         error.localizedDescription
@@ -951,6 +965,7 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                     await MainActor.run {
                         workflowExecutionResult = result
+                        artifactDraft = result.artifactDraft
                         executionResultText =
                             result.artifactDraft.content
                         executionErrorText = ""
@@ -960,19 +975,24 @@ struct ZhuowangTaskPackagePreviewView: View {
                     return
                 }
 
-                let result =
-                    try await
-                    DeepSeekHarnessAdapter
+                let result = try await DeepSeekHarnessAdapter
                     .shared
-                    .execute(
-                        task:
-                            revisionTask
+                    .executeRevision(
+                        taskPackage: taskPackage,
+                        revisionTask: revisionTask
                     )
 
                 await MainActor.run {
 
                     executionResultText =
                         result.output
+
+                    workflowExecutionResult = nil
+                    artifactDraft = taskPackage.workflowStepKind == .customerService
+                        ? ZhuowangCustomerServiceArtifact.makeDraft(
+                            taskPackage: taskPackage,
+                            outputText: result.output
+                        ) : nil
 
                     executionErrorText =
                         result.errorOutput
@@ -987,6 +1007,8 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                     executionErrorText =
                         error.localizedDescription
+
+                    artifactDraft = nil
 
                     executionState =
                         .failed

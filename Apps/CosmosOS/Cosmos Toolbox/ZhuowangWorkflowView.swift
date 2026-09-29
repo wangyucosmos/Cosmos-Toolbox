@@ -24,7 +24,6 @@ private struct ZhuowangTaskPreviewContext:
     let stepID: UUID
 }
 
-
 struct ZhuowangWorkflowView: View {
 
     @ObservedObject var store: ZhuowangWorkflowStore
@@ -42,6 +41,9 @@ struct ZhuowangWorkflowView: View {
     @State
     private var previewContext:
         ZhuowangTaskPreviewContext?
+
+    @State private var step06ProviderSession =
+        ZhuowangStep06ProviderSession()
 
     var body: some View {
         VStack(
@@ -719,8 +721,7 @@ struct ZhuowangWorkflowView: View {
 
             HStack {
 
-                if step.selectedProviderID
-                    == nil {
+                if selectedProvider(for: step) == nil {
 
                     Label(
                         "先选择这一环节使用的 AI",
@@ -952,14 +953,15 @@ struct ZhuowangWorkflowView: View {
 
             Button {
 
-                store.selectProvider(
-                    workflowID:
-                        workflow.id,
-                    stepID:
-                        step.id,
-                    providerID:
-                        nil
-                )
+                if step.kind == .customerService {
+                    step06ProviderSession.select(nil, for: step.id)
+                } else {
+                    store.selectProvider(
+                        workflowID: workflow.id,
+                        stepID: step.id,
+                        providerID: nil
+                    )
+                }
 
             } label: {
 
@@ -979,14 +981,18 @@ struct ZhuowangWorkflowView: View {
 
                 Button {
 
-                    store.selectProvider(
-                        workflowID:
-                            workflow.id,
-                        stepID:
-                            step.id,
-                        providerID:
-                            provider.id
-                    )
+                    if step.kind == .customerService {
+                        step06ProviderSession.select(
+                            provider.id,
+                            for: step.id
+                        )
+                    } else {
+                        store.selectProvider(
+                            workflowID: workflow.id,
+                            stepID: step.id,
+                            providerID: provider.id
+                        )
+                    }
 
                 } label: {
 
@@ -1374,7 +1380,7 @@ struct ZhuowangWorkflowView: View {
         context: ZhuowangTaskPreviewContext,
         resultText: String,
         executionResult: ZhuowangWorkflowExecutionResult?
-    ) -> Bool {
+    ) -> ZhuowangArtifactAdoptionPresentationResult {
 
         guard
             let providerID =
@@ -1387,7 +1393,9 @@ struct ZhuowangWorkflowView: View {
                         context.stepID
                 )
         else {
-            return false
+            return .failure(
+                "当前 Workflow 或 Provider 已不可用，未保存任何修改。"
+            )
         }
 
         let inputText =
@@ -1403,12 +1411,41 @@ struct ZhuowangWorkflowView: View {
             \(context.taskPackage.expectedOutputs.joined(separator: "\n"))
             """
 
-        let adopted: Bool
+        let adoptionResult:
+            ZhuowangArtifactAdoptionPresentationResult
 
-        if let executionResult,
+        if currentStep.kind == .customerService,
            let provider = context.provider {
 
-            adopted = store.adoptExecutionResult(
+            let result =
+                store.adoptCustomerServiceResult(
+                    workflowID: context.workflowID,
+                    campaignID: campaign.id,
+                    campaignName: campaign.name,
+                    provinceName: province?.name,
+                    stepID: context.stepID,
+                    provider: provider,
+                    connectionID:
+                        context.connection?.id
+                        ?? ZhuowangBuiltInIntegrationIDs
+                            .deepSeekConnection,
+                    adapterIdentifier:
+                        context.connection?
+                            .adapterIdentifier
+                        ?? "deepseek-harness",
+                    inputText: inputText,
+                    outputText: resultText
+                )
+
+            adoptionResult =
+                ZhuowangArtifactAdoptionPresentationResult(
+                    customerServiceResult: result
+                )
+
+        } else if let executionResult,
+           let provider = context.provider {
+
+            let adopted = store.adoptExecutionResult(
                 workflowID:
                     context.workflowID,
                 campaignID:
@@ -1421,16 +1458,22 @@ struct ZhuowangWorkflowView: View {
                 provider: provider,
                 inputText:
                     inputText,
-                executionResult:
+                    executionResult:
                     executionResult
             )
+
+            adoptionResult = adopted
+                ? .success
+                : .failure(
+                    "Artifact 文件或 Workflow metadata 未能安全保存，请检查后重试。"
+                )
 
         } else {
 
             let artifactName =
                 "\(currentStep.title) · AI 采用结果"
 
-            adopted = store.adoptAIResult(
+            let adopted = store.adoptAIResult(
                 workflowID: context.workflowID,
                 campaignID: campaign.id,
                 campaignName: campaign.name,
@@ -1441,14 +1484,20 @@ struct ZhuowangWorkflowView: View {
                 outputText: resultText,
                 artifactName: artifactName
             )
+
+            adoptionResult = adopted
+                ? .success
+                : .failure(
+                    "Artifact 文件或 Workflow metadata 未能安全保存，请检查后重试。"
+                )
         }
 
-        if adopted {
+        if adoptionResult.succeeded {
             expandedStepID =
                 context.stepID
         }
 
-        return adopted
+        return adoptionResult
     }
 
 
@@ -1503,10 +1552,14 @@ struct ZhuowangWorkflowView: View {
             ZhuowangWorkflowStep
     ) -> ZhuowangAIProvider? {
 
-        guard
-            let providerID =
-                step.selectedProviderID
-        else {
+        let providerID: UUID?
+        if step.kind == .customerService {
+            providerID = step06ProviderSession.providerID(for: step)
+        } else {
+            providerID = step.selectedProviderID
+        }
+
+        guard let providerID else {
             return nil
         }
 
@@ -1578,8 +1631,7 @@ struct ZhuowangWorkflowView: View {
             in: workflow
         )
         .filter {
-            $0.selectedProviderID
-                != nil
+            selectedProvider(for: $0) != nil
         }
         .count
     }
@@ -1875,5 +1927,3 @@ struct ZhuowangWorkflowView: View {
         }
     }
 }
-
-

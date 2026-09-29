@@ -95,6 +95,48 @@ final class ArtifactReviewWorkspaceTests: XCTestCase {
     }
 
 
+    func testMarkdownAndPlainTextUseSafeTextRenderer() {
+        let sources = [
+            "# 客服 FAQ\n\n<script>fetch('https://example.com')</script>\n",
+            "<b>保持为原始文本</b>\n"
+        ]
+        let types: [ZhuowangArtifactType] = [
+            .markdown,
+            .prompt
+        ]
+        let registry = ArtifactPreviewRendererRegistry()
+        let renderer = ArtifactTextPreviewRenderer()
+
+        for (type, source) in zip(types, sources) {
+            let document = ArtifactReviewDocument(
+                artifact: ZhuowangArtifact(
+                    campaignID: UUID(),
+                    name: "Text Fixture",
+                    type: type,
+                    content: source
+                )
+            )
+
+            XCTAssertEqual(
+                registry.rendererIdentifier(
+                    for: document.previewInput
+                ),
+                .text
+            )
+            XCTAssertEqual(
+                renderer.previewText(
+                    for: document.previewInput
+                ),
+                source
+            )
+            XCTAssertFalse(
+                renderer.capabilities
+                    .supportsMobileViewport
+            )
+        }
+    }
+
+
     func testLocalUTF8HTMLProjectsReferenceThenResolvesPreviewInput()
         throws {
         let fileURL = FileManager.default.temporaryDirectory

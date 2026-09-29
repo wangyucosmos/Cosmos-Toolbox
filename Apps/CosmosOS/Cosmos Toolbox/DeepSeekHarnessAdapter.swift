@@ -240,6 +240,7 @@ final class DeepSeekHarnessAdapter {
         DeepSeekHarnessAdapter()
 
     private let runtime: DeepSeekHarnessRuntime
+    private let step06Boundary: ZhuowangStep06HarnessBoundary
 
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "CosmosToolbox",
@@ -248,7 +249,16 @@ final class DeepSeekHarnessAdapter {
 
     private init() {
         runtime = DeepSeekHarnessRuntimeCompatibility().discover()
+        step06Boundary = ZhuowangStep06HarnessBoundary()
         logRuntime()
+    }
+
+    init(
+        runtime: DeepSeekHarnessRuntime,
+        step06Boundary: ZhuowangStep06HarnessBoundary
+    ) {
+        self.runtime = runtime
+        self.step06Boundary = step06Boundary
     }
 
 
@@ -280,7 +290,9 @@ final class DeepSeekHarnessAdapter {
             )
 
         return try await execute(
-            task: taskText
+            task: taskText,
+            boundary: taskPackage.workflowStepKind == .customerService
+                ? step06Boundary : nil
         )
     }
 
@@ -291,6 +303,27 @@ final class DeepSeekHarnessAdapter {
         task: String
     ) async throws
         -> DeepSeekHarnessExecutionResult {
+
+        try await execute(task: task, boundary: nil)
+    }
+
+    func executeRevision(
+        taskPackage: ZhuowangAITaskPackage,
+        revisionTask: String
+    ) async throws -> DeepSeekHarnessExecutionResult {
+        guard taskPackage.workflowStepKind == .customerService else {
+            return try await execute(task: revisionTask)
+        }
+        var revisionPackage = taskPackage
+        revisionPackage.instruction = revisionTask
+        return try await execute(taskPackage: revisionPackage)
+    }
+
+
+    private func execute(
+        task: String,
+        boundary: ZhuowangStep06HarnessBoundary?
+    ) async throws -> DeepSeekHarnessExecutionResult {
 
         let cleanTask =
             task.trimmingCharacters(
@@ -311,10 +344,21 @@ final class DeepSeekHarnessAdapter {
             .async {
 
                 do {
-                    let result =
+                    let before = try boundary?.snapshot()
+                    let configuration = try boundary?.makeLaunchConfiguration(
+                        harnessHome: URL(fileURLWithPath: self.runtime.dshHomePath)
+                    )
+                    let attempt = Result {
                         try self.runProcess(
-                            task: cleanTask
+                            task: cleanTask,
+                            step06Configuration: configuration
                         )
+                    }
+                    let after = try boundary?.snapshot()
+                    guard before == after else {
+                        throw ZhuowangStep06HarnessBoundaryError.formalFilesChanged
+                    }
+                    let result = try attempt.get()
 
                     continuation.resume(
                         returning: result
@@ -333,7 +377,8 @@ final class DeepSeekHarnessAdapter {
     // MARK: - Process
 
     private func runProcess(
-        task: String
+        task: String,
+        step06Configuration: (workingDirectory: URL, harnessHome: URL, profile: String)? = nil
     ) throws
         -> DeepSeekHarnessExecutionResult {
 
@@ -366,24 +411,39 @@ final class DeepSeekHarnessAdapter {
         // npx environment that already works
         // in the user's Terminal.
 
+        let harnessExecutable: URL
+        let harnessArguments: [String]
         if let executableURL = runtime.executableURL {
-            process.executableURL = executableURL
-            process.arguments = [
+            harnessExecutable = executableURL
+            harnessArguments = [
                 "--profile",
                 "headless",
                 task
             ]
         } else {
-            process.executableURL = URL(fileURLWithPath: shellPath)
+            harnessExecutable = URL(fileURLWithPath: shellPath)
             let command =
                 """
                 "\(npxPath)" -y \(dshPackage) --profile headless "$COSMOS_DSH_TASK"
                 """
-            process.arguments = [
+            harnessArguments = [
                 "-l",
                 "-c",
                 command
             ]
+        }
+
+        if let step06Configuration {
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/sandbox-exec")
+            process.arguments = [
+                "-p",
+                step06Configuration.profile,
+                harnessExecutable.path
+            ] + harnessArguments
+            process.currentDirectoryURL = step06Configuration.workingDirectory
+        } else {
+            process.executableURL = harnessExecutable
+            process.arguments = harnessArguments
         }
 
 
@@ -405,6 +465,16 @@ final class DeepSeekHarnessAdapter {
         environment[
             "DSH_HOME"
         ] = runtime.dshHomePath
+
+        if let step06Configuration {
+            let directory = step06Configuration.workingDirectory.path
+            environment["HOME"] = directory
+            environment["TMPDIR"] = directory + "/"
+            environment["PWD"] = directory
+            environment["XDG_CACHE_HOME"] = directory
+            environment["npm_config_cache"] = directory
+            environment["DSH_HOME"] = step06Configuration.harnessHome.path
+        }
 
         // Preserve the user's real HOME so
         // DeepSeek Harness can resolve paths
@@ -602,6 +672,15 @@ final class DeepSeekHarnessAdapter {
     private static func resultDeliveryText(
         for taskPackage: ZhuowangAITaskPackage
     ) -> String {
+
+        if taskPackage.workflowStepKind == .customerService {
+            return """
+            【结果回传约束】
+            本次仅返回可供用户审阅的 Markdown 正文，不提供正式保存路径。
+            不要创建、修改、复制文件或执行 Git 操作；不要写入 Workspace 或知识库。
+            stdout 只包含完整 Markdown 正文，不要声称已经保存或采用。
+            """
+        }
 
         if ZhuowangTaskExecutionSpecificationResolver.resolve(
             snapshot: taskPackage.executionSnapshot

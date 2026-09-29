@@ -1061,6 +1061,9 @@ struct ZhuowangAITaskPackage:
     var campaignID: UUID
     var workflowStepID: UUID
 
+    /// Optional for backward compatibility with historical task packages.
+    var workflowStepKind: ZhuowangWorkflowStepKind?
+
     /// Nil for historical and non-tool task packages.
     var executionSnapshot: ZhuowangWorkflowExecutionSnapshot?
 
@@ -1095,6 +1098,7 @@ struct ZhuowangAITaskPackage:
         id: UUID = UUID(),
         campaignID: UUID,
         workflowStepID: UUID,
+        workflowStepKind: ZhuowangWorkflowStepKind? = nil,
         executionSnapshot: ZhuowangWorkflowExecutionSnapshot? = nil,
         title: String,
         instruction: String,
@@ -1106,6 +1110,7 @@ struct ZhuowangAITaskPackage:
         self.id = id
         self.campaignID = campaignID
         self.workflowStepID = workflowStepID
+        self.workflowStepKind = workflowStepKind
         self.executionSnapshot = executionSnapshot
         self.title = title
         self.instruction = instruction

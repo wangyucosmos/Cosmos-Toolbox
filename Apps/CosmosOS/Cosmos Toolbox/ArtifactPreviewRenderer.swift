@@ -18,6 +18,9 @@ struct ArtifactPreviewRendererIdentifier:
     static let pdf =
         ArtifactPreviewRendererIdentifier(rawValue: "pdf")
 
+    static let text =
+        ArtifactPreviewRendererIdentifier(rawValue: "text")
+
     static let unsupported =
         ArtifactPreviewRendererIdentifier(rawValue: "unsupported")
 }
@@ -62,6 +65,13 @@ struct ArtifactPreviewRendererCapabilities: Equatable {
         supportsFullPreview: true,
         supportsMobileViewport: false
     )
+
+    static let text = ArtifactPreviewRendererCapabilities(
+        supportsPreview: true,
+        supportsSource: true,
+        supportsFullPreview: true,
+        supportsMobileViewport: false
+    )
 }
 
 
@@ -99,6 +109,7 @@ struct ArtifactPreviewRendererRegistry {
     init(
         renderers: [any ArtifactPreviewRenderer] = [
             HTMLArtifactPreviewRenderer(),
+            ArtifactTextPreviewRenderer(),
             ArtifactImagePreviewRenderer(),
             ArtifactPDFPreviewRenderer()
         ],

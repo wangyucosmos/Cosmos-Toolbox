@@ -26,7 +26,8 @@ struct ZhuowangAIExecutionResultView: View {
 
     let state: ZhuowangAIExecutionViewState
 
-    let onAdopt: () -> Bool
+    let onAdopt: () ->
+        ZhuowangArtifactAdoptionPresentationResult
     let onRequestRevision: (String) -> Void
     let onRegenerate: () -> Void
 
@@ -40,7 +41,7 @@ struct ZhuowangAIExecutionResultView: View {
     private var showRevisionSheet = false
 
     @State
-    private var adoptionFailed = false
+    private var adoptionErrorMessage: String?
 
 
     var body: some View {
@@ -478,9 +479,9 @@ struct ZhuowangAIExecutionResultView: View {
 
             reviewNotice
 
-            if adoptionFailed {
+            if let adoptionErrorMessage {
                 Label(
-                    "采用失败：HTML 文件或 Artifact 未能安全保存。Workflow 状态未改变，请检查后重试。",
+                    adoptionErrorMessage,
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -603,7 +604,9 @@ struct ZhuowangAIExecutionResultView: View {
             }
 
             Text(
-                "在独立 Artifact Review Workspace 中查看真实渲染、切换 Mobile Viewport，并核对源码。"
+                draft.type == .html
+                ? "在独立 Artifact Review Workspace 中查看真实渲染、切换 Mobile Viewport，并核对源码。"
+                : "在独立 Artifact Review Workspace 中阅读完整内容并核对原文。"
             )
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -975,11 +978,15 @@ struct ZhuowangAIExecutionResultView: View {
 
                 Button {
 
-                    if onAdopt() {
-                        adoptionFailed = false
+                    let result = onAdopt()
+
+                    if result.succeeded {
+                        adoptionErrorMessage = nil
                         dismiss()
                     } else {
-                        adoptionFailed = true
+                        adoptionErrorMessage =
+                            result.errorMessage
+                            ?? "采用失败。Workflow 状态未改变，请检查后重试。"
                     }
 
                 } label: {

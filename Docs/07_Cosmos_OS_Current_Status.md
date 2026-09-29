@@ -1,8 +1,8 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-29
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Campaign / Workspace Store persistence protection Phase 1 implemented, reviewed, tested and accepted through the formal Campaign UI in an isolated environment (2026-09-20); temporary acceptance data cleaned under explicit authorisation; not yet committed or pushed
+**Current stage:** Step 06 Customer Service Document Workflow Phase 1 passed the 2026-09-29 real Harness Draft/Preview and human-adoption UI acceptance. The formal Markdown V1 and Workflow Run/Approval/Artifact/approved state were independently verified on disk and in persisted data. The prior pre-adoption write incident remains preserved in Evidence/Quarantine; do not restore those files into the formal Workspace or knowledge base.
 
 ---
 
@@ -35,7 +35,7 @@ Current six-step Workflow state:
 03 完整策划案     已确认
 04 页面结构       已确认
 05 产品原型设计   已确认
-06 客服文档       可开始
+06 客服文档       已确认
 ```
 
 Important version state:
@@ -45,6 +45,8 @@ Important version state:
 - 产品原型 current adopted version is **V3**.
 - Artifact Detail currently manages prototype **V1 / V3 / V4**; the local V2 file remains intentionally unmanaged and must not be imported, deleted, or modified.
 - Do not overwrite this choice unless the user explicitly changes it.
+- On 2026-09-24, before the P1 fix, Step 06 was `ready` with zero Run, Approval and Artifact. Harness wrote an unadopted Markdown file in `06_客服文档` and a byte-identical knowledge-base mirror before adoption. The Workflow primary changed only in Workflow/Step 06 `updatedAt` because Provider selection was persisted. On 2026-09-29 both incident originals were moved to Quarantine only after byte-identical Evidence copies were verified; all four preserved files remain outside the formal Workspace and knowledge-base paths, at 31,878 bytes and SHA-256 `a198eb7d2336c4487683360bc3f008fd94f569601d3a1850d65a412e67aaa9ec`. Do not delete, overwrite, restore or automatically import them.
+- On 2026-09-29, after the fixed real Harness run and human adoption, Step 06 is persisted as `approved` with exactly one succeeded AI Run, one approved Approval and one adopted Markdown Artifact V1 in logical group `workflow.customerService.primary`. The formal file is `~/Documents/Cosmos OS/Workspaces/卓望/浙江/浙江活动测试/06_客服文档/客服文档_V1.md`, 28,360 bytes, SHA-256 `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`; its bytes match the persisted Artifact content. Prototype V3 remains the unique adopted upstream prototype.
 
 Post-P0 runtime acceptance was completed manually on 2026-08-19:
 
@@ -90,6 +92,13 @@ Verified:
 - Finder reveal / open for local Artifacts
 - Legacy Artifact local-file migration
 - Later Workflow steps consuming currently adopted upstream Artifact content
+- Step 06 Task Package explicitly identifies the customer-service step and consumes only currently adopted upstream Artifact versions, including the adopted Prototype V3 rather than unmanaged or historical versions
+- Step 06 generated Markdown appeared as a Draft in the existing Artifact Review Workspace, including adopted Prototype V3 upstream context. The first live execution exposed a pre-adoption write defect; the narrow sandbox/integrity fix and the 2026-09-29 real Harness re-acceptance kept the formal `06_客服文档` and knowledge-base customer-service directories empty before adoption. The user then adopted the result; the UI displayed `已确认` and `已采用、已落盘`, and the separate persisted-data/file checks below confirmed that result.
+- Markdown and plain-text Preview use a native selectable Text Renderer; source is displayed literally without HTML/script execution or network loading
+- Step 06 formal adoption creates a versioned `.md` file, succeeded AI Run, approved Approval, provenance-complete Artifact with logical key `workflow.customerService.primary`, one current adopted version, and an approved final step
+- Step 06 adoption is idempotent for an already adopted matching result, preserves older versions, and does not unlock a nonexistent next step
+- Step 06 uses a narrow protected Workflow transaction with stale-baseline/decode-lock checks, backup and primary read-back verification, and memory publication only after metadata persistence succeeds
+- Step 06 Recovery imports only exact `客服文档_V数字.md` names as unadopted Artifacts and never changes the step to approved or bypasses human adoption; the incident file `客服文档 _ AI 采用结果_V1.md` is not imported.
 - Native macOS Campaign Detail window
 - Native macOS Artifact Detail window
 - Step 05 capability-based HTML Prototype Tool selection
@@ -186,6 +195,8 @@ canonical SHA-256 711fd948e14f10e31f465731f84c25dd75c5360f2b18e2004942beacd4c084
 The incident changed JSON object key order only. Exhaustive reconstruction matched both raw encodings from the same semantic object; all fields, UUIDs, and array order remained equal. No recovery or overwrite was performed.
 
 Phase 1 is intentionally limited to a process-local lock and UserDefaults read-back verification. It does not provide cross-process transactions, automatic recovery, backup rotation, or a disk-level durability guarantee. When any persistence verification fails (initial write, encoding, backup write / read-back, primary write / read-back) the Store locks and the UI does not publish the change; the persisted primary and/or backup may already have changed, so the user is told to stop and verify before restarting. The wording promises neither that the backup is valid nor that the primary is unchanged. No automatic rollback is performed.
+
+Step 06 Phase 1 reuses this protected boundary only for the customer-service adoption operation. The transaction accepts the Store's last loaded Workflow bytes as its baseline, rereads and decodes the current primary under the process-local lock, builds the candidate in isolation, writes the versioned Markdown file, verifies backup and primary writes, and publishes the decoded candidate only after success. A file-write failure leaves Workflow memory and metadata unchanged. If metadata persistence or read-back fails after the file has been created, the file is deliberately retained as user-owned recovery material; Recovery may import it only as unadopted and must not approve Step 06. This is a narrow Step 06 hardening, not a migration of every historical `ZhuowangWorkflowStore` mutation to Store Phase 2.
 
 Formal data gate: business integrity is gated by the per-key SHA-256 of the 11 business `Data` keys plus decode checks. The whole-plist SHA-256 of `com.wangyucosmos.Cosmos-Toolbox.plist` is a diagnostic indicator only, because it also contains AppKit window-state keys that any process using the production Bundle ID (including the XCTest host) legitimately updates.
 
@@ -344,7 +355,7 @@ Artifact Draft / historical Artifact
 
 The Artifact Preview Abstraction Layer Phase 1 is confined to Review projection and Renderer input. It does not modify `ZhuowangArtifact`, `ZhuowangArtifactType`, UserDefaults schema, Adoption, Recovery, Workspace File Manager, or Task Package construction. Legacy inline text is projected without normalization; a supported local HTML / Markdown / plain-text reference is read only while resolving Preview Input. Binary files are never decoded as `String`, arbitrary `location` values are not inferred as external URLs, and missing, unreadable, unknown, or conflicting media enter the safe fallback.
 
-Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. The Registry currently contains HTML, Image, and PDF Renderers plus the safe fallback; Figma, Pixso, external URL, and other external-document Renderers remain deferred.
+Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. The Registry currently contains HTML, Text, Image, and PDF Renderers plus the safe fallback; Figma, Pixso, external URL, and other external-document Renderers remain deferred.
 
 Image Renderer Phase 1 extends the Review-only typed boundary without changing persistence:
 
@@ -506,7 +517,10 @@ The discovered executable is used directly. If discovery fails, the previous npx
 - Claude Desktop direct execution is not yet implemented.
 - ChatGPT direct execution path is not yet implemented.
 - Codex execution path from inside Cosmos OS is not yet fully implemented.
-- A minimal XCTest target now covers Step 05 high-value pure logic; broader persistence and UI regression coverage remains technical debt.
+- Step 06 Phase 1 supports only DeepSeek Harness → Markdown. Local import, external URL/cloud-document references, Word/PDF generation, other Provider adapters, persistent draft/revision history, comments, annotations, hard rejection, undo, and a general approval framework remain deferred.
+- Step 06 pre-adoption running/result/revision state is session-only. The first live run violated this boundary by allowing Harness to write directly; after the child-process sandbox and before/after integrity check were added, the 2026-09-29 real Harness run left the formal customer-service Workspace and knowledge-base directories empty and the Workflow primary/backup bytes unchanged before adoption. This is one live acceptance, not a proof for all future Harness versions or external services.
+- Step 06 Provider choice is now session-local until adoption, so selecting it for generation no longer saves Workflow/Step `updatedAt`. Step 01–05 provider behavior is unchanged.
+- Step 06 has broad automated persistence, Review, Compare, Recovery, and regression coverage. The 2026-09-29 fixed-runtime Draft/Preview and human adoption passed real UI acceptance; persisted Workflow metadata and the formal Markdown V1 were independently checked afterward. Restart recovery and future-version compatibility were not part of this acceptance.
 - Artifact sidecar manifests are deferred, so disaster recovery can reconstruct the primary HTML prototype logical key only from the canonical artifact name.
 
 ### Deferred
@@ -569,40 +583,36 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-The current Step 05 milestone is complete:
+Step 06 Phase 1 is implemented and accepted for the observed 2026-09-29 real UI path:
 
 ```text
-prototypeDesign Capability
-+ Prototype Execution Profile
-+ selected Provider / Connection / Tool / Route
-→ immutable execution snapshot
-→ DeepSeek Harness Runtime Compatibility Layer
-→ HTML execution specification + normalization + validation
-→ Artifact Draft
-→ unified Artifact Review Workspace
+Step 06 ready
+→ Task Package with currently adopted upstream Artifacts
+→ DeepSeek Harness Markdown result
+→ session-only Artifact Draft
+→ safe Text Renderer in Artifact Review Workspace
 → human adoption
-→ versioned .html Artifact
-→ adopted Artifact Detail reopens the same Review Workspace
+→ protected Workflow transaction
+→ versioned .md + Run + Approval + provenance-complete Artifact
+→ Step 06 approved
+→ Artifact Detail / version history / Text Compare
 ```
 
 Completed milestone capabilities:
 
-- Step 05 real HTML Prototype generation, validation, adoption, persistence, approval, and Step 06 unlock;
-- tool-independent Low-fi / Mid-fi / High-fi fidelity and style controls frozen into execution provenance;
-- type-independent Artifact Review Workspace with Phase 1 HTML Renderer, Source mode, Full Preview, and 375px / 390px real WebView mobile frames;
-- unified Draft and adopted / historical Artifact Review Workspace entry;
-- Renderer-owned HTML Preview CSP plus WebKit content rules, non-persistent storage, and navigation policy without modifying source Artifacts.
-- independent managed-version Compare Workspace with stable logical-Artifact window identity, UUID-based left / right selection, shared Review Pane / Renderer Registry, independent Preview / Source and scrolling, and shared 375px / 390px viewport.
-- typed Review Payload / Preview Input projection with controlled local-text resolution, safe binary / missing / conflicting fallback, and Renderer capability-driven controls without persistent schema changes;
-- local static PNG / JPEG Image Renderer with ImageIO validation, bounded asynchronous decoding, file consistency checks, Renderer-local zoom, Full Preview, and mixed-type Version Compare.
-- local PDF Renderer with exact media classification, bounded Data loading, fail-closed action inspection, secure PDFView delegation, continuous reading and navigation controls, explicit binding teardown, Full Preview, and independent PDF / mixed-type Compare panes.
+- safe native Markdown/plain-text Preview with literal selectable content and no HTML/script/network execution;
+- DeepSeek result conversion into the existing Review Workspace without formal writes before adoption;
+- a stable `workflow.customerService.primary` logical Artifact group with version preservation and exactly one adopted version;
+- a Step 06-specific protected adoption transaction with stale/decode checks, backup and primary verification, structured UI errors, and safe retry;
+- unadopted-only Step 06 local-file Recovery that never approves the step;
+- adopted Markdown reopening through Artifact Detail and using the existing managed-version Compare surface;
+- isolated XCTest and Universal Debug/Release builds from the implementation, P1 and P2 verification rounds, plus the Release isolation-string scan. These automated checks preceded the final live adoption; they were not rerun as part of the 2026-09-29 closeout.
 
-Recommended next-session order:
+Next-session handoff:
 
-1. Commit and push Phase 1 after explicit user authorisation (the working tree is the accepted state: 8 modified files + 7 new source / test / log files; no build by-products).
-2. Keep Step 06 implementation paused until this persistence boundary is accepted and the next milestone scope is approved.
-3. Treat cross-process transactions, automatic recovery, backup rotation, and persistence-format migration as separate future milestones.
-4. Keep persistent Artifact payload descriptors, Image / PDF Adoption, Sidecar Manifest, Figma / Pixso execution, external-document adoption, and PDF process isolation deferred until their write paths receive separate review.
+1. Use this accepted Step 06 Phase 1 as the baseline; do not repeat adoption or import the quarantined accident file.
+2. Keep the four Evidence/Quarantine files intact until the product owner separately authorizes their disposition. The knowledge-base customer-service directory remains empty; the adopted file lives only in the Cosmos Workspace.
+3. Let the product owner choose the next milestone explicitly. Persistent drafts/revisions, comments/annotations, local import, external references, additional Providers, Word/PDF generation, Browser/Desktop Preview, Store Phase 2, and cross-process persistence remain separate future work.
 
 A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
 
@@ -644,5 +654,9 @@ Do not regress these verified decisions:
 - PDF Fixture acceptance used only dynamically generated temporary files and did not read or import a real business PDF. Six business-shaped Fixture windows reached ready and contained seven real PDFViews. Human-observed and automated interaction coverage confirmed PDF display, continuous scrolling, page navigation and page entry, Fit Page, Fit Width, 100%, 10%–400% limits, independent PDF | PDF page / zoom state, Full Preview close / native close / reopen / resize / native full screen, HTML | PDF, Image | PDF, PDF | Unsupported, Light / Dark appearance, and the corrected temporary WindowContext close path. No PDF Publishing warning, crash, hang, or abnormal CPU use was observed.
 - Manual acceptance did not completely cover the final system clipboard contents after text selection, a viewable-but-copy-prohibited PDF, or clicking every dangerous PDF action. Those boundaries have automated policy coverage and are explicit Phase 1 acceptance gaps rather than claims of complete manual security validation. A focused combined run also recorded two SwiftUI `@State` warnings caused by construction in other Compare tests; they were not PDF Publishing warnings and did not fail the tests. This was kept out of the PDF Phase 1 scope for separate follow-up.
 - PDF verification did not run Harness, generate, import, or adopt an Artifact, or modify business UserDefaults. The canonical Workflow SHA-256 remained `a7e3dd5f7e2dc1c62f62d0e7490b660df59b3947eb0f90e293d7ad617dd02b61`; Workflow remained 01–05 approved and 06 ready; adopted prototype remained V3; managed versions remained V1 / V3 / V4 and V2 remained unmanaged; the established V1–V4 file hashes remained unchanged.
+- Initial Step 06 implementation checkpoint: 170/170 XCTest passed with 0 failed/skipped under temporary Bundle ID `com.wangyucosmos.cosmostoolbox.step06tests.6F0B17A4-795F-4DA3-9DC7-BFC7A4C1D698`. The temporary preference domain contained only two window-state keys and no business `Data` key. The test build and independent macOS Debug/Release builds contained `x86_64 arm64`; the Release isolation-string scan found zero matches for 10 DEBUG-only identifiers and retained `CosmosRootView`. At that earlier checkpoint the formal plist and Workflow bytes were unchanged, and live UI acceptance had not yet run.
+- 2026-09-24 P1 fix: targeted Step 06 XCTest 15/15 and full suite 175/175 passed with 0 failed/skipped under a temporary Bundle ID, suite and `/tmp` data/build roots. Universal Debug and Release builds succeeded for `x86_64 arm64`; 10 Release DEBUG-only identifiers were absent and `CosmosRootView` remained. No post-fix formal App or real Harness run occurred. The two incident files remain untouched.
+- 2026-09-29 narrow P2 follow-up: the Step 06 sandbox profile and child environment use matching POSIX-canonical temporary run/DSH paths; only the exact `/dev/null` device is additionally writable. Real `sandbox-exec` probes cover permitted HOME, TMPDIR, cwd, PWD, npm cache, DSH_HOME and `/dev/null` writes, denied protected-root writes, and denied Git execution. Step 01–04 revisions use the original raw request, while Step 06 revisions retain the sandboxed task-package path. Focused and complete isolated XCTest and Universal Debug/Release builds passed; Release DEBUG-isolation scan had zero hits. Claude's narrow static re-review passed before the later live re-acceptance.
+- 2026-09-29 live Step 06 re-acceptance: the user observed a real Harness Markdown Draft and readable Review Workspace. Before adoption, the two formal customer-service directories remained empty and the Workflow primary/backup bytes remained at the recorded pre-generation values. The user then clicked Adopt; the UI showed Step 06 `已确认` and the Markdown V1 `已采用、已落盘`. Independent read-only inspection found the 28,360-byte formal V1 file with SHA-256 `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`; persisted Step 06 is `approved` with exactly one succeeded Run, one approved Approval and one uniquely adopted Markdown Artifact. The Artifact's content bytes equal the file bytes. The Workflow backup equals the pre-adoption primary (`88ab71fe…`); the post-adoption primary is `b71226b1…`. The four incident Evidence/Quarantine files retain their original 31,878-byte size and `a198eb7d…` hash. This verifies this one adoption round trip, not restart recovery or universal future-runtime confinement.
 - `git diff --check` completed successfully.
 - Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.

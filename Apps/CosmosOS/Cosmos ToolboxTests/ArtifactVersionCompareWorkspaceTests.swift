@@ -187,6 +187,80 @@ final class ArtifactVersionCompareWorkspaceTests: XCTestCase {
     }
 
 
+    func testMarkdownVersionsUseTextRendererOnBothSides()
+        throws {
+        let sourceV1 = "# FAQ V1\n旧口径"
+        let sourceV2 = "# FAQ V2\n新口径"
+        let artifacts = [
+            ZhuowangArtifact(
+                campaignID: campaignID,
+                name: "客服文档",
+                type: .markdown,
+                logicalKey:
+                    ZhuowangCustomerServiceArtifact.logicalKey,
+                content: sourceV1,
+                version: 1,
+                isApprovedVersion: false
+            ),
+            ZhuowangArtifact(
+                campaignID: campaignID,
+                name: "客服文档",
+                type: .markdown,
+                logicalKey:
+                    ZhuowangCustomerServiceArtifact.logicalKey,
+                content: sourceV2,
+                version: 2,
+                isApprovedVersion: true
+            )
+        ]
+        let items = artifacts.map {
+            ArtifactVersionComparisonItem(
+                artifactID: $0.id,
+                version: $0.version,
+                isCurrent: $0.isApprovedVersion,
+                document: ArtifactReviewDocument(artifact: $0)
+            )
+        }
+        let state = try XCTUnwrap(
+            ArtifactVersionCompareState(
+                items: items,
+                selectedArtifactID: artifacts[0].id
+            )
+        )
+        let registry = ArtifactPreviewRendererRegistry()
+        let leftItem = try XCTUnwrap(
+            items.first {
+                $0.id == state.leftArtifactID
+            }
+        )
+        let rightItem = try XCTUnwrap(
+            items.first {
+                $0.id == state.rightArtifactID
+            }
+        )
+
+        XCTAssertEqual(
+            registry.rendererIdentifier(
+                for: leftItem.document.previewInput
+            ),
+            .text
+        )
+        XCTAssertEqual(
+            registry.rendererIdentifier(
+                for: rightItem.document.previewInput
+            ),
+            .text
+        )
+        XCTAssertEqual(
+            Set([
+                leftItem.document.content,
+                rightItem.document.content
+            ]),
+            Set([sourceV1, sourceV2])
+        )
+    }
+
+
     func testMixedCompareNormalizesOnlyUnsupportedSourceMode() throws {
         var items = makeItems()
         let unsupportedArtifact = ZhuowangArtifact(
