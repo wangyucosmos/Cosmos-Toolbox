@@ -19,6 +19,9 @@ struct ZhuowangCampaignDetailView: View {
     @State private var workspaceMessage = ""
     @State private var showWorkspaceAlert = false
 
+    @State
+    private var showArtifactDeliveryPackage = false
+
 
     @State private var selectedTab: ZhuowangCampaignDetailTab = .overview
 
@@ -153,6 +156,42 @@ struct ZhuowangCampaignDetailView: View {
             Button("知道了") { }
         } message: {
             Text(workspaceMessage)
+        }
+        .sheet(
+            isPresented:
+                $showArtifactDeliveryPackage
+        ) {
+            if let campaign {
+                ZhuowangArtifactDeliveryPackageView(
+                    campaign: campaign,
+                    provinceName: province?.name,
+                    campaignWorkspaceURL:
+                        ZhuowangWorkspaceFileManager
+                            .shared
+                            .campaignDirectoryURL(
+                                provinceName:
+                                    province?.name,
+                                campaignName:
+                                    campaign.name
+                            ),
+                    snapshotProvider: {
+                        ZhuowangArtifactDeliverySnapshot(
+                            campaignID: campaign.id,
+                            artifacts:
+                                workflowStore.artifacts(
+                                    forCampaignID:
+                                        campaign.id
+                                ),
+                            steps:
+                                workflowStore.workflow(
+                                    forCampaignID:
+                                        campaign.id
+                                )?.steps
+                                ?? []
+                        )
+                    }
+                )
+            }
         }
     }
 
@@ -442,7 +481,17 @@ struct ZhuowangCampaignDetailView: View {
 
                 Spacer()
 
-                HStack(spacing: 6) {
+                HStack(spacing: 10) {
+
+                    Button {
+                        showArtifactDeliveryPackage = true
+                    } label: {
+                        Label(
+                            "导出交付包",
+                            systemImage: "archivebox"
+                        )
+                    }
+                    .buttonStyle(.bordered)
 
                     Text("\(artifactGroups.count) 项")
 
