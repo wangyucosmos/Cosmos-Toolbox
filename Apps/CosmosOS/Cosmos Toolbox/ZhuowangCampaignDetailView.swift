@@ -10,6 +10,10 @@ struct ZhuowangCampaignDetailView: View {
     let province: ZhuowangProvince?
     let module: ZhuowangModule?
 
+    /// Lets another entry (e.g. the progress workbench) open a specific tab
+    /// or the existing delivery-package sheet in this window.
+    @ObservedObject var route = ZhuowangCampaignDetailRoute()
+
     @Environment(\.dismiss)
     private var dismiss
 
@@ -126,6 +130,10 @@ struct ZhuowangCampaignDetailView: View {
             loadDraft()
             recoverLocalWorkflowIfNeeded()
             migrateLegacyArtifactsIfNeeded()
+            applyRoute()
+        }
+        .onChange(of: route.requestSerial) {
+            applyRoute()
         }
         .confirmationDialog(
             "删除这个活动？",
@@ -192,6 +200,29 @@ struct ZhuowangCampaignDetailView: View {
                     }
                 )
             }
+        }
+    }
+
+
+    // MARK: - Route
+
+    private func applyRoute() {
+        guard !isEditing,
+              let destination = route.takeRequest()
+        else {
+            return
+        }
+
+        switch destination {
+        case .overview:
+            selectedTab = .overview
+        case .workflow:
+            selectedTab = .workflow
+        case .artifacts:
+            selectedTab = .artifacts
+        case .deliveryPackage:
+            selectedTab = .artifacts
+            showArtifactDeliveryPackage = true
         }
     }
 

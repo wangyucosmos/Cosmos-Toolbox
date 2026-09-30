@@ -7,6 +7,9 @@ struct ZhuowangWorkspaceView: View {
 
     @StateObject private var store: ZhuowangWorkspaceStore
     @StateObject private var campaignStore: ZhuowangCampaignStore
+    /// One Workflow Store for the Campaign list, the progress workbench and
+    /// every Campaign window opened from them.
+    @StateObject private var workflowStore = ZhuowangWorkflowStore()
     @State private var selectedNavigation: ZhuowangNavigationItem?
     @State private var selectedCategoryID = "overview"
     @State private var showManager = false
@@ -127,6 +130,8 @@ struct ZhuowangWorkspaceView: View {
                     spacing: CosmosDesign.spacingL
                 ) {
 
+                    workbenchSection
+
                     welfareSection
 
                     standaloneModuleSection
@@ -245,6 +250,31 @@ struct ZhuowangWorkspaceView: View {
             .vertical,
             CosmosDesign.spacingM
         )
+    }
+
+
+    // MARK: Workbench
+
+    private var workbenchSection: some View {
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingS
+        ) {
+            sectionLabel(
+                "总览",
+                english: "Overview"
+            )
+
+            ZhuowangSidebarRow(
+                icon: "chart.bar.doc.horizontal",
+                title: "推进工作台",
+                subtitle: "Campaign Progress",
+                isSelected:
+                    selectedNavigation == .workbench
+            ) {
+                selectNavigation(.workbench)
+            }
+        }
     }
 
 
@@ -385,28 +415,40 @@ struct ZhuowangWorkspaceView: View {
                 spacing: CosmosDesign.spacingXL
             ) {
 
-                detailHeader
+                if selectedNavigation == .workbench {
 
-                categoryTabs
-
-                Divider()
-                    .opacity(0.35)
-
-                if selectedCategoryID == "overview" {
-
-                    overviewContent
-
-                } else if selectedCategoryID == "campaign" {
-
-                    ZhuowangCampaignView(
-                        store: campaignStore,
-                        province: selectedProvince,
-                        module: selectedModule
+                    ZhuowangCampaignWorkbenchView(
+                        campaignStore: campaignStore,
+                        workspaceStore: store,
+                        workflowStore: workflowStore
                     )
 
                 } else {
 
-                    categoryContent
+                    detailHeader
+
+                    categoryTabs
+
+                    Divider()
+                        .opacity(0.35)
+
+                    if selectedCategoryID == "overview" {
+
+                        overviewContent
+
+                    } else if selectedCategoryID == "campaign" {
+
+                        ZhuowangCampaignView(
+                            store: campaignStore,
+                            province: selectedProvince,
+                            module: selectedModule,
+                            workflowStore: workflowStore
+                        )
+
+                    } else {
+
+                        categoryContent
+                    }
                 }
             }
             .padding(
@@ -956,9 +998,12 @@ struct ZhuowangWorkspaceView: View {
             spacing: CosmosDesign.spacingXXL
         ) {
 
-            metricCards
-
-            recentWorkSection
+            ZhuowangCampaignWorkbenchView(
+                campaignStore: campaignStore,
+                workspaceStore: store,
+                workflowStore: workflowStore,
+                fixedScope: currentWorkbenchScope
+            )
 
             quickActionsSection
 
@@ -967,137 +1012,16 @@ struct ZhuowangWorkspaceView: View {
     }
 
 
-    // MARK: Metrics
+    private var currentWorkbenchScope:
+        ZhuowangCampaignWorkbenchFilter.Scope {
 
-    private var metricCards: some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingL
-        ) {
-
-            ZhuowangMetricCard(
-                icon: "megaphone",
-                value: "3",
-                title: "进行中活动",
-                subtitle: "Active Campaigns"
-            )
-
-            ZhuowangMetricCard(
-                icon: "folder",
-                value: "8",
-                title: "工作资产",
-                subtitle: "Workspace Assets"
-            )
-
-            ZhuowangMetricCard(
-                icon: "clock",
-                value: "2",
-                title: "待处理事项",
-                subtitle: "To Do"
-            )
+        if let selectedProvince {
+            return .province(selectedProvince.id)
         }
-    }
-
-
-    // MARK: Recent Work
-
-    private var recentWorkSection: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            HStack {
-
-                CosmosSectionTitle(
-                    title: "最近工作",
-                    subtitle: "Recent Work"
-                )
-
-                Spacer()
-
-                Button {
-
-                } label: {
-
-                    HStack(
-                        spacing:
-                            CosmosDesign.spacingXS
-                    ) {
-
-                        Text("查看全部")
-
-                        Image(
-                            systemName:
-                                "arrow.right"
-                        )
-                    }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.tint)
-            }
-
-            VStack(spacing: 0) {
-
-                ZhuowangWorkRow(
-                    icon: "megaphone",
-                    title:
-                        "\(currentDisplayName) 9 月促活",
-                    subtitle:
-                        "活动策划 · 刚刚更新",
-                    status: "进行中"
-                )
-
-                Divider()
-                    .padding(.leading, 52)
-
-                ZhuowangWorkRow(
-                    icon:
-                        "rectangle.portrait.on.rectangle.portrait",
-                    title:
-                        "\(currentDisplayName) 福利中心",
-                    subtitle:
-                        "页面内容 · 今天",
-                    status: "进行中"
-                )
-
-                Divider()
-                    .padding(.leading, 52)
-
-                ZhuowangWorkRow(
-                    icon: "headphones",
-                    title:
-                        "\(currentDisplayName) 客服文档",
-                    subtitle:
-                        "客服 FAQ · 最近更新",
-                    status: "已完成"
-                )
-            }
-            .background(.thinMaterial)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
-            .overlay {
-
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusLarge,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary
-                        .opacity(0.06),
-                    lineWidth: 1
-                )
-            }
+        if let selectedModule {
+            return .module(selectedModule.id)
         }
+        return .all
     }
 
 
@@ -1428,22 +1352,8 @@ struct ZhuowangWorkspaceView: View {
             return
         }
 
-        if let firstProvince =
-            store.provinces.first {
-
-            selectedNavigation =
-                .province(firstProvince.id)
-
-        } else if let firstModule =
-            store.modules.first(
-                where: {
-                    !$0.usesProvinces
-                }
-            ) {
-
-            selectedNavigation =
-                .module(firstModule.id)
-        }
+        // Entering the Workspace opens the cross-Campaign progress view.
+        selectedNavigation = .workbench
     }
 }
 

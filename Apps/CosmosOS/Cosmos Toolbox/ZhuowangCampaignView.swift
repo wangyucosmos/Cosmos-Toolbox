@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 struct ZhuowangCampaignView: View {
 
@@ -12,7 +13,9 @@ struct ZhuowangCampaignView: View {
     @State private var selectedStatus: ZhuowangCampaignStatus?
     @State private var showCreateSheet = false
 
-    @StateObject private var workflowStore = ZhuowangWorkflowStore()
+    /// Shared with the Workspace so every Campaign window uses one
+    /// in-memory Workflow Store instance.
+    @ObservedObject var workflowStore: ZhuowangWorkflowStore
 
     var body: some View {
         VStack(
@@ -476,9 +479,40 @@ struct ZhuowangCampaignView: View {
 
 
 
+// MARK: - Campaign Detail Route
+
+/// One pending navigation request for an open Campaign window.
+final class ZhuowangCampaignDetailRoute: ObservableObject {
+
+    enum Destination: Equatable {
+        case overview
+        case workflow
+        case artifacts
+        case deliveryPackage
+    }
+
+    @Published
+    private(set) var requestSerial = 0
+
+    private var pending: Destination?
+
+    func show(_ destination: Destination) {
+        pending = destination
+        requestSerial += 1
+    }
+
+    func takeRequest() -> Destination? {
+        defer {
+            pending = nil
+        }
+        return pending
+    }
+}
+
+
 // MARK: - Campaign Native Window Manager
 
-private final class ZhuowangCampaignWindowManager:
+final class ZhuowangCampaignWindowManager:
     NSObject,
     NSWindowDelegate {
 
@@ -487,6 +521,9 @@ private final class ZhuowangCampaignWindowManager:
 
     private var controllers:
         [UUID: NSWindowController] = [:]
+
+    private var routes:
+        [UUID: ZhuowangCampaignDetailRoute] = [:]
 
     private override init() {
         super.init()
@@ -498,11 +535,16 @@ private final class ZhuowangCampaignWindowManager:
         store: ZhuowangCampaignStore,
         workflowStore: ZhuowangWorkflowStore,
         province: ZhuowangProvince?,
-        module: ZhuowangModule?
+        module: ZhuowangModule?,
+        destination: ZhuowangCampaignDetailRoute.Destination? = nil
     ) {
 
         if let existing =
             controllers[campaign.id] {
+
+            if let destination {
+                routes[campaign.id]?.show(destination)
+            }
 
             existing.window?
                 .makeKeyAndOrderFront(nil)
@@ -514,6 +556,12 @@ private final class ZhuowangCampaignWindowManager:
             return
         }
 
+        let route = ZhuowangCampaignDetailRoute()
+        if let destination {
+            route.show(destination)
+        }
+        routes[campaign.id] = route
+
         let rootView =
             ZhuowangCampaignDetailView(
                 store: store,
@@ -524,7 +572,8 @@ private final class ZhuowangCampaignWindowManager:
                 province:
                     province,
                 module:
-                    module
+                    module,
+                route: route
             )
 
         let hostingController =
@@ -616,6 +665,9 @@ private final class ZhuowangCampaignWindowManager:
         }
 
         controllers.removeValue(
+            forKey: campaignID
+        )
+        routes.removeValue(
             forKey: campaignID
         )
     }
@@ -1075,7 +1127,8 @@ struct ZhuowangCampaignCreateView: View {
                 name: "浙江",
                 englishName: "Zhejiang"
             ),
-        module: nil
+        module: nil,
+        workflowStore: ZhuowangWorkflowStore()
     )
     .padding(36)
     .frame(

@@ -107,3 +107,39 @@ The requested final-code checks are complete. Unavailable-item presentation rema
 On 2026-09-30 the product owner explicitly confirmed Campaign 工作产物交付包 Phase 1 acceptance and authorized one formal commit, `feat: 新增 Campaign 工作产物交付包`, followed by a normal push to `origin/main`. Preflight in `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox` found only the eight known Phase 1 files; successful `git fetch origin` confirmed the remote baseline remains `0f1c54e320423553ffb380b28f136aa56084fbef`. No source code changed after the passing 15/15 focused tests, 99/99 related tests and Universal Debug build; this closeout updates documentation only and does not rerun the suite.
 
 Only Campaign Detail, the three delivery-package source files, delivery-package Tests, Current Status and the 2026-09-29/30 Development Logs are authorized for individual staging. Workspace files, ZIP/JSON acceptance evidence, temporary files, personal knowledge repositories and incident preservation files are excluded. Post-push HEAD, parent, remote ref, clean-tree and ahead/behind results are reported from Git rather than predicted here. Actual compatibility coverage remains Python default zipfile and macOS ditto; Windows and Archive Utility were not tested. Other P3 items stay deferred. No new development or full Claude review is initiated.
+
+## Word export paused; Campaign 项目推进工作台 Phase 1 (uncommitted)
+
+### Word export preserved
+
+The product owner paused 已采用 Markdown 导出 Word Phase 1 before full UI acceptance. The nine files were committed as local checkpoint `2d26b2a` on `wip/markdown-word-export-phase1-20260930` (not pushed, not merged); that branch carries its own status / log record (UI acceptance steps 1–2 passed, 3–5 not performed). `main` returned clean to `e15bf38`.
+
+### Goal
+
+One screen in 卓望工作 that shows every Campaign's Workflow progress, next action, dates and adopted work, reusing existing detail / Workflow / 工作产物 / 交付包 entries. Read-only; no Step 07, no new persistence, no AI generation.
+
+### Files
+
+- New `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignProgress.swift` — pure projection (progress, next step, attention, adoption / conflicts, deliverable count via delivery-package eligibility, calendar-day date phase) and filter.
+- New `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignWorkbenchView.swift` — workbench UI (metrics, filters, empty states, 推进列表, 近期活动, 活动总览).
+- `ZhuowangWorkspaceView.swift` — 总览 / 推进工作台 sidebar entry selected by default; full-page workbench; province / module 概览 placeholder metrics and recent rows replaced by the scoped workbench; one shared `ZhuowangWorkflowStore`.
+- `ZhuowangCampaignView.swift` — Workflow Store injected instead of per-view instance; Campaign window manager reusable with an optional destination; `ZhuowangCampaignDetailRoute`.
+- `ZhuowangCampaignDetailView.swift` — applies route requests (overview / workflow / artifacts / delivery sheet).
+- `ZhuowangModels.swift` — `ZhuowangNavigationItem.workbench`.
+- `DashboardView.swift` — DEBUG-only, isolated-mode-only `--cosmos-initial-sidebar zhuowang` launch argument for fixture captures.
+- New `Apps/CosmosOS/Cosmos ToolboxTests/ZhuowangCampaignWorkbenchTests.swift` — 8 tests incl. offscreen renders and fixture plist export for isolated launches.
+
+### Verification
+
+- Focused `ZhuowangCampaignWorkbenchTests` 8/8 after the single fix round; Universal Debug build succeeded (`x86_64 arm64`); `git diff --check` passed. Full suite not rerun (policy; no shared persistence code changed).
+- Isolated real-App capture as recorded in Current Status §15; temporary domains removed afterwards; formal business data, sources, adoption, steps and Workspace listing unchanged.
+- Not verified: real click-through of workbench actions opening Campaign windows (see todo 4), manual UI acceptance, performance with many Campaigns.
+- Incident: one AppleScript window resize hit the product owner's running App window (geometry only).
+
+### Next
+
+Product-owner evaluation of the workbench; todos listed in Current Status §13.
+
+### Closeout
+
+The product owner closed Campaign 项目推进工作台 Phase 1 without further testing or manual click-through, based on: focused tests 8/8, Universal Debug build passed, isolated real-App run passed. Navigation buttons were not actually clicked; no complete end-to-end UI acceptance is claimed. Todos and the existing isolated-mode Workspace-write risk remain open; fixture Campaigns must not be used to open detail windows. Authorized as one commit, `feat: 新增 Campaign 项目推进工作台`, with a normal push; the Word export WIP branch stays local and unmerged.

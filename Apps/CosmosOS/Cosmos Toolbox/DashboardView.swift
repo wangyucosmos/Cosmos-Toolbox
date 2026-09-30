@@ -12,6 +12,18 @@ struct DashboardView: View {
     ) {
         self.storePersistenceConfiguration =
             storePersistenceConfiguration
+
+#if DEBUG
+        // Isolated UI acceptance only: open a sidebar item at launch so a
+        // fixture run can be captured without scripting the interface.
+        let arguments = ProcessInfo.processInfo.arguments
+        if storePersistenceConfiguration.isIsolated,
+           let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
+           index + 1 < arguments.count,
+           arguments[index + 1] == "zhuowang" {
+            _selection = State(initialValue: .zhuowang)
+        }
+#endif
     }
 
     var body: some View {

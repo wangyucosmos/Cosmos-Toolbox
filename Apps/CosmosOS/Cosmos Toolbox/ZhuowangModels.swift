@@ -3,6 +3,7 @@ import Foundation
 // MARK: - Navigation
 
 enum ZhuowangNavigationItem: Equatable {
+    case workbench
     case province(UUID)
     case module(String)
 }
