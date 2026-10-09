@@ -131,3 +131,35 @@ The product owner accepted the existing verification scope and formally closed P
 Evidence boundaries: post-fix Renderer + state tests 16/16 passed, 0 skipped (the Renderer change compiled in that test build; Release not rebuilt). Codex-era 36/36, Universal Debug/Release builds and the Release launch-argument scan are historical evidence for the pre-fix code; unchanged-file hashes support reuse but are not a fresh full build of the final code. Claude's review was a concentrated check by an engineer who also took part in the fix, not an independent post-fix third-party review. Real UI, restart and quit-prompt acceptance were not done; no end-to-end acceptance is claimed.
 
 Open non-blocking todos (not handled): parser warning position text; conservative save lock after a pre-rename write failure; list refresh after re-entering the module with an editor window open; new-draft favorite dirty check; declared UI / concurrency / filesystem-race coverage gaps. Next major module awaits product coordination. Word WIP stays local and paused; Harness, Evidence/Quarantine, formal Workspace and production Prompt data untouched. Exact commit/push state is verified from repository refs.
+
+
+## 学习中心 Phase 1 — implementation
+
+### Authority / preflight
+
+Owner approved the read-only plan and authorized implementation, isolated verification and the two progress documents; no commit/push. Quick preflight: clean `main` = `origin/main`, HEAD `693c4fc0d93544a69ff78bf03f02b02ccbbc52a6`; no full re-read of Docs or re-check of earlier phases (owner instruction).
+
+### Files / decisions
+
+New: `LearningModels.swift`, `LearningFileStorage.swift`, `LearningStore.swift`, `LearningViewModel.swift`, `LearningCenterView.swift`, `LearningEditors.swift`, tests `LearningPersistenceTests.swift`, `LearningStateTests.swift`. Modified `DashboardView.swift` (route, DEBUG learning root, neutral home card replacing the fabricated "Python 28%") and `PromptTemplateEditor.swift` (termination wiring only: participant extension replaces `requestTermination`; delegate calls the shared coordinator). Independent storage with adapted (copied) Prompt safety primitives; one JSON document for topics + entries so the entry + next-step save is atomic; storage-boundary checks for revision, topic existence and archive state under the lock; pre-rename failures retryable, post-rename unconfirmable failures lock saving. Strict `yyyy-MM-dd` calendar-day labels; future days rejected unless an existing entry's date is unchanged. No percentage anywhere; state is manual. Details in Current Status §18.
+
+### Verification and one repair round
+
+Concentrated batch of 58 (Learning persistence + state + existing PromptVaultState): 57 passed / 1 failed; the failure was a wrong test expectation (stale editor → `conflict` precedes `topicArchived`), corrected and re-run: passed. The one-attempt real-UI run then found that the Dashboard route for the learning item had not been applied (tests do not cover Dashboard routing); fixed, rebuilt with the temporary Bundle, relaunched on a temporary fixture: list, status, last study day and next step displayed from the isolated root; fixture SHA unchanged; process stopped by PID. Added a top-alignment layout tweak; re-ran the offscreen render test (passed). Universal Debug / Release **BUILD SUCCEEDED** (x86_64 arm64) on the final code; Release contains none of the five DEBUG launch strings. xcresults and logs under `/private/tmp/CosmosLearningPhase1-Validation/`. A first full-screen capture accidentally showed the user's browser; it was deleted unused and later captures were window-scoped.
+
+### Not covered
+
+Real-UI editors, native close/quit alerts, filters, archive, copy button, restart and narrow layout (no click tool available; not requested of the user). Full 58 not re-run after the two follow-ups; tests ran on arm64 only.
+
+### State
+
+Implemented, unstaged, uncommitted on `main`. Awaiting the owner's closeout instruction. Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, formal Workspace and knowledge repositories untouched; no extra root documents.
+
+
+## 学习中心 Phase 1 — closure
+
+The product owner accepted the existing verification scope and formally closed Phase 1, authorizing one `feat: 新增学习中心与学习记录` commit and a normal push to origin/main. Only the two progress documents were edited for closure; no source change, test, build or real UI run.
+
+Evidence boundaries: first batch 57/58 with the single failure a wrong test expectation, corrected and re-run to pass; offscreen-render test re-run after the routing fix passed (the full 58 not re-run after the follow-ups); Universal Debug / Release succeeded on the final code; isolated real page confirmed routing and topic / status / last-study-day / next-step display, fixture hash unchanged. Editors, close / quit alerts and other interactions are not real-UI accepted; no end-to-end acceptance is claimed. Non-blocking todos retained, unhandled.
+
+Product requirement recorded as a later candidate (not started): provinces maintainable, historical data preserved, every province reusing the standard Workflow, no hard-coded responsible-person roster. Next candidate: read-only survey of existing province management and its gaps, awaiting coordination. Pre-commit HEAD was `765b33b` (owner's docs-only rules commit on top of `693c4fc`); exact commit / push state is verified from repository refs.

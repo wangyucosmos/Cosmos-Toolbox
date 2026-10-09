@@ -20,7 +20,7 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault"].contains(arguments[index + 1]) {
+           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter"].contains(arguments[index + 1]) {
             _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
@@ -48,6 +48,15 @@ struct DashboardView: View {
             bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
 #else
         PromptVaultLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+    }
+
+    private var learningLocation: LearningLocation {
+#if DEBUG
+        LearningLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+#else
+        LearningLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
 #endif
     }
 
@@ -154,6 +163,10 @@ struct DashboardView: View {
                 } else if selection == .promptVault {
                     PromptVaultView(location: promptVaultLocation)
                         .id(SidebarItem.promptVault)
+
+                } else if selection == .learningCenter {
+                    LearningCenterView(location: learningLocation)
+                        .id(SidebarItem.learningCenter)
 
                 } else if let selection {
 
@@ -385,32 +398,21 @@ struct DashboardHomeView: View {
 
             CosmosCard(
                 icon: "graduationcap",
-                title: "学习进度",
+                title: "学习中心",
                 englishTitle: "Learning"
             ) {
 
                 VStack(
                     alignment: .leading,
-                    spacing: CosmosDesign.spacingM
+                    spacing: CosmosDesign.spacingS
                 ) {
 
-                    HStack(
-                        alignment: .firstTextBaseline
-                    ) {
+                    Text("记录学习")
+                        .font(.title2)
+                        .fontWeight(.semibold)
 
-                        Text("Python")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-
-                        Spacer()
-
-                        Text("28%")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    ProgressView(value: 0.28)
-                        .progressViewStyle(.linear)
+                    Text("在左侧「学习中心」写下目标、记录每次学习和下一步。")
+                        .foregroundStyle(.secondary)
                 }
             }
         }

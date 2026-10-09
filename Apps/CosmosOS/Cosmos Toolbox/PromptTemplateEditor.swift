@@ -167,27 +167,33 @@ final class PromptTemplateWindowManager: NSObject, NSWindowDelegate {
         guard let window = notification.object as? NSWindow, let key = window.identifier?.rawValue else { return }
         entries.removeValue(forKey: key); approved.remove(key); closing.remove(key)
     }
-    func requestTermination(_ app: NSApplication) -> NSApplication.TerminateReply {
-        guard !terminationPending, closing.isEmpty, !entries.values.contains(where: { $0.session.saving }) else { return .terminateCancel }
-        guard entries.values.contains(where: { $0.session.isDirty }) else { return .terminateNow }
+}
+
+/// Quit protection is coordinated with the learning center (see `CosmosTerminationCoordinator`).
+extension PromptTemplateWindowManager: CosmosTerminationParticipant {
+    var terminationBlocked: Bool { terminationPending || !closing.isEmpty || entries.values.contains { $0.session.saving } }
+    var hasUnsavedWork: Bool { entries.values.contains { $0.session.isDirty } }
+    func freezeForTermination() {
         terminationPending = true
+        for entry in entries.values { entry.session.terminationPending = true }
+    }
+    func unfreezeAfterTermination() {
+        for entry in entries.values { entry.session.terminationPending = false }
+        terminationPending = false
+    }
+    func resolveUnsavedWork() async -> Bool {
         let currentEntries = Array(entries.values)
-        for entry in currentEntries { entry.session.terminationPending = true }
-        Task {
-            let allow = await PromptTemplateEditSession.allowTermination(currentEntries.map(\.session)) { session in
-                currentEntries.first(where: { $0.session === session })?.controller.window?.makeKeyAndOrderFront(nil)
-                return self.choice(for: session)
-            }
-            for entry in currentEntries { entry.session.terminationPending = false }
-            terminationPending = false
-            app.reply(toApplicationShouldTerminate: allow)
+        return await PromptTemplateEditSession.allowTermination(currentEntries.map(\.session)) { session in
+            currentEntries.first(where: { $0.session === session })?.controller.window?.makeKeyAndOrderFront(nil)
+            return self.choice(for: session)
         }
-        return .terminateLater
     }
 }
 
 final class CosmosPromptTerminationDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        PromptTemplateWindowManager.shared.requestTermination(sender)
+        CosmosTerminationCoordinator.shared.request(
+            participants: [PromptTemplateWindowManager.shared, LearningEditorWindowManager.shared]
+        ) { allow in sender.reply(toApplicationShouldTerminate: allow) }
     }
 }
