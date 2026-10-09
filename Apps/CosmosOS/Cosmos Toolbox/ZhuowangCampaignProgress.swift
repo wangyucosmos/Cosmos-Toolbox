@@ -259,7 +259,7 @@ enum ZhuowangCampaignProgressBuilder {
                 adoptedArtifactCount: adoptedCount,
                 adoptionConflictCount: adoptedPerGroup.values.filter { $0 > 1 }.count,
                 deliverableFileCount: adoptedCount > 0
-                    ? countDeliverables(campaign, province?.name, artifacts, workflow?.steps ?? [])
+                    ? countDeliverables(campaign, province?.pathName, artifacts, workflow?.steps ?? [])
                     : 0,
                 datePhase: phase,
                 dayDistance: distance

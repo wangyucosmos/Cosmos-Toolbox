@@ -81,7 +81,7 @@ final class ZhuowangStorePersistenceBoundaryTests:
         )
 
         XCTAssertEqual(store.persistenceState, .healthy)
-        XCTAssertFalse(store.provinces.isEmpty)
+        XCTAssertTrue(store.provinces.isEmpty, "fresh defaults carry no fixed provinces")
         XCTAssertEqual(
             historical.defaults.data(
                 forKey: ZhuowangWorkspaceStore.storageKey

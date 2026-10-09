@@ -148,7 +148,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                     Text("全部省份 / 模块").tag(ZhuowangCampaignWorkbenchFilter.Scope.all)
                     Divider()
                     ForEach(workspaceStore.provinces) { province in
-                        Text(province.name)
+                        Text(province.isEnabled ? province.name : province.name + "（已停用）")
                             .tag(ZhuowangCampaignWorkbenchFilter.Scope.province(province.id))
                     }
                     Divider()

@@ -35,7 +35,7 @@ struct ZhuowangAssetCenterView: View {
                 }.frame(width: 200)
                 Picker("省份", selection: $model.filter.provinceID) {
                     Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
-                    ForEach(model.provinces) { Text($0.name).tag(Optional($0.id)) }
+                    ForEach(model.provinces) { Text($0.isEnabled ? $0.name : $0.name + "（已停用）").tag(Optional($0.id)) }
                 }
                 Picker("活动", selection: $model.filter.campaignID) {
                     Text("全部活动").tag(Optional<UUID>.none)

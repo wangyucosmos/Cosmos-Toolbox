@@ -888,7 +888,9 @@ final class ZhuowangWorkspaceFileManager {
 
     // MARK: - Helpers
 
-    private func sanitizedPathComponent(
+    /// The exact folder-name sanitization used for every path. Also used by
+    /// province rules to compare folder names conservatively.
+    func sanitizedPathComponent(
         _ value: String
     ) -> String {
 

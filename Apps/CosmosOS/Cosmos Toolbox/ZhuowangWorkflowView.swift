@@ -1422,7 +1422,7 @@ struct ZhuowangWorkflowView: View {
                     workflowID: context.workflowID,
                     campaignID: campaign.id,
                     campaignName: campaign.name,
-                    provinceName: province?.name,
+                    provinceName: province?.pathName,
                     stepID: context.stepID,
                     provider: provider,
                     connectionID:
@@ -1453,7 +1453,7 @@ struct ZhuowangWorkflowView: View {
                 campaignName:
                     campaign.name,
                 provinceName:
-                    province?.name,
+                    province?.pathName,
                 stepID: context.stepID,
                 provider: provider,
                 inputText:
@@ -1477,7 +1477,7 @@ struct ZhuowangWorkflowView: View {
                 workflowID: context.workflowID,
                 campaignID: campaign.id,
                 campaignName: campaign.name,
-                provinceName: province?.name,
+                provinceName: province?.pathName,
                 stepID: context.stepID,
                 providerID: providerID,
                 inputText: inputText,

@@ -163,3 +163,37 @@ The product owner accepted the existing verification scope and formally closed P
 Evidence boundaries: first batch 57/58 with the single failure a wrong test expectation, corrected and re-run to pass; offscreen-render test re-run after the routing fix passed (the full 58 not re-run after the follow-ups); Universal Debug / Release succeeded on the final code; isolated real page confirmed routing and topic / status / last-study-day / next-step display, fixture hash unchanged. Editors, close / quit alerts and other interactions are not real-UI accepted; no end-to-end acceptance is claimed. Non-blocking todos retained, unhandled.
 
 Product requirement recorded as a later candidate (not started): provinces maintainable, historical data preserved, every province reusing the standard Workflow, no hard-coded responsible-person roster. Next candidate: read-only survey of existing province management and its gaps, awaiting coordination. Pre-commit HEAD was `765b33b` (owner's docs-only rules commit on top of `693c4fc`); exact commit / push state is verified from repository refs.
+
+
+## 省份可维护配置 — implementation
+
+### Authority / preflight
+
+Owner approved the read-only plan with revisions and authorized implementation, isolated verification and the two progress documents; no commit/push. Quick preflight: clean `main` = `origin/main`, HEAD `82cc7bab3d3772b296cb421fa85b8b5e43f42bf9`. No fetch, no full re-read of Docs or earlier evidence.
+
+### Files / decisions
+
+New `ZhuowangProvinceRules.swift` (pure validation, reserved names, conflict reporting, creation gate), `ZhuowangProvinceManagementView.swift` (manager section), test `ZhuowangProvinceConfigurationTests.swift`. Modified province model (`isEnabled`, `directoryName`, `pathName`, compatible decoding), `ZhuowangWorkspaceStore` (add with validation, rename with first-rename folder pin, stop/restore, reorder; no fixed default provinces on a fresh install), file-manager sanitizer visibility, Workspace sidebar / manager wiring, Campaign view + create-form save-time gate, ten path-construction call sites switched to `pathName` (display-only uses audited and left alone), stopped-province labels in the workbench / asset pickers, and two existing tests' default-province expectations. Array order is the display order; no `sortOrder`. Stopping only blocks new Campaigns. Violations stay in the business layer. Details in Current Status §19.
+
+### Verification
+
+One concentrated batch: new suite (18) plus existing Workspace persistence, store boundary, Campaign workbench and asset-center suites, **68/68 passed**, no repair round. Universal Debug / Release **BUILD SUCCEEDED** on the final code; Release has none of the DEBUG launch strings. One limited real-UI attempt on a temporary Bundle and isolated suite (window-only capture, no Campaign detail): old-format payload loaded; sidebar showed enabled provinces in order and a collapsed stopped group; payload unchanged after the run; process stopped by PID. Evidence under `/private/tmp/CosmosProvinceConfig-Validation/`.
+
+### Not covered / todos
+
+Manager sheet interactions, stop confirmation, restore, stopped-province page, create-form refusal as a UI flow (covered at rule level) are not UI-accepted. Todos: Campaign-name folder risk (existing), "primary missing but backup exists" re-initialization (existing, not worsened), two isolation warnings in the rules file, stopped-province marker on workbench rows.
+
+### State
+
+Implemented, unstaged, uncommitted on `main`. Awaiting the owner's closeout instruction. Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, formal Workspace and knowledge repositories untouched; no extra root documents.
+
+
+## 省份可维护配置 — closure
+
+The product owner accepted the existing verification scope and formally closed Phase 1, authorizing one `feat: 支持省份配置维护与历史保留` commit and a normal push to origin/main. Only the two progress documents were edited for closure; no source change, test, build, review or UI run.
+
+Result: provinces can be added, renamed, reordered, stopped and restored; a fresh install has no fixed provinces and existing data is never re-seeded; the stable UUID plus the pinned folder name (`pathName`) protect history and file locations; stopping only forbids creating new Campaigns.
+
+Evidence boundaries: 68/68 tests passed, 0 skipped (new suite 18 + affected existing suites); Universal Debug / Release succeeded on the final code. The isolated real-UI run confirmed only the sidebar display and an unchanged workspace payload **length** (not claimed as byte-for-byte business-data identity); manager operations and the create-form refusal were not UI-accepted (the refusal is covered at the rule level). Non-blocking todos retained, unhandled: real-UI acceptance, Campaign-name folder risk, "primary missing but backup exists" re-initialization, two isolation warnings, stopped-province marker on workbench rows.
+
+Next candidate: investigation of the national monthly member-activation (全国月度会员促活) integration; not started. Exact commit / push state is verified from repository refs.

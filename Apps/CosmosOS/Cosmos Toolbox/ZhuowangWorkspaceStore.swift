@@ -50,13 +50,19 @@ final class ZhuowangWorkspaceStore: ObservableObject {
     }
 
 
-    // MARK: - Add Province
+    // MARK: - Province Maintenance
 
+    /// Adds a province at the end of the list. The display name must be
+    /// unique among all provinces (stopped ones included) and the new,
+    /// permanent folder name must not collide with any existing province's
+    /// folder (`ZhuowangProvinceRules`). Rules are checked against the
+    /// latest snapshot inside the protected transaction.
     @discardableResult
     func addProvince(
         name: String,
         englishName: String
     ) -> ZhuowangStoreMutationResult {
+
         let cleanName =
             name.trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -82,10 +88,22 @@ final class ZhuowangWorkspaceStore: ObservableObject {
                 englishName:
                     cleanEnglish.isEmpty
                     ? cleanName
-                    : cleanEnglish
+                    : cleanEnglish,
+                isEnabled: true,
+                directoryName: cleanName
             )
 
         return transact { snapshot in
+            guard
+                ZhuowangProvinceRules.validateNew(
+                    name: cleanName,
+                    existing: snapshot.provinces,
+                    modules: snapshot.modules
+                ) == nil
+            else {
+                return false
+            }
+
             var provinces = snapshot.provinces
             provinces.append(province)
             snapshot = ZhuowangWorkspaceSnapshot(
@@ -97,6 +115,163 @@ final class ZhuowangWorkspaceStore: ObservableObject {
         }
     }
 
+    /// Changes the display / English name only. The folder name is never
+    /// changed; a province that still has no pinned folder name gets its
+    /// current name pinned in the same transaction, before the rename.
+    @discardableResult
+    func renameProvince(
+        id: UUID,
+        name: String,
+        englishName: String
+    ) -> ZhuowangStoreMutationResult {
+
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
+        guard provinces.contains(where: { $0.id == id }) else {
+            return .rejected(.itemNotFound)
+        }
+
+        let cleanName =
+            name.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !cleanName.isEmpty else {
+            return .rejected(.invalidInput)
+        }
+
+        let cleanEnglish =
+            englishName.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        return transact { snapshot in
+            guard
+                let index =
+                    snapshot.provinces.firstIndex(
+                        where: { $0.id == id }
+                    ),
+                ZhuowangProvinceRules.validateRename(
+                    id: id,
+                    name: cleanName,
+                    existing: snapshot.provinces,
+                    modules: snapshot.modules
+                ) == nil
+            else {
+                return false
+            }
+
+            var provinces = snapshot.provinces
+            var province = provinces[index]
+
+            if province.name != cleanName,
+               province.directoryName == nil {
+                province.directoryName = province.name
+            }
+
+            province.name = cleanName
+            province.englishName =
+                cleanEnglish.isEmpty
+                ? cleanName
+                : cleanEnglish
+            provinces[index] = province
+
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: snapshot.modules,
+                provinces: provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
+
+    /// Stops or restores a province. Never deletes anything: Campaigns,
+    /// Artifacts and files keep their province UUID and folder.
+    @discardableResult
+    func setProvinceEnabled(
+        id: UUID,
+        isEnabled: Bool
+    ) -> ZhuowangStoreMutationResult {
+
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
+        guard
+            let current =
+                provinces.first(where: { $0.id == id })
+        else {
+            return .rejected(.itemNotFound)
+        }
+
+        if current.isEnabled == isEnabled {
+            return .succeeded
+        }
+
+        return transact { snapshot in
+            guard
+                let index =
+                    snapshot.provinces.firstIndex(
+                        where: { $0.id == id }
+                    )
+            else {
+                return false
+            }
+
+            var provinces = snapshot.provinces
+            provinces[index].isEnabled = isEnabled
+
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: snapshot.modules,
+                provinces: provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
+
+    /// Display order is the array order; moving swaps with the neighbor.
+    @discardableResult
+    func moveProvince(
+        id: UUID,
+        offset: Int
+    ) -> ZhuowangStoreMutationResult {
+
+        guard persistenceState.allowsMutations else {
+            return lockedMutationResult
+        }
+
+        guard provinces.contains(where: { $0.id == id }) else {
+            return .rejected(.itemNotFound)
+        }
+
+        return transact { snapshot in
+            guard
+                let index =
+                    snapshot.provinces.firstIndex(
+                        where: { $0.id == id }
+                    ),
+                snapshot.provinces.indices.contains(
+                    index + offset
+                ),
+                offset != 0
+            else {
+                return false
+            }
+
+            var provinces = snapshot.provinces
+            provinces.swapAt(index, index + offset)
+
+            snapshot = ZhuowangWorkspaceSnapshot(
+                modules: snapshot.modules,
+                provinces: provinces,
+                categories: snapshot.categories
+            )
+            return true
+        }
+    }
 
     // MARK: - Add Category
 
@@ -500,59 +675,11 @@ final class ZhuowangWorkspaceStore: ObservableObject {
 
     // MARK: - Default Provinces
 
+    /// A fresh install starts with no provinces; the user adds the ones
+    /// they work on. Existing saved provinces are never re-seeded.
     private static let defaultProvinces: [
         ZhuowangProvince
-    ] = [
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000001"
-            )!,
-            name: "河南",
-            englishName: "Henan"
-        ),
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000002"
-            )!,
-            name: "安徽",
-            englishName: "Anhui"
-        ),
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000003"
-            )!,
-            name: "浙江",
-            englishName: "Zhejiang"
-        ),
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000004"
-            )!,
-            name: "海南",
-            englishName: "Hainan"
-        ),
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000005"
-            )!,
-            name: "广东",
-            englishName: "Guangdong"
-        ),
-
-        ZhuowangProvince(
-            id: UUID(
-                uuidString: "10000000-0000-0000-0000-000000000006"
-            )!,
-            name: "贵州",
-            englishName: "Guizhou"
-        )
-    ]
-
+    ] = []
 
     // MARK: - Default Categories
 

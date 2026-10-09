@@ -178,7 +178,7 @@ struct ZhuowangCampaignDetailView: View {
                             .shared
                             .campaignDirectoryURL(
                                 provinceName:
-                                    province?.name,
+                                    province?.pathName,
                                 campaignName:
                                     campaign.name
                             ),
@@ -1513,7 +1513,7 @@ struct ZhuowangCampaignDetailView: View {
                     campaign:
                         campaign,
                     provinceName:
-                        province?.name
+                        province?.pathName
                 )
 
         guard
@@ -1572,7 +1572,7 @@ struct ZhuowangCampaignDetailView: View {
                     campaign:
                         campaign,
                     provinceName:
-                        province?.name
+                        province?.pathName
                 )
     }
 
@@ -1685,7 +1685,7 @@ struct ZhuowangCampaignDetailView: View {
                     .shared
                     .createCampaignWorkspace(
                         provinceName:
-                            province?.name,
+                            province?.pathName,
                         campaignName:
                             campaign.name
                     )
@@ -1721,7 +1721,7 @@ struct ZhuowangCampaignDetailView: View {
                     .shared
                     .createCampaignWorkspace(
                         provinceName:
-                            province?.name,
+                            province?.pathName,
                         campaignName:
                             campaign.name
                     )

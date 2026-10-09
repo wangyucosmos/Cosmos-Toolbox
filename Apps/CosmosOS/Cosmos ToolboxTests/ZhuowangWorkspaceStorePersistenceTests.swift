@@ -20,7 +20,8 @@ final class ZhuowangWorkspaceStorePersistenceTests:
         // First load: primary missing → exactly one primary write,
         // carrying the default snapshot, and no backup write.
         XCTAssertEqual(first.persistenceState, .healthy)
-        XCTAssertEqual(first.provinces.count, 6)
+        // A fresh install no longer seeds fixed provinces.
+        XCTAssertEqual(first.provinces.count, 0)
         XCTAssertEqual(
             suite.recorder.writeCount(
                 forKey: ZhuowangWorkspaceStore.storageKey
@@ -190,7 +191,7 @@ final class ZhuowangWorkspaceStorePersistenceTests:
             .succeeded
         )
         let firstIDs = first.provinces.map(\.id)
-        XCTAssertEqual(firstIDs.count, 7)
+        XCTAssertEqual(firstIDs.count, 1)
 
         let second = ZhuowangWorkspaceStore(
             persistenceConfiguration: suite.configuration

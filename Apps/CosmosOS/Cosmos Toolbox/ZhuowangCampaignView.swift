@@ -17,6 +17,17 @@ struct ZhuowangCampaignView: View {
     /// in-memory Workflow Store instance.
     @ObservedObject var workflowStore: ZhuowangWorkflowStore
 
+    /// Reads the *live* province configuration. A stopped province cannot
+    /// receive new Campaigns; existing Campaigns are never affected.
+    var isProvinceEnabled: (UUID) -> Bool = { _ in true }
+
+    private var canCreateCampaign: Bool {
+        guard let province else {
+            return true
+        }
+        return isProvinceEnabled(province.id)
+    }
+
     var body: some View {
         VStack(
             alignment: .leading,
@@ -107,13 +118,15 @@ struct ZhuowangCampaignView: View {
             .disabled(
                 !store.persistenceState
                     .allowsMutations
+                || !canCreateCampaign
             )
         }
         .sheet(isPresented: $showCreateSheet) {
             ZhuowangCampaignCreateView(
                 store: store,
                 province: province,
-                module: module
+                module: module,
+                isProvinceEnabled: isProvinceEnabled
             )
         }
     }
@@ -311,7 +324,8 @@ struct ZhuowangCampaignView: View {
                 .frame(maxWidth: 420)
 
             if searchText.isEmpty
-                && selectedStatus == nil {
+                && selectedStatus == nil
+                && canCreateCampaign {
 
                 Button {
                     showCreateSheet = true
@@ -434,6 +448,9 @@ struct ZhuowangCampaignView: View {
     private var scopeDescription: String {
 
         if let province {
+            if !canCreateCampaign {
+                return "\(province.name)福利中心已停用：不能新建活动，历史活动仍可查看、编辑和推进。"
+            }
             return "\(province.name)福利中心的活动项目管理"
         }
 
@@ -465,6 +482,9 @@ struct ZhuowangCampaignView: View {
             return "尝试调整搜索关键词或状态筛选条件。"
         }
 
+        if let province, !canCreateCampaign {
+            return "\(province.name) 已停用，不能新建活动。恢复后可以继续创建。"
+        }
         if let province {
             return "你还没有为 \(province.name) 创建活动。以后该省的活动策划、设计和上线状态都可以在这里统一管理。"
         }
@@ -858,6 +878,11 @@ struct ZhuowangCampaignCreateView: View {
     let province: ZhuowangProvince?
     let module: ZhuowangModule?
 
+    /// Re-checked at save time against the live province configuration, so a
+    /// form that was opened before the province was stopped cannot create a
+    /// Campaign in it. Input is kept when the save is refused.
+    var isProvinceEnabled: (UUID) -> Bool = { _ in true }
+
     @Environment(\.dismiss)
     private var dismiss
 
@@ -1042,6 +1067,16 @@ struct ZhuowangCampaignCreateView: View {
     // MARK: Create
 
     private func createCampaign() {
+
+        if let refusal =
+            ZhuowangProvinceRules.creationRefusalMessage(
+                province: province,
+                isEnabled: isProvinceEnabled
+            ) {
+            mutationMessage = refusal
+            showMutationAlert = true
+            return
+        }
 
         let result: ZhuowangStoreMutationResult
 

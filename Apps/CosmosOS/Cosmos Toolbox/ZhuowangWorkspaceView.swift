@@ -13,6 +13,7 @@ struct ZhuowangWorkspaceView: View {
     @State private var selectedNavigation: ZhuowangNavigationItem?
     @State private var selectedCategoryID = "overview"
     @State private var showManager = false
+    @State private var showStoppedProvinces = false
 
 
     init(
@@ -86,7 +87,12 @@ struct ZhuowangWorkspaceView: View {
         }
         .sheet(isPresented: $showManager) {
             ZhuowangWorkspaceManagerView(
-                store: store
+                store: store,
+                campaignCount: { id in
+                    campaignStore.campaigns.filter {
+                        $0.provinceID == id
+                    }.count
+                }
             )
         }
     }
@@ -281,8 +287,12 @@ struct ZhuowangWorkspaceView: View {
     // MARK: Welfare Center
 
     private var welfareSection: some View {
+        let enabledProvinces =
+            store.provinces.filter(\.isEnabled)
+        let stoppedProvinces =
+            store.provinces.filter { !$0.isEnabled }
 
-        VStack(
+        return VStack(
             alignment: .leading,
             spacing: CosmosDesign.spacingS
         ) {
@@ -292,27 +302,88 @@ struct ZhuowangWorkspaceView: View {
                 english: "Welfare Center"
             )
 
-            ForEach(store.provinces) { province in
-
-                ZhuowangSidebarRow(
-                    icon: "mappin.and.ellipse",
-                    title: province.name,
-                    subtitle: province.englishName,
-                    isSelected:
-                        selectedNavigation
-                        == .province(province.id)
-                ) {
-
-                    selectNavigation(
-                        .province(
-                            province.id
-                        )
+            if store.provinces.isEmpty {
+                Button {
+                    showManager = true
+                } label: {
+                    Label(
+                        "还没有省份，点击添加",
+                        systemImage: "plus.circle"
                     )
+                    .font(.callout)
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                .padding(
+                    .horizontal,
+                    CosmosDesign.spacingM
+                )
+            }
+
+            ForEach(enabledProvinces) { province in
+                provinceSidebarRow(
+                    province,
+                    isStopped: false
+                )
+            }
+
+            if !stoppedProvinces.isEmpty {
+                DisclosureGroup(
+                    "已停用省份（历史）",
+                    isExpanded: Binding(
+                        get: {
+                            showStoppedProvinces
+                                || (selectedProvince.map {
+                                    !$0.isEnabled
+                                } ?? false)
+                        },
+                        set: {
+                            showStoppedProvinces = $0
+                        }
+                    )
+                ) {
+                    ForEach(stoppedProvinces) { province in
+                        provinceSidebarRow(
+                            province,
+                            isStopped: true
+                        )
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(
+                    .horizontal,
+                    CosmosDesign.spacingM
+                )
             }
         }
     }
 
+    private func provinceSidebarRow(
+        _ province: ZhuowangProvince,
+        isStopped: Bool
+    ) -> some View {
+        ZhuowangSidebarRow(
+            icon:
+                isStopped
+                ? "archivebox"
+                : "mappin.and.ellipse",
+            title: province.name,
+            subtitle:
+                isStopped
+                ? "已停用 · \(province.englishName)"
+                : province.englishName,
+            isSelected:
+                selectedNavigation
+                == .province(province.id)
+        ) {
+            selectNavigation(
+                .province(
+                    province.id
+                )
+            )
+        }
+    }
 
     // MARK: Standalone Modules
 
@@ -442,7 +513,13 @@ struct ZhuowangWorkspaceView: View {
                             store: campaignStore,
                             province: selectedProvince,
                             module: selectedModule,
-                            workflowStore: workflowStore
+                            workflowStore: workflowStore,
+                            isProvinceEnabled: { id in
+                                ZhuowangProvinceRules.canCreateCampaign(
+                                    provinceID: id,
+                                    in: store.provinces
+                                )
+                            }
                         )
 
                     } else {
@@ -1929,14 +2006,12 @@ struct ZhuowangWorkspaceManagerView: View {
     @ObservedObject
     var store: ZhuowangWorkspaceStore
 
+    /// Number of Campaigns that belong to a province (for the stop
+    /// confirmation). Defaults to 0 where no Campaign Store is available.
+    var campaignCount: (UUID) -> Int = { _ in 0 }
+
     @Environment(\.dismiss)
     private var dismiss
-
-    @State
-    private var newProvinceName = ""
-
-    @State
-    private var newProvinceEnglishName = ""
 
     @State
     private var newCategoryName = ""
@@ -1994,51 +2069,14 @@ struct ZhuowangWorkspaceManagerView: View {
 
             Form {
 
-                Section(
-                    "新增省份 · Add Province"
-                ) {
-
-                    TextField(
-                        "中文名称，例如：湖北",
-                        text:
-                            $newProvinceName
-                    )
-
-                    TextField(
-                        "English Name, e.g. Hubei",
-                        text:
-                            $newProvinceEnglishName
-                    )
-
-                    Button(
-                        "添加省份"
-                    ) {
-
-                        let result = store.addProvince(
-                            name:
-                                newProvinceName,
-                            englishName:
-                                newProvinceEnglishName
-                        )
-
-                        if result.succeeded {
-                            newProvinceName = ""
-                            newProvinceEnglishName = ""
-                        } else {
-                            showFailure(result)
-                        }
+                ZhuowangProvinceManagementSection(
+                    store: store,
+                    campaignCount: campaignCount,
+                    report: { message in
+                        mutationMessage = message
+                        showMutationAlert = true
                     }
-                    .disabled(
-                        newProvinceName
-                            .trimmingCharacters(
-                                in: .whitespaces
-                            )
-                            .isEmpty
-                        || !store.persistenceState
-                            .allowsMutations
-                    )
-                }
-
+                )
 
                 Section(
                     "新增内容分类 · Add Category"
