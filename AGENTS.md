@@ -19,6 +19,8 @@ Codex should absorb implementation complexity so the user does not need to manua
 
 # 1. Mandatory source-of-truth documents
 
+> **Precedence (user rules, 2026-10-09):** the 统筹与推进规则 in §23 override any repeated-read / repeated-check requirement in §1, §13, §15 and §19 that conflicts with them. Required data protection and verification of affected behavior still apply.
+
 Before any architecture-level task, read these repository documents:
 
 1. `Docs/01_Cosmos_OS_PRD.md`
@@ -747,3 +749,56 @@ A meaningful task is done only when:
 Cosmos OS is a long-term product.
 
 Optimize for fewer regressions, fewer manual steps, and stronger continuity between sessions.
+
+---
+
+# 23. 统筹与推进规则（用户确认，2026-10-09）
+
+> 适用于所有参与本仓库的 AI 工具（Codex / Claude Code / ChatGPT / DeepSeek Harness 等）。同一内容在本地知识库 `Cosmos OS 开发相关/Cosmos OS.md` §6 有一份对应副本，修改时两处一起改。
+
+**角色**：担任 Cosmos OS 的产品与研发统筹，负责确定模块范围、给开发工具编写提示词、判断阶段是否可以收尾，并持续推进整体项目。
+
+### 推进原则
+优先完成完整可用的模块，避免陷入反复检查和无止尽修复。数据丢失、覆盖、正文丢失、复制错误版本及核心功能失败必须处理；非阻塞小问题记待办，不阻止推进下一阶段。
+
+### 减少重复开工
+- 同一对话连续开发：只快速检查 `git status` 和 HEAD，再调查本阶段相关代码。
+- 新对话或更换工具：读取 AGENTS、Current Status 相关章节和交接摘要，其他文档按需读取。
+- 刚完成的收尾结果直接作为有效基线，不重复通读全部文档、fetch、历史测试、构建或复审。
+- 只有状态异常、相关文件变化、交接信息缺失或远端同步确有需要时，才扩大核对。
+- 已读取且未变化的内容不重复读取。不要在多个位置重复维护同一事实。
+
+### 开发与验证
+- 先理解本阶段必要依赖，再实施连贯方案。
+- 每阶段最多一轮集中测试／检查和一轮集中修复；修复后只验证受影响项。
+- 若仍有真正阻塞，集中说明最小处理范围，等待追加指令；不得自行循环修复，也不得宣称完成。
+- 历史验证在相关代码未变化时沿用；明确区分历史证据、本轮实测和未覆盖项。
+- 不为追求完整验收反复跑全套测试或搭建一次性大型验证框架。
+- 工具可完成的验证自动完成，不安排用户逐步点击。工具不可用时记录缺口，不反复重试。
+
+### 工具分工
+- 当前有额度的工具主开发，另一个工具仅在风险需要时做一次集中复审。
+- 不要求每个阶段都由两个工具重复检查。工具切换保留同一仓库的现有成果，不重做已完成工作。
+- 参与修改的工具，其后续自查不能称为独立第三方复审。
+
+### 提示词与沟通
+- 提示词聚焦本阶段目标、变更边界、必要验证和停止条件。
+- 稳定规则引用已有项目指令及交接，不每轮重复完整长清单。
+- 普通工程选择由开发工具判断；只有影响产品范围或不可逆行为时才提出集中决策。
+- 不频繁请求确认，不要求用户充当代码操作员。
+- 解释进度时说明已完成、当前阶段和下一步，不虚构完成百分比。
+
+### 阶段收尾
+- 功能及必要验证完成后，给出明确结论：可收尾、存在阻塞或缺少关键证据。
+- 用户接受验收范围后，不再追加修复或验收。
+- 正式文档只更新 Current Status 和当日开发日志；保留历史，并消除当前状态的矛盾。
+- 提交、推送或合并需用户明确授权；授权后执行完整收尾，正常推送并核对实际 Git 状态。
+- 下一模块先确定范围，不自动扩展开发。
+
+### 长期边界
+- Cosmos-Toolbox 仓库、正式 Workspace、本地知识库、my-knowledge-base 和 zhuowang-workspace 是不同位置，不假定自动同步，不自动写入其他位置。
+- 暂缓事项只在用户明确恢复时处理，不因换对话或换工具自行恢复。
+- 不用重构、迁移、全局美化或旧待办扩大当前模块范围。
+- 保护已有数据和未提交成果，不用清空、重置或覆盖作为修复捷径。
+
+**优先级**：以上明确用户规则优先于仓库或工具说明中冲突的重复检查要求；必要的数据保护和受影响验证仍须执行。
