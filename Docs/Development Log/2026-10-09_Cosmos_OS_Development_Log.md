@@ -261,3 +261,24 @@ The product owner accepted the existing verification scope and formally closed P
 Result: the Home shows real campaign / Workflow state, the monthly checklist, favorite prompts and the learning summary; loading is read-only (no restore, migration or delivery-file check). Evidence boundaries: 56/56 tests passed, 0 skipped; Universal Debug / Release succeeded on the final code; the real isolated run covered the activities and monthly cards only, while refresh, navigation, the lower cards and the day-change event were not verified in the real App.
 
 Known display limitation, not changed: campaigns with status 已结束 are never listed on the Home even if their steps are unfinished (they are counted and remain visible in the progress workbench). Other non-blocking todos retained, unhandled. The next module is determined by product coordination; not started. Exact commit / push state is verified from repository refs.
+
+---
+
+## AI 工作台 Phase 1 — implementation
+
+### Authority / preflight
+- Product owner accepted the read-only investigation and its three default decisions (ChatGPT-bundled Codex and Claude-Desktop-bundled Claude Code are detected and labelled by source; no auto-detect on first entry; results kept in memory only) and ordered direct implementation. Baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e`, clean; no fetch / history / closed-phase re-review. No commit or push without explicit authorization.
+
+### Files / decisions
+- New `AIWorkspaceModels.swift`, `AIWorkspaceProcessRunner.swift`, `AIWorkspaceToolProbe.swift`, `AIWorkspaceViewModel.swift`, `AIWorkspaceView.swift`, test `AIWorkspaceToolProbeTests.swift`; `DashboardView.swift` routes `.aiWorkspace` and holds the in-memory cache, with DEBUG-only isolated-only launch arguments. No five-tool "framework": one probe struct, one runner, one view model.
+- Decisions: candidates from PATH + fixed locations + two desktop-app bundles, labelled by actual discovery; no login / interactive shell; allow-listed child environment; per-command 5 s timeout, SIGTERM → SIGKILL, hard resume deadline; 64 KiB output cap with draining; generation token against stale runs; xcode-select pre-check before `/usr/bin` shims; existing `ZhuowangAIConnection` records untouched; nothing persisted.
+- Investigation facts that drove it: `zsh -l -c` does not see `~/.local/bin` (set in `.zshrc`), so no shell is used.
+
+### Verification and one repair round
+- Focused `AIWorkspaceToolProbeTests` 24/24 on the final code; Universal Debug build SUCCEEDED; `git diff --check` passed; real isolated App launched through LaunchServices with DEBUG auto-detect and captured (Claude Code 2.1.293 / Codex 0.162.0-alpha.17.2 / Git 2.54.0 visible, sources labelled). The repair round was test-only (injectable common directories; cold first-exec latency of fresh scripts). Temporary preference domain removed; Xcode's reserialization of `project.pbxproj` restored to HEAD.
+
+### Not covered / todos
+- Node / Python rows below the fold in the real capture; no click on the detect button or cancel-on-leave in the real App; no real missing-developer-tools machine; no bare-launchd-PATH reproduction; Release / full suite not run. Todos listed in Current Status §22.
+
+### State
+- Unstaged / uncommitted on `main`. Awaiting the product owner's closure and explicit Git authorization.

@@ -6,6 +6,9 @@ struct DashboardView: View {
     /// Reused across visits to the Home so unchanged data is not decoded again.
     @State private var homeCache = DashboardReadCache()
 
+    /// Last finished AI 工作台 detection; memory only, never persisted.
+    @State private var aiWorkspaceCache = AIWorkspaceResultCache()
+
     let storePersistenceConfiguration:
         ZhuowangStorePersistenceConfiguration
 
@@ -23,7 +26,7 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter"].contains(arguments[index + 1]) {
+           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace"].contains(arguments[index + 1]) {
             _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
@@ -70,6 +73,16 @@ struct DashboardView: View {
             bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
 #else
         LearningLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+    }
+
+    /// Isolated UI acceptance only: run the AI 工作台 detection on arrival.
+    private var aiWorkspaceAutoDetect: Bool {
+#if DEBUG
+        storePersistenceConfiguration.isIsolated
+            && ProcessInfo.processInfo.arguments.contains("--cosmos-ai-workspace-autodetect")
+#else
+        false
 #endif
     }
 
@@ -195,6 +208,10 @@ struct DashboardView: View {
                 } else if selection == .learningCenter {
                     LearningCenterView(location: learningLocation)
                         .id(SidebarItem.learningCenter)
+
+                } else if selection == .aiWorkspace {
+                    AIWorkspaceView(cache: aiWorkspaceCache, autoDetect: aiWorkspaceAutoDetect)
+                        .id(SidebarItem.aiWorkspace)
 
                 } else if let selection {
 
