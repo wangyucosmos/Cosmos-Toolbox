@@ -20,8 +20,8 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase"].contains(arguments[index + 1]) {
-            _selection = State(initialValue: arguments[index + 1] == "zhuowang" ? .zhuowang : .knowledgeBase)
+           ["zhuowang", "knowledgeBase", "promptVault"].contains(arguments[index + 1]) {
+            _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
     }
@@ -41,6 +41,15 @@ struct DashboardView: View {
 #endif
     }
 
+
+    private var promptVaultLocation: PromptVaultLocation {
+#if DEBUG
+        PromptVaultLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+#else
+        PromptVaultLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+    }
 
     private var isolatedAssetRoot: URL? {
 #if DEBUG
@@ -141,6 +150,10 @@ struct DashboardView: View {
                         isolatedRoot: isolatedAssetRoot
                     )
                     .id(SidebarItem.knowledgeBase)
+
+                } else if selection == .promptVault {
+                    PromptVaultView(location: promptVaultLocation)
+                        .id(SidebarItem.promptVault)
 
                 } else if let selection {
 

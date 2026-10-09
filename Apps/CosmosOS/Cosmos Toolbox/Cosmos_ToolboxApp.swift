@@ -10,6 +10,8 @@ import SwiftUI
 @main
 struct Cosmos_ToolboxApp: App {
 
+    @NSApplicationDelegateAdaptor(CosmosPromptTerminationDelegate.self) private var promptTerminationDelegate
+
     var body: some Scene {
 
         WindowGroup {

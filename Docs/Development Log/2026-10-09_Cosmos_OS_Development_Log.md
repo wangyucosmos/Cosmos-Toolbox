@@ -66,3 +66,68 @@ Word WIP remains local at `wip/markdown-word-export-phase1-20260930`, commit `2d
 - **F5:** 隔离根过滤、Review close、并发测试覆盖及 sleep 稳定性待完善；相关边界与时序的自动化证据仍有限，后续增强，不扩大本轮验收声明。
 
 Next: wait for product coordination to select the next major module. F1–F5 remain deferred; do not automatically begin implementation or another repair round.
+
+
+## Prompt Vault Phase 1 — implementation and blocked handoff
+
+### Authority / preflight
+
+Owner approved the prior read-only proposal and authorized source implementation, necessary isolated verification and these two formal progress documents; no commit/push/merge/WIP restoration. Preflight clean main, HEAD `db15f790450da5f1a5107ee78e6076c0e3ff2ed1`, parent `e2c615165fef4951d6dec99915949bddfbab2aa1`, empty staging, no changed investigation files. Reused prior source/document investigation. This appended section does not replace the asset-center history above.
+
+### Files / decisions
+
+New App sources: `PromptVaultModels.swift`, `PromptVaultFileStorage.swift`, `PromptVaultStore.swift`, `PromptTemplateRenderer.swift`, `PromptVaultViewModel.swift`, `PromptVaultView.swift`, `PromptTemplateEditor.swift`. New tests: `PromptTemplateRendererTests.swift`, `PromptVaultPersistenceTests.swift`, `PromptVaultStateTests.swift`. Modified `DashboardView.swift` for existing route/DEBUG launch root; `Cosmos_ToolboxApp.swift` adds only the announced minimal native termination delegate adaptor. Current Status §17 and this append are the only documentation updates. No extra root documents or project.pbxproj edit.
+
+Independent FileManager Application Support JSON; single validated previous backup, dedicated flock, latest-disk per-template transaction, byte readback before state publication, conflict/uncertain/corrupt states. No document revision duplicating template revision/raw transaction baseline. 16 MiB document limit rejects rather than truncates. Symlink and file-type admission, no-follow read, atomic sibling temporary-write/rename. No automatic backup recovery or old Store dependency. Native editor owns draft; use-detail consumes saved templates. Values are transient per UUID. Native close/quit save/discard/cancel; pending quit freezes editor input and blocks opening more editors.
+
+### Concentrated verification / one repair
+
+Initial targeted xcodebuild test failed in compile: omitted key-path backslashes in new files; zero tests executed (`Initial.xcresult`, `initial.log`). One concentrated repair corrected key paths and added pending-termination editor freezing. Final affected batch `Fixed.xcresult`: **36/36 passed, 0 skipped** (22 Prompt / 14 existing persistence-boundary). No full-suite repetition. Test host `com.wangyucosmos.cosmostoolbox.persistenceui.promptphase1tests`, UUID roots beneath `/private/tmp/CosmosPromptVaultPhase1-*`, isolated suites and DerivedData.
+
+Universal Debug / Release **BUILD SUCCEEDED**, `x86_64 arm64`, signing disabled. Four DEBUG launch markers absent from Release. Logs and `release-scan.json`: `/private/tmp/CosmosPromptVaultPhase1-Validation/`. Test execution was arm64, not both architectures. Named Pasteboard exact-copy passed; actual Prompt view offscreen rendering passed but generated PNG was cleaned at test teardown. FocusState offscreen warning recorded; existing AppIntents/PDF warnings did not fail checks.
+
+Two CUA initialization attempts timed out (30s / 20s), so no standalone App was launched and no real UI/restart/clipboard/close/quit acceptance is claimed. No framework workaround or user click-through. Temporary-host business Data keys remained equal during Prompt operations; Prompt dependency audit found no Campaign/Workflow/Artifact Store construction/write. Formal business file hashes were not read/revalidated; no formal App/Workspace or other knowledge repository operations.
+
+### Final semantic blocker / stopping gate
+
+A targeted final Foundation semantic check found `CharacterSet.letters.contains(U+0301) == true` (generalCategory nonspacingMark). Current renderer uses this set for first-character admission, so leading combining marks are incorrectly parsed as variables; approved grammar requires a Unicode letter or underscore. Existing passing cases do not cover leading marks. Evidence: `semantic-boundary.txt` under the verification root. This is a parser-contract acceptance blocker. The one-repair budget is exhausted; **no second source repair** was performed. Recommended narrow next fix: explicitly allow only Unicode letter general categories or underscore as first scalar and add a leading-mark regression, then verify Renderer affected tests only plus required affected compile checks under fresh authority.
+
+Non-blocking/coverage review items: no explicit concurrency overlap barrier (real flock + async writers tested); real unreadable-file permission failure and parent replacement races not tested; file-error hooks cover stage failure/nonpublication without proving every filesystem mode. UI window identity reuse/quit alerts/input freeze, module-exit cleanup and layout remain unaccepted. Lock only coordinates cooperating writers; no hostile-directory-race or power-loss durability guarantee.
+
+### Concentrated read-only review handoff / Git
+
+Review only Prompt transaction ordering, flock and target revision, unrelated-template preservation, UTF-8 exactness, parser grammar/invalid spans/slash parity/nonrecursion, saved-vs-draft/temporary-state separation, native close and deferred quit cancellation, and DEBUG Bundle/suite/root failure. Include the known leading-mark blocker; do not infer acceptance from 36 passing tests. Do not repair F1–F5, old P3 or restore Word WIP. Owner must authorize any next repair round.
+
+Main remains at the authorized baseline with all phase changes unstaged, no commit/push/merge. Final diff/whitespace/Git inspection follows documentation writes; report actual results in chat. Word WIP, Harness, Step 06 adoption, Evidence/Quarantine and other knowledge repositories were not touched. No production Prompt library was created. Current phase is **implemented but blocked before acceptance**, awaiting review / next instruction.
+
+
+## Prompt Vault Phase 1 — Claude takeover, concentrated review and unicode fix
+
+### Authority / baseline
+
+Codex paused on quota; Claude took over as lead engineer with a single bounded repair authorized. Verified: `main` = `origin/main` = `db15f790450da5f1a5107ee78e6076c0e3ff2ed1`, empty index, 4 modified + 10 untracked files exactly as handed over (all kept); `project.pbxproj` unchanged. Source hashes of the unchanged Prompt/App files match Codex's `source-sha256.json`.
+
+### Review (read all sources, not just the diff)
+
+Read Models, FileStorage, Store, Renderer, ViewModel, View, Editor, App delegate and Dashboard diff. Storage transaction order (lock → latest disk → target revision → candidate from disk → backup + read-back → atomic rename → read-back before publish), unrelated-template preservation, byte exactness, draft retention, quit deferral, DEBUG root fail-closed (isolated without valid flag/bundle/UUID path → blocked, never production) and no Campaign/Workflow/Artifact Store reference in Prompt code: no blocker. Todos recorded in Current Status §17.
+
+### Fix (one round)
+
+Reproduced with a standalone compile of the renderer: `CharacterSet.letters.contains(U+0301)` true, `{{U+0301 a}}` yielded a variable. `validName` now judges per Unicode scalar by general category (first: `_` or L*; rest: `_`, `-`, L*, M*, Nd). Added `testLeadingCombiningMarkIsInvalidAndPreserved` and `testLetterFollowedByMarksAndMixedNamesStayValid`.
+
+### Verification
+
+`xcodebuild test` on Renderer + PromptVaultState suites (isolated bundle `...promptphase1tests`, DerivedData and xcresult under `/private/tmp/CosmosPromptVaultPhase1-TakeoverValidation/`): **16/16 passed, 0 failed, 0 skipped**. Persistence suite and storage were not re-run (files unchanged, hashes identical); earlier 36/36 and Universal Debug/Release evidence reused. No production Application Support directory created. No real-App launch.
+
+### State
+
+Blocker resolved; Phase 1 awaits product-owner wrap-up. Nothing committed, staged, pushed or merged. Word WIP, Harness, Evidence/Quarantine untouched.
+
+
+## Prompt Vault Phase 1 — closure
+
+The product owner accepted the existing verification scope and formally closed Phase 1, authorizing one `feat: 新增提示词库与变量模板` commit and a normal push to origin/main. Only the two progress documents were edited for closure; no source change, test, build or UI run.
+
+Evidence boundaries: post-fix Renderer + state tests 16/16 passed, 0 skipped (the Renderer change compiled in that test build; Release not rebuilt). Codex-era 36/36, Universal Debug/Release builds and the Release launch-argument scan are historical evidence for the pre-fix code; unchanged-file hashes support reuse but are not a fresh full build of the final code. Claude's review was a concentrated check by an engineer who also took part in the fix, not an independent post-fix third-party review. Real UI, restart and quit-prompt acceptance were not done; no end-to-end acceptance is claimed.
+
+Open non-blocking todos (not handled): parser warning position text; conservative save lock after a pre-rename write failure; list refresh after re-entering the module with an editor window open; new-draft favorite dirty check; declared UI / concurrency / filesystem-race coverage gaps. Next major module awaits product coordination. Word WIP stays local and paused; Harness, Evidence/Quarantine, formal Workspace and production Prompt data untouched. Exact commit/push state is verified from repository refs.
