@@ -229,3 +229,35 @@ The product owner accepted the existing verification scope and formally closed P
 Result: the national monthly project type, month label, 7 outputs and 7 inputs (stable keys), registration history with explicit finalization confirmation and the live previous-period reference are implemented. A registration is not Artifact adoption and does not enter the existing ZIP delivery; no real material has been imported.
 
 Evidence boundaries: 78/78 tests passed, 0 skipped; Universal Debug / Release succeeded on the final code. The isolated real run confirmed only data loading and the workbench display, comparing payload **length** only (not claimed as byte-for-byte business-data identity). The create form's monthly section and the checklist actions were not UI-accepted. Non-blocking todos retained, unhandled. Next stage to be determined by product coordination; not started. Exact commit / push state is verified from repository refs.
+
+
+## Dashboard 真实数据整合 Phase 1 — implementation
+
+### Authority / preflight
+
+Owner approved the read-only plan with the recommended choices and semantic revisions, authorizing implementation, isolated verification and the two progress documents; no commit/push. Baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c` with a clean tree was taken from the previous closeout; Git was not re-checked.
+
+### Files / decisions
+
+New `DashboardSnapshot.swift` (source / section / display states, pure projection, read-only reader, greeting, navigation targets), `DashboardHomeViewModel.swift`, `DashboardHomeView.swift`, test `DashboardSnapshotTests.swift`. `DashboardView.swift`: the fabricated Home (今日工作, 最近项目, AI / 系统健康数字, hard-coded greeting) and the unused `ProjectRow` were removed and the new Home wired in. The reader decodes persisted data directly (no business Store, so no default writes), uses the existing progress projection with an injected zero delivery counter, and the Prompt / Learning read-only loaders with isolated locations. Progress counts only enabled steps; zero enabled steps is never "done"; Workflow unreadable is distinct from not created; monthly confirmation, inputs (不适用 not folded into complete, prize-pool kept visible) and Workflow progress are separate. Failed refreshes keep old values only with their own read time and the error; date-dependent projections are recomputed on every read and day change. Details in Current Status §21.
+
+### Verification
+
+One concentrated batch: Dashboard suite plus the Campaign workbench and monthly suites, **56/56 passed**, no repair round. Universal Debug / Release **BUILD SUCCEEDED**; Release has none of the DEBUG launch strings. One limited real-UI attempt on a temporary Bundle, isolated suite and temporary Prompt / Learning roots (window-only capture): activities and monthly sections rendered real synthetic data, no file was created in the roots and the suite kept only the two seeded keys, process stopped by PID. Evidence under `/private/tmp/CosmosDashboardPhase1-Validation/`.
+
+### Not covered / todos
+
+Refresh and navigation buttons were not clicked; the Prompt / Learning cards were below the captured area; the day-change event and failure states were not triggered in the real App. Todos: real-UI acceptance, module-internal navigation, large-Workflow decode cost, isolated Workflow-domain convention, unconnected AI 工作台 / Mac 优化, carried-over earlier todos.
+
+### State
+
+Implemented, unstaged, uncommitted on `main`. Awaiting the owner's closeout instruction. Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, formal Workspace, formal module data and knowledge repositories untouched; no extra root documents.
+
+
+## Dashboard 真实数据整合 Phase 1 — closure
+
+The product owner accepted the existing verification scope and formally closed Phase 1, authorizing one `feat: 首页接入真实工作与学习数据` commit and a normal push to origin/main. Only the two progress documents were edited for closure; no source change, test, build, review or UI run.
+
+Result: the Home shows real campaign / Workflow state, the monthly checklist, favorite prompts and the learning summary; loading is read-only (no restore, migration or delivery-file check). Evidence boundaries: 56/56 tests passed, 0 skipped; Universal Debug / Release succeeded on the final code; the real isolated run covered the activities and monthly cards only, while refresh, navigation, the lower cards and the day-change event were not verified in the real App.
+
+Known display limitation, not changed: campaigns with status 已结束 are never listed on the Home even if their steps are unfinished (they are counted and remain visible in the progress workbench). Other non-blocking todos retained, unhandled. The next module is determined by product coordination; not started. Exact commit / push state is verified from repository refs.

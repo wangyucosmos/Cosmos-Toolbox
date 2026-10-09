@@ -3,6 +3,9 @@ import SwiftUI
 struct DashboardView: View {
     @State private var selection: SidebarItem? = .dashboard
 
+    /// Reused across visits to the Home so unchanged data is not decoded again.
+    @State private var homeCache = DashboardReadCache()
+
     let storePersistenceConfiguration:
         ZhuowangStorePersistenceConfiguration
 
@@ -41,6 +44,16 @@ struct DashboardView: View {
 #endif
     }
 
+
+    private func dashboardLocation(
+        root: URL?,
+        reason: String?
+    ) -> DashboardLocation {
+        if let root {
+            return .root(root)
+        }
+        return .blocked(reason ?? "存储位置不可用")
+    }
 
     private var promptVaultLocation: PromptVaultLocation {
 #if DEBUG
@@ -114,7 +127,22 @@ struct DashboardView: View {
             ZStack {
                 if selection == .dashboard {
 
-                    DashboardHomeView()
+                    DashboardHomeView(
+                        configuration:
+                            storePersistenceConfiguration,
+                        promptLocation:
+                            dashboardLocation(
+                                root: promptVaultLocation.root,
+                                reason: promptVaultLocation.error?.localizedDescription
+                            ),
+                        learningLocation:
+                            dashboardLocation(
+                                root: learningLocation.root,
+                                reason: learningLocation.error?.localizedDescription
+                            ),
+                        cache: homeCache,
+                        open: { selection = $0 }
+                    )
                         .id(SidebarItem.dashboard)
                         .transition(
                             .asymmetric(
@@ -279,317 +307,6 @@ struct DashboardView: View {
 }
 
 
-// MARK: - Dashboard Home
-
-struct DashboardHomeView: View {
-
-    var body: some View {
-
-        ScrollView {
-
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingXXL
-            ) {
-
-                header
-
-                topCards
-
-                recentProjects
-
-                bottomCards
-            }
-            .padding(
-                .horizontal,
-                CosmosDesign.pagePadding
-            )
-            .padding(
-                .vertical,
-                CosmosDesign.spacingXXL
-            )
-            .frame(
-                maxWidth: CosmosDesign.contentMaxWidth,
-                alignment: .leading
-            )
-        }
-        .background(
-            Color(nsColor: .windowBackgroundColor)
-        )
-    }
-
-
-    // MARK: Header
-
-    private var header: some View {
-
-        HStack(
-            alignment: .center
-        ) {
-
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingS
-            ) {
-
-                Text("下午好")
-                    .font(
-                        .system(
-                            size: 32,
-                            weight: .semibold
-                        )
-                    )
-
-                Text("Welcome back to Cosmos OS")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "sparkles")
-                .font(
-                    .system(
-                        size: 21,
-                        weight: .medium
-                    )
-                )
-                .foregroundStyle(.secondary)
-                .padding(CosmosDesign.spacingM)
-                .background(.thinMaterial)
-                .clipShape(Circle())
-        }
-    }
-
-
-    // MARK: Top Cards
-
-    private var topCards: some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingL
-        ) {
-
-            CosmosCard(
-                icon: "checklist",
-                title: "今日工作",
-                englishTitle: "Today"
-            ) {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingS
-                ) {
-
-                    Text("3")
-                        .font(
-                            .system(
-                                size: 42,
-                                weight: .semibold,
-                                design: .rounded
-                            )
-                        )
-
-                    Text("项待处理任务")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-
-            CosmosCard(
-                icon: "graduationcap",
-                title: "学习中心",
-                englishTitle: "Learning"
-            ) {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingS
-                ) {
-
-                    Text("记录学习")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-
-                    Text("在左侧「学习中心」写下目标、记录每次学习和下一步。")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-
-    // MARK: Recent Projects
-
-    private var recentProjects: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            HStack {
-
-                CosmosSectionTitle(
-                    title: "最近项目",
-                    subtitle: "Recent Projects"
-                )
-
-                Spacer()
-
-                Button {
-
-                } label: {
-
-                    HStack(
-                        spacing: CosmosDesign.spacingXS
-                    ) {
-
-                        Text("查看全部")
-
-                        Image(
-                            systemName: "arrow.right"
-                        )
-                    }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.tint)
-            }
-
-
-            VStack(spacing: 0) {
-
-                ProjectRow(
-                    icon: "briefcase",
-                    title: "河南 9 月促活",
-                    subtitle: "Zhuowang Workspace",
-                    time: "刚刚"
-                )
-
-                Divider()
-                    .padding(.leading, 52)
-
-
-                ProjectRow(
-                    icon: "sportscourt",
-                    title: "亚运竞猜",
-                    subtitle: "Campaign Planning",
-                    time: "今天"
-                )
-
-                Divider()
-                    .padding(.leading, 52)
-
-
-                ProjectRow(
-                    icon: "hammer",
-                    title: "Cosmos OS",
-                    subtitle: "Personal Project",
-                    time: "今天"
-                )
-            }
-            .background(.thinMaterial)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
-            .overlay {
-
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary.opacity(0.065),
-                    lineWidth: 1
-                )
-            }
-        }
-    }
-
-
-    // MARK: Bottom Cards
-
-    private var bottomCards: some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingL
-        ) {
-
-            CosmosCard(
-                icon: "sparkles",
-                title: "AI 工作台",
-                englishTitle: "AI Workspace"
-            ) {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingS
-                ) {
-
-                    HStack(
-                        alignment: .firstTextBaseline,
-                        spacing: CosmosDesign.spacingS
-                    ) {
-
-                        Text("8")
-                            .font(
-                                .system(
-                                    size: 36,
-                                    weight: .semibold,
-                                    design: .rounded
-                                )
-                            )
-
-                        Text("/ 9")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text("核心环境运行正常")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-
-            CosmosCard(
-                icon: "checkmark.circle",
-                title: "系统状态",
-                englishTitle: "System"
-            ) {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingS
-                ) {
-
-                    HStack {
-
-                        Text("运行正常")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-
-                        Spacer()
-
-                        CosmosStatusBadge(
-                            text: "正常",
-                            icon: "checkmark"
-                        )
-                    }
-
-                    Text("No issues detected")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-}
-
-
 // MARK: - Cosmos Card
 
 struct CosmosCard<Content: View>: View {
@@ -667,86 +384,6 @@ struct CosmosCard<Content: View>: View {
             )
         )
         .contentShape(Rectangle())
-        .onHover { hovering in
-
-            isHovering = hovering
-        }
-    }
-}
-
-
-// MARK: - Project Row
-
-struct ProjectRow: View {
-
-    let icon: String
-    let title: String
-    let subtitle: String
-    let time: String
-
-    @State
-    private var isHovering = false
-
-
-    var body: some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            Image(systemName: icon)
-                .frame(width: 24)
-                .foregroundStyle(.secondary)
-
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingXS
-            ) {
-
-                Text(title)
-                    .fontWeight(.medium)
-
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Text(time)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-
-            Image(
-                systemName: "chevron.right"
-            )
-            .font(.caption)
-            .foregroundStyle(.tertiary)
-            .offset(
-                x: isHovering ? 3 : 0
-            )
-        }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
-        .background(
-            isHovering
-                ? Color.primary.opacity(0.035)
-                : Color.clear
-        )
-        .contentShape(Rectangle())
-        .animation(
-            .easeOut(
-                duration:
-                    CosmosDesign.animationFast
-            ),
-            value: isHovering
-        )
         .onHover { hovering in
 
             isHovering = hovering
