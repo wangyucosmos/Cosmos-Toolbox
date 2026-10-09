@@ -20,8 +20,8 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           arguments[index + 1] == "zhuowang" {
-            _selection = State(initialValue: .zhuowang)
+           ["zhuowang", "knowledgeBase"].contains(arguments[index + 1]) {
+            _selection = State(initialValue: arguments[index + 1] == "zhuowang" ? .zhuowang : .knowledgeBase)
         }
 #endif
     }
@@ -41,6 +41,21 @@ struct DashboardView: View {
 #endif
     }
 
+
+    private var isolatedAssetRoot: URL? {
+#if DEBUG
+        guard storePersistenceConfiguration.isIsolated else { return nil }
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "--cosmos-asset-fixture-root"),
+              index + 1 < arguments.count else { return nil }
+        let path = arguments[index + 1]
+        guard path.hasPrefix("/private/tmp/CosmosAssetPhase1-"),
+              !path.split(separator: "/").contains("..") else { return nil }
+        return URL(fileURLWithPath: path, isDirectory: true)
+#else
+        return nil
+#endif
+    }
 
     private var navigationContent: some View {
         NavigationSplitView {
@@ -119,6 +134,13 @@ struct DashboardView: View {
                                     )
                             )
                         )
+
+                } else if selection == .knowledgeBase {
+                    ZhuowangAssetCenterView(
+                        configuration: storePersistenceConfiguration,
+                        isolatedRoot: isolatedAssetRoot
+                    )
+                    .id(SidebarItem.knowledgeBase)
 
                 } else if let selection {
 

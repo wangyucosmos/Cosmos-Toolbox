@@ -418,6 +418,11 @@ final class ArtifactReviewWindowManager:
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// Asset-center refresh invalidates only previews explicitly opened by it.
+    func close(documentID: UUID) {
+        controllers["artifact-review::\(documentID.uuidString)"]?.window?.performClose(nil)
+    }
+
     func windowWillClose(
         _ notification: Notification
     ) {
