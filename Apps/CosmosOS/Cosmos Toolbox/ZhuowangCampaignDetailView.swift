@@ -100,6 +100,14 @@ struct ZhuowangCampaignDetailView: View {
                             case .artifacts:
 
                                 artifactsContent
+
+                            case .monthly:
+
+                                ZhuowangMonthlyChecklistView(
+                                    store: store,
+                                    workflowStore: workflowStore,
+                                    campaignID: campaignID
+                                )
                             }
                         }
                         .padding(
@@ -374,7 +382,10 @@ struct ZhuowangCampaignDetailView: View {
         HStack(spacing: 6) {
 
             ForEach(
-                ZhuowangCampaignDetailTab.allCases
+                ZhuowangCampaignDetailTab.allCases.filter {
+                    $0 != .monthly
+                    || campaign?.isMonthlyMemberActivation == true
+                }
             ) { tab in
 
                 Button {
@@ -3100,6 +3111,8 @@ enum ZhuowangCampaignDetailTab:
     case overview
     case workflow
     case artifacts
+    /// Only shown for monthly member-activation Campaigns.
+    case monthly
 
     var id: String {
         rawValue
@@ -3115,6 +3128,9 @@ enum ZhuowangCampaignDetailTab:
 
         case .artifacts:
             return "工作产物"
+
+        case .monthly:
+            return "月度清单"
         }
     }
 
@@ -3128,6 +3144,9 @@ enum ZhuowangCampaignDetailTab:
 
         case .artifacts:
             return "Artifacts"
+
+        case .monthly:
+            return "Monthly"
         }
     }
 
@@ -3141,6 +3160,9 @@ enum ZhuowangCampaignDetailTab:
 
         case .artifacts:
             return "folder"
+
+        case .monthly:
+            return "list.bullet.clipboard"
         }
     }
 }

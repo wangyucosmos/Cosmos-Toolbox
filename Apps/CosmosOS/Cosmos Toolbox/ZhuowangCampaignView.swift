@@ -910,6 +910,23 @@ struct ZhuowangCampaignCreateView: View {
     @State
     private var notes = ""
 
+    // Monthly member-activation type (national module only).
+    @State
+    private var isMonthly = false
+
+    @State
+    private var monthText =
+        ZhuowangCampaignCreateView.defaultMonthText()
+
+    @State
+    private var referenceID: UUID?
+
+    @State
+    private var referenceChosen = false
+
+    @State
+    private var userEditedDates = false
+
     @State
     private var mutationMessage = ""
 
@@ -950,22 +967,81 @@ struct ZhuowangCampaignCreateView: View {
                 }
 
 
+                if monthlyAvailable {
+                    Section("项目类型 · Type") {
+                        Picker("类型", selection: $isMonthly) {
+                            Text("普通活动").tag(false)
+                            Text("月度会员促活").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("campaign-type")
+                        .onChange(of: isMonthly) { _, nowMonthly in
+                            // Switching back to a plain Campaign restores the
+                            // plain default dates unless the user edited them.
+                            if !nowMonthly, !userEditedDates {
+                                startDate = Date()
+                                endDate =
+                                    Calendar.current.date(
+                                        byAdding: .day,
+                                        value: 30,
+                                        to: Date()
+                                    ) ?? Date()
+                            }
+                        }
+                    }
+                }
+
+                if isMonthlyActive {
+                    monthlySection
+                }
+
                 Section(
                     "时间 · Schedule"
                 ) {
 
-                    DatePicker(
-                        "开始日期",
-                        selection: $startDate,
-                        displayedComponents: .date
-                    )
+                    if isMonthlyActive {
+                        DatePicker(
+                            "开始时间",
+                            selection: Binding(
+                                get: { startDate },
+                                set: {
+                                    startDate = $0
+                                    userEditedDates = true
+                                }
+                            ),
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
 
-                    DatePicker(
-                        "结束日期",
-                        selection: $endDate,
-                        in: startDate...,
-                        displayedComponents: .date
-                    )
+                        DatePicker(
+                            "结束时间",
+                            selection: Binding(
+                                get: { endDate },
+                                set: {
+                                    endDate = $0
+                                    userEditedDates = true
+                                }
+                            ),
+                            in: startDate...,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+
+                        Text("已按上海时区预填「上月末 17:00 — 本月末 17:00」，可手动修改；月份标签与实际起止时间相互独立。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        DatePicker(
+                            "开始日期",
+                            selection: $startDate,
+                            displayedComponents: .date
+                        )
+
+                        DatePicker(
+                            "结束日期",
+                            selection: $endDate,
+                            in: startDate...,
+                            displayedComponents: .date
+                        )
+                    }
                 }
 
 
@@ -1080,7 +1156,47 @@ struct ZhuowangCampaignCreateView: View {
 
         let result: ZhuowangStoreMutationResult
 
-        if let province {
+        if isMonthlyActive {
+
+            guard let month = parsedMonth else {
+                mutationMessage = ZhuowangMonthlyViolation.invalidMonth.message
+                showMutationAlert = true
+                return
+            }
+
+            guard endDate >= startDate else {
+                mutationMessage = ZhuowangMonthlyViolation.invalidDates.message
+                showMutationAlert = true
+                return
+            }
+
+            if let referenceID,
+               let violation =
+                ZhuowangMonthlyRules.validateReference(
+                    referenceID,
+                    month: month.string,
+                    selfID: UUID(),
+                    campaigns: store.campaigns
+                ) {
+                mutationMessage = violation.message
+                showMutationAlert = true
+                return
+            }
+
+            result = store.addCampaign(
+                name: name,
+                englishName: englishName,
+                scopeType: .national,
+                moduleID: "national",
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                notes: notes,
+                monthlyMonth: month.string,
+                referenceCampaignID: referenceID
+            )
+
+        } else if let province {
 
             result = store.addCampaign(
                 name: name,
@@ -1134,6 +1250,150 @@ struct ZhuowangCampaignCreateView: View {
         dismiss()
     }
 
+
+    // MARK: Monthly type
+
+    private var monthlyAvailable: Bool {
+        province == nil && module?.id == "national"
+    }
+
+    private var isMonthlyActive: Bool {
+        isMonthly && monthlyAvailable
+    }
+
+    private var parsedMonth: ZhuowangActivityMonth? {
+        ZhuowangActivityMonth(
+            string:
+                monthText.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+        )
+    }
+
+    private var eligibleReferences: [ZhuowangCampaign] {
+        guard let month = parsedMonth else {
+            return []
+        }
+
+        return store.campaigns.filter { other in
+            guard
+                let theirs =
+                    other.monthly.flatMap({
+                        ZhuowangActivityMonth(
+                            string: $0.activityMonth
+                        )
+                    })
+            else {
+                return false
+            }
+            return theirs < month
+        }
+        .sorted {
+            let a = $0.monthly.flatMap { ZhuowangActivityMonth(string: $0.activityMonth) }
+            let b = $1.monthly.flatMap { ZhuowangActivityMonth(string: $0.activityMonth) }
+            if let a, let b, a != b { return a > b }
+            return $0.createdAt > $1.createdAt
+        }
+    }
+
+    private var monthlySection: some View {
+        Section("月度信息 · Monthly") {
+            TextField("活动月份（YYYY-MM）", text: $monthText)
+                .accessibilityIdentifier("campaign-month")
+                .onChange(of: monthText) { _, _ in
+                    monthChanged()
+                }
+
+            if parsedMonth == nil {
+                Text("月份须为 YYYY-MM，例如 2026-11。")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                let duplicates =
+                    ZhuowangMonthlyRules.campaignsWithMonth(
+                        monthText.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ),
+                        in: store.campaigns
+                    )
+                if !duplicates.isEmpty {
+                    Text("已有 \(duplicates.count) 个同月月度活动（仅提示，仍可创建）。")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Picker("上期参考（可选）", selection: $referenceID) {
+                Text("不选").tag(UUID?.none)
+                ForEach(eligibleReferences) { reference in
+                    Text(
+                        "\(reference.monthly?.activityMonth ?? "") · \(reference.name)"
+                    )
+                    .tag(UUID?.some(reference.id))
+                }
+            }
+            .onChange(of: referenceID) { _, _ in
+                if referenceID != defaultReferenceID {
+                    referenceChosen = true
+                }
+            }
+
+            Text("只保存上期活动的身份，不复制它的内容；创建后清单是空白的，输入状态、掌厅奖池关系、成品位置和定稿确认都不会带过来。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .onAppear {
+            if referenceID == nil, !referenceChosen {
+                referenceID = defaultReferenceID
+            }
+            applyDefaultDatesIfNeeded()
+        }
+    }
+
+    private var defaultReferenceID: UUID? {
+        ZhuowangMonthlyRules.defaultReferenceCandidate(
+            forMonth:
+                monthText.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+            in: store.campaigns
+        )?.id
+    }
+
+    private func monthChanged() {
+        applyDefaultDatesIfNeeded()
+
+        if !referenceChosen {
+            referenceID = defaultReferenceID
+        }
+    }
+
+    /// Never overwrites dates the user edited by hand.
+    private func applyDefaultDatesIfNeeded() {
+        let next =
+            ZhuowangMonthlyRules.datesAfterMonthChange(
+                current: (startDate, endDate),
+                newMonth:
+                    monthText.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    ),
+                userEditedDates: userEditedDates
+            )
+        startDate = next.start
+        endDate = next.end
+    }
+
+    /// Next calendar month (Shanghai) as the default label.
+    static func defaultMonthText() -> String {
+        let today = LearningDay.today(timeZone: ZhuowangMonthlyRules.shanghai)
+        let month = ZhuowangActivityMonth(year: today.year, month: today.month)
+        let next = month.flatMap { current in
+            current.month == 12
+                ? ZhuowangActivityMonth(year: current.year + 1, month: 1)
+                : ZhuowangActivityMonth(year: current.year, month: current.month + 1)
+        }
+        return next?.string ?? month?.string ?? ""
+    }
 
     private var scopeText: String {
 

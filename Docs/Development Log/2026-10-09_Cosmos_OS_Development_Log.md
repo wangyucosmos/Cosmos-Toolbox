@@ -197,3 +197,35 @@ Result: provinces can be added, renamed, reordered, stopped and restored; a fres
 Evidence boundaries: 68/68 tests passed, 0 skipped (new suite 18 + affected existing suites); Universal Debug / Release succeeded on the final code. The isolated real-UI run confirmed only the sidebar display and an unchanged workspace payload **length** (not claimed as byte-for-byte business-data identity); manager operations and the create-form refusal were not UI-accepted (the refusal is covered at the rule level). Non-blocking todos retained, unhandled: real-UI acceptance, Campaign-name folder risk, "primary missing but backup exists" re-initialization, two isolation warnings, stopped-province marker on workbench rows.
 
 Next candidate: investigation of the national monthly member-activation (全国月度会员促活) integration; not started. Exact commit / push state is verified from repository refs.
+
+
+## 全国月度会员促活 Phase 1 — implementation
+
+### Authority / preflight
+
+Owner approved the read-only plan (project type + monthly checklist) with the stated boundaries and authorized implementation, isolated verification and the two progress documents; no commit/push. Quick preflight: clean `main` = `origin/main`, HEAD `863fc83690bd02543c0ca1570a88883a4b43831c`. The external business document had already been read once (read-only, not modified); it was not read again.
+
+### Files / decisions
+
+New `ZhuowangMonthlyPromotion.swift` (month type, fixed 7 outputs / 7 inputs with stable keys, plan models, pure rules), `ZhuowangMonthlyChecklistView.swift`, test `ZhuowangMonthlyPromotionTests.swift`. Modified Campaign model (optional `monthly`), Campaign store (`addCampaign` monthly parameters, `updateMonthlyPlan` with per-plan revision, `updateCampaign` preserves the plan), the create form (national module only) and the detail window (new tab, monthly Campaigns only). Registration records only a location (absolute path or http/https), label and note; it is not Artifact adoption and not ZIP delivery; no file or link is opened, read, copied or verified. New months copy nothing except the optional reference identity; the prize-pool relation resets to 待确认. Suggested days are labelled reference-only. Details in Current Status §20.
+
+### Verification
+
+One concentrated batch: monthly suite plus affected Campaign store, workbench, asset-center and province-configuration suites, **78/78 passed**, no repair round. Universal Debug / Release **BUILD SUCCEEDED**; Release has none of the DEBUG launch strings. One limited real-UI attempt on a temporary Bundle and isolated suite (window-only capture, no Campaign detail): synthetic monthly and old-format Campaigns loaded and were counted by the workbench, payload length unchanged, process stopped by PID. Evidence under `/private/tmp/CosmosMonthlyPhase1-Validation/`.
+
+### Not covered / todos
+
+The create form's monthly section, the checklist tab and its actions are not UI-accepted (offscreen rendering and data-level tests only; real detail windows are blocked by the existing workspace-file isolation todo). Opening any Campaign detail window already runs existing recovery / migration code (existing, unchanged). Todos: monthly marker on list rows, conversion between plain and monthly types, registration correction beyond append-only, managed-Artifact registration of real finals (future), carried-over earlier todos.
+
+### State
+
+Implemented, unstaged, uncommitted on `main`. Awaiting the owner's closeout instruction. Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, formal Workspace and knowledge repositories untouched; no real material imported or generated; no extra root documents.
+
+
+## 全国月度会员促活 Phase 1 — closure
+
+The product owner accepted the existing verification scope and formally closed Phase 1, authorizing one `feat: 接入全国月度会员促活清单` commit and a normal push to origin/main. Only the two progress documents were edited for closure; no source change, test, build, review or UI run.
+
+Result: the national monthly project type, month label, 7 outputs and 7 inputs (stable keys), registration history with explicit finalization confirmation and the live previous-period reference are implemented. A registration is not Artifact adoption and does not enter the existing ZIP delivery; no real material has been imported.
+
+Evidence boundaries: 78/78 tests passed, 0 skipped; Universal Debug / Release succeeded on the final code. The isolated real run confirmed only data loading and the workbench display, comparing payload **length** only (not claimed as byte-for-byte business-data identity). The create form's monthly section and the checklist actions were not UI-accepted. Non-blocking todos retained, unhandled. Next stage to be determined by product coordination; not started. Exact commit / push state is verified from repository refs.

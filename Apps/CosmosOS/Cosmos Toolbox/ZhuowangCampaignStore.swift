@@ -58,7 +58,9 @@ final class ZhuowangCampaignStore: ObservableObject {
         startDate: Date,
         endDate: Date,
         status: ZhuowangCampaignStatus = .planning,
-        notes: String = ""
+        notes: String = "",
+        monthlyMonth: String? = nil,
+        referenceCampaignID: UUID? = nil
     ) -> ZhuowangStoreMutationResult {
         guard
             persistenceState.allowsMutations,
@@ -94,10 +96,40 @@ final class ZhuowangCampaignStore: ObservableObject {
                 notes:
                     notes.trimmingCharacters(
                         in: .whitespacesAndNewlines
+                    ),
+                // A new monthly Campaign always starts from a blank plan:
+                // nothing is copied from any other Campaign.
+                monthly: monthlyMonth.map {
+                    ZhuowangMonthlyPlan.blank(
+                        activityMonth: $0,
+                        referenceCampaignID: referenceCampaignID
                     )
+                }
             )
 
         return transact { campaigns in
+            if let plan = campaign.monthly {
+                guard
+                    scopeType == .national,
+                    ZhuowangActivityMonth(
+                        string: plan.activityMonth
+                    ) != nil,
+                    endDate >= startDate
+                else {
+                    return false
+                }
+
+                if let reference = plan.referenceCampaignID,
+                   ZhuowangMonthlyRules.validateReference(
+                       reference,
+                       month: plan.activityMonth,
+                       selfID: campaign.id,
+                       campaigns: campaigns
+                   ) != nil {
+                    return false
+                }
+            }
+
             campaigns.append(campaign)
             Self.sortCampaigns(&campaigns)
             return true
@@ -146,12 +178,86 @@ final class ZhuowangCampaignStore: ObservableObject {
 
             var updatedCampaign = campaign
             updatedCampaign.updatedAt = Date()
+            // The monthly plan is only changed through `updateMonthlyPlan`
+            // (revision-checked). A stale Campaign copy must never overwrite it.
+            updatedCampaign.monthly = campaigns[index].monthly
             campaigns[index] = updatedCampaign
             Self.sortCampaigns(&campaigns)
             return true
         }
     }
 
+
+    // MARK: - Monthly Plan
+
+    /// Applies one change to a monthly Campaign's plan inside the protected
+    /// transaction, against the latest persisted plan. A stale `expectedRevision`
+    /// is refused; other Campaigns and the Campaign's own fields are untouched.
+    @discardableResult
+    func updateMonthlyPlan(
+        campaignID: UUID,
+        expectedRevision: Int,
+        _ mutation: ZhuowangMonthlyMutation
+    ) -> ZhuowangMonthlyMutationResult {
+        guard
+            persistenceState.allowsMutations,
+            baselineData != nil
+        else {
+            return .store(
+                .rejected(
+                    failureForCurrentState
+                )
+            )
+        }
+
+        var violation: ZhuowangMonthlyViolation?
+
+        let result = transact(
+            rejectedMutationFailure: .itemNotFound
+        ) { campaigns in
+            guard
+                let index =
+                    campaigns.firstIndex(
+                        where: { $0.id == campaignID }
+                    )
+            else {
+                violation = .campaignNotFound
+                return false
+            }
+
+            guard var plan = campaigns[index].monthly else {
+                violation = .notMonthlyCampaign
+                return false
+            }
+
+            guard plan.revision == expectedRevision else {
+                violation = .stale
+                return false
+            }
+
+            if let refused =
+                ZhuowangMonthlyRules.apply(
+                    mutation,
+                    to: &plan,
+                    campaignID: campaignID,
+                    campaigns: campaigns
+                ) {
+                violation = refused
+                return false
+            }
+
+            campaigns[index].monthly = plan
+            return true
+        }
+
+        if let violation {
+            return .violation(violation)
+        }
+
+        return result.succeeded
+            ? .succeeded
+            : .store(result)
+    }
 
     // MARK: - Delete
 

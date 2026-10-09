@@ -108,6 +108,10 @@ struct ZhuowangCampaign:
 
     var updatedAt: Date
 
+    /// Present only for the "月度会员促活" project type. Plain Campaigns keep
+    /// this `nil`; old saved data without the key decodes as `nil`.
+    var monthly: ZhuowangMonthlyPlan?
+
 
     // MARK: - Initializer
 
@@ -123,7 +127,8 @@ struct ZhuowangCampaign:
         status: ZhuowangCampaignStatus = .planning,
         notes: String = "",
         createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        monthly: ZhuowangMonthlyPlan? = nil
     ) {
         self.id = id
         self.name = name
@@ -137,6 +142,7 @@ struct ZhuowangCampaign:
         self.notes = notes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.monthly = monthly
     }
 }
 
@@ -144,6 +150,10 @@ struct ZhuowangCampaign:
 // MARK: - Convenience
 
 extension ZhuowangCampaign {
+
+    var isMonthlyMemberActivation: Bool {
+        monthly != nil
+    }
 
     var dateRangeText: String {
         let formatter = DateFormatter()
