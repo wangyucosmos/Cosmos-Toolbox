@@ -1,19 +1,22 @@
 import SwiftUI
 
-/// AI 工作台 Phase 1: local tool detection. Read-only; nothing is installed,
-/// updated, logged in or run beyond `--version`.
+/// In-memory task handoff and read-only local tool detection.
 struct AIWorkspaceView: View {
 
     @StateObject private var model: AIWorkspaceViewModel
     private let autoDetect: Bool
+    @StateObject private var preparation: AIWorkspaceTaskPreparation
 
-    init(cache: AIWorkspaceResultCache, autoDetect: Bool = false) {
+    init(cache: AIWorkspaceResultCache, configuration: ZhuowangStorePersistenceConfiguration, autoDetect: Bool = false) {
+        let reader = AIWorkspaceTaskContextReader(source: configuration.dataSource)
+        _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { try reader.read() }))
         _model = StateObject(wrappedValue: AIWorkspaceViewModel(cache: cache))
         self.autoDetect = autoDetect
     }
 
     /// Injectable model, for offscreen rendering and tests.
     init(model: AIWorkspaceViewModel, autoDetect: Bool = false) {
+        _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { AIWorkspaceTaskContext() }))
         _model = StateObject(wrappedValue: model)
         self.autoDetect = autoDetect
     }
@@ -22,6 +25,9 @@ struct AIWorkspaceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: CosmosDesign.spacingXL) {
                 header
+                AIWorkspaceTaskPreparationView(model: preparation)
+                Divider()
+                Text("本机工具与运行环境").font(.title2)
                 notice
                 VStack(spacing: CosmosDesign.spacingM) {
                     ForEach(AIWorkspaceToolID.allCases) { tool in
@@ -39,6 +45,7 @@ struct AIWorkspaceView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .task {
+            preparation.refresh()
             if autoDetect, model.snapshot == nil { model.refresh() }
         }
         .onDisappear { model.cancel() }
@@ -49,7 +56,7 @@ struct AIWorkspaceView: View {
             VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
                 Text("AI 工作台")
                     .font(.system(size: 32, weight: .semibold))
-                Text("本机工具与运行环境")
+                Text("任务准备与提示词交接")
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }

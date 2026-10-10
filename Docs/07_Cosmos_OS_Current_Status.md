@@ -1,8 +1,9 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** AI 工作台 Phase 1 (本机工具与运行环境检测) is **implemented, verified on the stated scope, and not yet committed or pushed** (2026-10-09; baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e`; see §22). The sidebar item AI 工作台 is no longer a placeholder: it detects Claude Code, Codex CLI, Git, Node.js and Python on demand and only proves that the tool exists and `--version` runs.
+**Current stage:** AI 工作台 Phase 2（任务准备与提示词交接）已由用户接受本轮验收范围并关闭，授权本次提交及正常推送（2026-10-10；开发基线 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`；见 §23）。选择真实活动 → 选择已有步骤 → 填写要求 → 实时预览 → 复制；仅内存草稿、只读业务上下文。
+**Previous stage (AI 工作台):** Phase 1 已由用户接受并关闭，正式提交 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，消息 `feat: 新增 AI 工作台本机工具检测`。正常推送、main = origin/main、ahead/behind 0/0、工作区干净为用户提供的有效收尾基线，本轮未重复 fetch。Phase 1 历史测试与验收证据沿用；工具检测能力保留，详见 §22。
 **Previous stage:** Dashboard 真实数据整合 Phase 1 is **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 首页接入真实工作与学习数据` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §21). Implementation baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c`. The Home now summarizes real data from the finished modules and no longer shows fabricated tasks, projects or health numbers.
 
 **Earlier stage (全国月度会员促活):** 全国月度会员促活 Phase 1 was **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 接入全国月度会员促活清单` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §20). Implementation baseline `863fc83690bd02543c0ca1570a88883a4b43831c`. National Campaigns can be created as the "月度会员促活" project type with a monthly checklist (7 outputs, 7 business inputs, registered final locations with an explicit finalization confirmation) layered on the existing Campaign and six-step Workflow.
@@ -1033,9 +1034,9 @@ At the implementation checkpoint all changes were unstaged and uncommitted on `m
 
 ---
 
-## 22. AI 工作台 Phase 1 — 本机工具与运行环境检测 — 2026-10-09 (implemented, not committed)
+## 22. AI 工作台 Phase 1 — 本机工具与运行环境检测 — 2026-10-09 (closed)
 
-Implementation baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e` (clean, main = origin/main at start). Changes are unstaged / uncommitted; commit and push await explicit authorization.
+Implementation baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e` (clean, main = origin/main at start). Phase 1 is closed; the accepted formal commit is `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b` (owner-provided push/clean baseline reused in Phase 2).
 
 ### Behavior
 
@@ -1074,4 +1075,30 @@ New: `AIWorkspaceModels.swift`, `AIWorkspaceProcessRunner.swift`, `AIWorkspaceTo
 
 ### Git and next action
 
-Unstaged / uncommitted on `main` (baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e`). Word WIP, Step 06 Harness, Evidence/Quarantine, F1–F5, old P3, other repositories, the knowledge base and formal App data were not touched. Next: closure and Git authorization from the product owner; no module starts automatically.
+Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Historical verification above remains bounded to its stated scope. Phase 2 was explicitly authorized and is recorded below. Word WIP, Step 06 Harness, Evidence/Quarantine, F1–F5, old P3, other repositories, the knowledge base and formal App data remain outside this work.
+
+
+## 23. AI 工作台 Phase 2 — 任务准备与提示词交接 — 2026-10-10
+
+### 当前行为与边界
+
+- 从现有主元数据只读读取全部 Campaign、已有 Workflow 与 Workspace 名称配置，不初始化业务 Store、不创建默认活动/流程、不恢复备份。支持省份、全国、其他范围，不硬编码负责省份。
+- 用户选择活动与步骤、Claude / Codex，填写本次目标与补充要求；完整提示词实时预览，一键复制。CLI 未检测或不可运行不阻止交接。切换活动/步骤清空输入，无确认弹窗；草稿仅当前页面内存，离开页面可能丢弃，不建立历史或持久化。
+- 提示词标明来源，包含活动名称/范围/时间/状态/notes、流程与步骤 ID/状态/启用/说明/能力及工具要求、用户输入和关联产物元数据。按既有 versionGroupKey 与 isApprovedVersion 判定当前采用；其他版本为参考，零采用明确未确定，多采用明确冲突；排除所属活动不匹配的产物。不读取文件正文、不验证登记路径可读性、不以最新版本兜底。
+- 月度活动补充既有参考活动关联、业务输入状态/说明、奖池关系、登记版本/位置/定稿状态，以及现有清单定义中与步骤关联的交付形式。
+- 步骤模型没有独立目标/详细完成标准字段，因此目标由用户填写，步骤 notes 保留为说明；不把说明冒充完成标准。提示词明确已有 requiresApproval 语义和详细标准缺失。新产物输出目录未确定，登记路径只作为来源，不推导或编造输出目录，不把源码仓库作为活动输出目录。
+- 缺少活动、Workflow、步骤、目标及读取异常均阻止生成/复制。刷新发现关联失效会清空对应选择与输入。复制前重新读取主元数据；若文本变化，更新预览并要求核对后再次复制；若失效或读取失败则拒绝复制。成功/失败均有反馈，输入变化清除旧反馈。
+- 不自动执行 CLI/AI、发送或导出，不创建 Run/Approval、不改 Workflow、不采用/覆盖/移动/删除产物、不改业务 Store。不授权提交、推送或其他知识库回写。Phase 1 检测入口及执行逻辑保留。
+
+### 本轮验证
+
+- 新增 `AIWorkspaceTaskPreparationTests` **10/10 通过**：真实关联及动态省份名称；旧 V1 当前采用而 V3 为参考；采用冲突/未采用/跨活动产物；活动/步骤切换与清空；缺活动/流程/步骤/目标；失效关联与复制前更新；输入/工具变化后预览和复制一致；失败反馈；只读主数据且不读备份/不写 Store；重复身份拒绝；实际 SwiftUI 视图离屏布局与私有剪贴板全文一致。
+- **Universal Debug BUILD SUCCEEDED**，`lipo` 确认 `x86_64 arm64`；临时 DerivedData / 隔离 Bundle，签名关闭。新增文件无编译警告；旧省份规则两条 actor 警告及 AppIntents 提示不修复。`git diff --check` 通过。未跑历史/全量测试、Release 或独立复审。
+- 首次沙箱内 xcodebuild 被 Swift 宏插件 sandbox_apply 拒绝，测试未执行；改用同一隔离配置在沙箱外验证成功，无产品阻塞或修复轮次。
+- **真实 App 一次隔离启动**：LaunchServices 后台 `open -g -n`，随机 suite + 临时 Bundle、合成活动/步骤/产物，仅窗口截图，未移动用户窗口。任务准备页面呈现，Phase 1 DEBUG 自动检测完成，显示重新检测及时间。Campaign / Workflow / Workspace 三份 payload 前后逐字节一致，无新增 cosmos 业务键；临时进程已结束、随机 suite 已删除。证据：`/private/tmp/CosmosAIPhase2-UI/`；测试 `/private/tmp/CosmosAIPhase2-Focused.xcresult`；构建日志 `/private/tmp/CosmosAIPhase2-build.log`。
+
+### 未覆盖与下一步
+
+- 原生 UI 操作工具初始化超时，未重复尝试；真实 App 未点击活动/步骤选择、输入、复制/失败反馈、刷新及检测按钮，未滚动检查所有检测行。功能逻辑、离屏视图及私有剪贴板证据不等于完整端到端 UI 验收。月度提示词扩展本轮只做编译与静态检查，没有专项运行测试；真实文件路径存在性不在本期实现范围。
+- 非阻塞：大规模 Workflow 元数据读取当前同步进行，后续真实规模出现卡顿时再考虑优化；离开工作台不保证保留草稿。本期无任务历史、导出、自动发送或 CLI 启动。
+- **结论：用户已接受上述验收范围，本阶段关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务准备与提示词交接` 提交并正常推送 main；提交前实测远端 main 与本地 HEAD 均为开发基线 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，范围恰为报告中的 7 个文件。沿用本轮验证，不追加测试、构建或复审；实际 Git 交付结果以仓库 refs 和最终收尾报告为准。下一模块范围待用户确定，不自动开始。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他仓库/知识库均未处理。
