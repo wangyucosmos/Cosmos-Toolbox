@@ -1230,92 +1230,11 @@ struct ZhuowangWorkspaceView: View {
     // MARK: - Category Content
 
     private var categoryContent: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingXL
-        ) {
-
-            HStack {
-
-                CosmosSectionTitle(
-                    title:
-                        selectedCategory?
-                        .name
-                        ?? "内容",
-                    subtitle:
-                        selectedCategory?
-                        .englishName
-                        ?? "Content"
-                )
-
-                Spacer()
-
-                Button {
-
-                } label: {
-
-                    Label(
-                        "新建",
-                        systemImage: "plus"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-            }
-
-            VStack(spacing: 0) {
-
-                ZhuowangWorkRow(
-                    icon:
-                        selectedCategory?
-                        .icon
-                        ?? "doc",
-                    title:
-                        "\(currentDisplayName) · \(selectedCategory?.name ?? "内容") · 当前工作",
-                    subtitle:
-                        "最近更新 · Cosmos OS",
-                    status: "进行中"
-                )
-
-                Divider()
-                    .padding(.leading, 52)
-
-                ZhuowangWorkRow(
-                    icon:
-                        selectedCategory?
-                        .icon
-                        ?? "doc",
-                    title:
-                        "\(currentDisplayName) · \(selectedCategory?.name ?? "内容") · 历史资料",
-                    subtitle:
-                        "历史工作资产",
-                    status: "已归档"
-                )
-            }
-            .background(.thinMaterial)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
-            .overlay {
-
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusLarge,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary
-                        .opacity(0.06),
-                    lineWidth: 1
-                )
-            }
-        }
+        ZhuowangCategoryContentView(
+            category: selectedCategory, categoryID: selectedCategoryID,
+            scopeName: currentWorkspaceTitle, provinceID: selectedProvince?.id,
+            moduleID: selectedModule?.id, model: assetModel,
+            openPromptVault: openPromptVault)
     }
 
 

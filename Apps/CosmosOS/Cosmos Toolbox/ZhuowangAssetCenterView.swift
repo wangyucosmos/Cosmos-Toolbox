@@ -19,7 +19,35 @@ struct ZhuowangAssetCenterView: View {
         self.fixedScope = fixedScope
     }
 
+    private var scopeReady: Bool {
+        guard let scope = fixedScope else { return true }
+        return model.filter.provinceID == scope.provinceID
+            && model.filter.moduleID == scope.moduleID
+            && model.filter.stepKind == scope.stepKind
+            && (scope.type == nil || model.filter.type == scope.type)
+    }
+
+    private var scopedEntries: [ZhuowangAssetEntry] {
+        var filter = model.filter
+        filter.allVersions = true
+        return model.entries.filter(filter.includes)
+    }
+
     var body: some View {
+        Group {
+            if scopeReady { catalogContent }
+            else { ProgressView("正在切换检索范围…") }
+        }
+        .onAppear { applyScope() }
+        .onChange(of: fixedScope) { _, _ in applyScope() }
+    }
+
+    private func applyScope() {
+        if let fixedScope { model.filter = fixedScope }
+        model.refresh()
+    }
+
+    private var catalogContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -38,7 +66,7 @@ struct ZhuowangAssetCenterView: View {
                     Text("全部版本").tag(true)
                 }.frame(width: 200)
                 if fixedScope == nil {
-                Picker("省份", selection: $model.filter.provinceID) {
+                    Picker("省份", selection: $model.filter.provinceID) {
                     Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
                     ForEach(model.provinces) { Text($0.isEnabled ? $0.name : $0.name + "（已停用）").tag(Optional($0.id)) }
                 }
@@ -55,14 +83,18 @@ struct ZhuowangAssetCenterView: View {
                 Picker("类型", selection: $model.filter.type) {
                     Text("全部类型").tag(Optional<ZhuowangArtifactType>.none)
                     ForEach(ZhuowangArtifactType.allCases) { Text($0.title).tag(Optional($0)) }
-                }
+                }.disabled(fixedScope?.type != nil)
             }
-            HStack {
-                Button("未采用组 \(model.unadoptedGroupCount) · 查看全部版本") { model.filter.allVersions = true }
-                    .buttonStyle(.link)
-                Text("采用冲突 \(model.conflictGroupCount) 组").foregroundStyle(model.conflictGroupCount > 0 ? .orange : .secondary)
-                Spacer()
-                Text("\(model.matches.count) 个版本").foregroundStyle(.secondary)
+            if model.error == nil && !model.loading {
+                HStack {
+                    let unadopted = Set(scopedEntries.filter { $0.adoptedCount == 0 }.map(\.groupID)).count
+                    let conflicts = Set(scopedEntries.filter { $0.adoptedCount > 1 }.map(\.groupID)).count
+                    Button("未采用组 \(unadopted) · 查看全部版本") { model.filter.allVersions = true }
+                        .buttonStyle(.link)
+                    Text("采用冲突 \(conflicts) 组").foregroundStyle(conflicts > 0 ? .orange : .secondary)
+                    Spacer()
+                    Text("\(model.matches.count) 个版本").foregroundStyle(.secondary)
+                }
             }
             ForEach(model.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
             if let error = model.error {
@@ -95,9 +127,5 @@ struct ZhuowangAssetCenterView: View {
         }
         .padding(24)
         .frame(minWidth: 760, minHeight: 560)
-        .onAppear {
-            if let fixedScope { model.filter = fixedScope }
-            model.refresh()
-        }
     }
 }

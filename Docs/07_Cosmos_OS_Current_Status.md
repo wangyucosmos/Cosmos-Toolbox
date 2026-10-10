@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 卓望工作区入口接通 Phase 1 用户已接受声明验收范围，阶段正式关闭（§31），授权按 `feat: 接通卓望工作区创建与资产入口` 提交指定 10 文件并正常推送。沿用有效 3/3 测试、Debug arm64 与 Universal Release 构建及可回退部署证据；真实按钮及详情导航限制保留，不追加验收。实际 Git 结果以本次收尾报告为准。
+**Current stage:** 卓望分类页接通 Phase 1 用户已接受声明验收范围，阶段正式关闭（§32），授权逐项提交 6 文件并正常推送，提交信息 `feat: 接通卓望工作区分类资产检索`。沿用 4/4 测试、Debug arm64、Universal Release 与可回退部署证据；真实点击及离屏视觉限制保留，不追加验收。实际 Git 结果以本次收尾报告为准。
+**Previous stage (工作区入口):** 卓望工作区入口接通 Phase 1 已接受并关闭（§31），有效收尾提交 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，沿用既有声明验收范围，不重新验收。
 **Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
 **Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
 **Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
@@ -613,7 +614,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** 卓望工作区入口接通 Phase 1 已接受并关闭，本次仅完成已授权 10 文件 Git 收尾；下一模块等待明确指令，不追加修复、验证或部署。Projects、Mac 概览、核心备份与恢复等既有关闭阶段及全部暂缓事项保持不动。
+**Current:** 卓望分类页接通 Phase 1 已接受并正式关闭，本次仅完成已授权 6 文件 Git 收尾；下一模块等待明确指令，不追加修复、测试、构建、UI 验收或部署。工作区入口、Projects 等已关闭阶段与全部暂缓事项保持不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1387,3 +1388,43 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 实际回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-164055-e86ec645.app`；部署日志 `/private/tmp/CosmosEntry-deploy.log`。脚本不读写正式业务数据；正常启动沿用既有 App 行为，可能写窗口偏好，不宣称正式 UserDefaults 全域零写入。构建产物、日志与回退 App 不纳入源码。
 - **结论：用户已接受声明的测试/构建/部署验收范围，阶段正式关闭，无已知阻塞；真实按钮及详情导航缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
 - Git 收尾授权：逐项仅提交上述 10 文件，提交信息 `feat: 接通卓望工作区创建与资产入口`，正常推送 main，不强推。提交前本地 main/HEAD 与实际远端 main 均为预期 parent `caf6150a8dddfe674747685994bba3a8d2c1dc89`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；工作区仅本阶段 10 文件。实际 commit、parent、refs、ahead/behind 与工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓，未读写其他知识库。
+
+
+## 32. 卓望分类页接通 Phase 1 — 2026-10-10
+
+### 分类路由与实际检索口径
+
+- 同一会话开工只核对 status/HEAD：工作区干净，HEAD 为 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`。按需读分类配置、Workspace 分类占位、共享资产模型/视图及 §31，未重新验收上一阶段、未 fetch 或读写其他仓库/知识库。
+- 新增非持久化 ZhuowangCategoryRoute，按既有稳定 ID 映射，改名不改变含义：faq → 已关联步骤 kind customerService / Step06；prototype → 已关联步骤 kind prototype / Step05（标准 capability prototypeDesign），不同工具的产物都可检索，不绑定 Figma。
+- flow → 元数据 artifact.type == flowchart；asset → artifact.type == image。素材页面明确本期仅登记为图片的已管理产物，其他素材没有可靠归类；不按名称/扩展名猜类型、不将所有产物视作素材、不扫描或导入目录。
+- prompt → 明确说明全局身份并提供“打开全局提示词库”，沿用 Workspace → Dashboard 的既有 Prompt Vault 导航，不展示省份专属提示词假数据，不创建第二套存储。
+- popup、banner、自定义 ID 和其他未映射分类 → “该分类暂未接入”，解释缺少可靠归属、不支持检索/创建，区别真实空结果。移除分类页两条虚构工作记录与空动作“新建”；既有顶部明确“新建活动”、概览、活动列表与资产卡片产品范围保持不变。
+- 分类配置与用户数据不删除、不迁移；没有新增 schema、分类归属字段或业务实体。未关联步骤的历史产物不会被猜入 FAQ/原型，类型明确的流程图/图片仍可按类型查到。
+
+### 范围、切换与复用
+
+- 复用 §31 的省份 UUID / 无省份模块 moduleID 筛选、同一资产目录模型及既有检索和独立资产详情管理器。缺少可解析范围时明确“当前范围不可用”，不回退显示全库。
+- 分类资产视图身份由 categoryID + 范围 ID 构成；复用资产中心补充固定筛选变化响应与 scopeReady 门控，应用新范围前显示切换状态，不展示上个范围结果。筛选替换重置旧活动/查询/类型/版本选项，现有搜索取消/代次核对防旧结果迟到发布。
+- 流程图/图片固定类型选择器禁用，防用户切换“全部类型”突破分类口径；FAQ/原型仍可在固定步骤内按类型检索。省份选择在固定范围隐藏，活动选项只列当前范围。
+- 未采用组/采用冲突提示按当前范围/步骤/类型/活动筛选统计；加载或读取失败不显示误导计数。默认版本口径仍为当前采用（冲突组包含相关版本），可显式查看全部版本；正文读取与原生独立资产详情能力沿用已有证据。
+
+### 本轮验证与沿用证据
+
+- 一轮集中运行新 ZhuowangCategoryPageTests **4/4 TEST SUCCEEDED**，没有集中修复轮或第二次测试。临时 DerivedData `/private/tmp/CosmosCategoryBuild`，隔离 Bundle `com.wangyucosmos.Cosmos-Toolbox.CategoryFixture`，内存源、合成正文与临时证据根，未用正式业务数据或打开合成活动详情。
+- 覆盖稳定 ID / 改名 / 未映射不猜名称、无范围拒绝全库、四个分类的省份与全国模块隔离、图片/流程图类型限制、命名相似 PDF 不误入；固定范围同一 NSHostingView 更新后的 filter / matches、省份 FAQ → 全国原型及连续快速切换不发布旧结果；空结果与错误模型状态、未支持/Prompt 导航路由区别，内存 source 原始载荷不变、writeCount 0。
+- Debug arm64 App / 测试宿主编译链接成功并执行上述四项；历史测试文件可能因同 target 被编译，但未执行历史/全量测试。既有资产中心正文、采用版本历史与独立详情验收范围沿用 §31 及资产中心已接受证据，不重跑；导航目标由路由测试和源码检查确认，不称真实点击验收。
+- 证据 `/private/tmp/CosmosCategory-Focused.xcresult`、`/private/tmp/CosmosCategory-focused.log`。离屏 PNG 尝试 `/private/tmp/CosmosCategoryUI-31E38808-EA45-4F55-860A-2B0A63EF5E18/`，本轮查看画面未形成可靠文字证据，只记渲染尝试，不计视觉验收、不反复重试。
+- git diff --check 与受影响 diff 检查通过；工程自动序列化重排经 plutil 解析相等恢复原字节。既有 actor / Sendable / AppIntents 等 warning 保留，不扩大处理。
+
+### 日常部署与验收限制
+
+- 按授权复用未修改的 scripts/deploy-macos.py 完成必要 **Universal Release BUILD SUCCEEDED**，签名/正式 Bundle 校验及 lipo x86_64 arm64 通过；安装 Info.plist 读回确认 1.0（构建 1）、Release、`com.wangyucosmos.Cosmos-Toolbox`、commit `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`、dirty=true，准确反映本阶段未提交源码。
+- 旧日常 App 正常退出，新版从 `~/Applications/Cosmos Toolbox.app` 正常启动，部署脚本确认 PID **9066**。没有强杀或绕过未保存保护，没有实际触发未保存拒绝退出或执行回退，不宣称这些分支本轮实机覆盖。
+- 实际旧版回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-175351-2d0f3911.app`。部署日志 `/private/tmp/CosmosCategory-deploy.log`，构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-7ib6pwnm/build.log`。脚本不读写正式业务数据；正常启动可能写窗口偏好，不宣称全域 UserDefaults 零写入。
+- 未实际点击完整 Workspace 分类标签、筛选控件、全局 Prompt Vault 或独立资产详情，未做真实页面视觉验收；测试覆盖挂载资产视图的筛选状态/结果切换，不能代替完整端到端交互。既有隔离活动详情可能写正式 Workspace 风险仍暂缓，本轮未打开合成活动详情，不修复旧待办。
+
+### 文件与收尾判断
+
+- 共 **6 文件**：修改 ZhuowangWorkspaceView.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangCategoryContentView.swift、ZhuowangCategoryPageTests.swift；文档只更新本文件及当日 Development Log。部署脚本、持久化模型/Store、Dashboard、Workspace 用户配置均未修改，临时证据与 App 不入库。
+- **结论：用户已接受声明验收范围，阶段正式关闭，无已知阻塞；上述视觉与真实点击缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
+- Git 收尾授权：仅逐项提交上述 6 文件并正常推送 main，提交信息 `feat: 接通卓望工作区分类资产检索`，不强推。提交前 main/HEAD 与实际远端 main 均为预期 parent `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，origin `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，工作区只有本阶段 6 文件。实际 commit、parent、refs、ahead/behind 及工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 全部继续暂缓，不写其他仓库或知识库。
