@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** AI 工作台 Phase 3（任务交接记录）已由用户接受验收范围并关闭，授权本次提交与正常推送（2026-10-10；开发基线 `e66dd21fe228828ba05753ff78cebf97efdd6806`；见 §24）。准备/复制与手动记录分开；独立本机历史、不可变全文快照、活动筛选、原生详情和原文再次复制。
+**Current stage:** 任务上下文资料选择 Phase 1 已由用户接受声明验收范围并关闭，授权正常提交推送（见 §25）。仅当前活动已管理的文本产物，默认不选；安全读取原文、预览、复制/记录前重新校验，历史保存最终完整提示词。
+**Previous stage (交接记录):** AI 工作台 Phase 3 已正式关闭并正常推送，实际 Git 收尾见 §24；独立历史、手动记录及历史原文复制能力保留。
 **Previous stage (任务准备):** Phase 2 已由用户接受验收并关闭，正式提交与正常推送已完成（见 §23）；有效收尾基线 main = origin/main = 远端 main、ahead/behind 0/0、工作区干净沿用，不重复 fetch 或历史验证。
 **Previous stage (AI 工作台):** Phase 1 已由用户接受并关闭，正式提交 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，消息 `feat: 新增 AI 工作台本机工具检测`。正常推送、main = origin/main、ahead/behind 0/0、工作区干净为用户提供的有效收尾基线，本轮未重复 fetch。Phase 1 历史测试与验收证据沿用；工具检测能力保留，详见 §22。
 **Previous stage:** Dashboard 真实数据整合 Phase 1 is **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 首页接入真实工作与学习数据` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §21). Implementation baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c`. The Home now summarizes real data from the finished modules and no longer shows fabricated tasks, projects or health numbers.
@@ -607,7 +608,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** AI 工作台 Phase 3 已接受验收并授权正常 Git 收尾（§24）；收尾成功后按用户明确授权直接开发“任务上下文资料选择 Phase 1”，范围仅当前活动已管理的纯文本/Markdown 产物选择、安全读取/预览、复制及记录前再校验。新阶段只授权开发与必要验证，完成后等待 Git 收尾授权。
+**Current:** 任务上下文资料选择 Phase 1 已接受验收并关闭（§25），本次完成授权 Git 收尾后停止；下一模块等待用户明确指定，不自动扩展开发。Phase 3 已正常提交推送并关闭（§24），Phase 1 工具检测和 Phase 2 准备能力保留；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1137,4 +1138,33 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 - 本会话原生 UI 操作工具先前已超时，不重复尝试。真实 App 未点击记录、筛选、详情、再次复制、再次交接或准备/历史切换；这些由状态/存储测试或离屏视图覆盖，不宣称完整端到端 UI 验收。未测真实正式目录写入（按要求隔离验证）、Release、全量/历史测试或独立复审。
 - 非阻塞：历史本期全部加载，无分页；超过 16 MiB 明确拒绝追加；关联提示不是持续实时监听，可手动核对；跨进程只承诺遵守协作锁的追加及现有文件变化检查，不宣称覆盖全部非协作文件系统竞争；无自动备份恢复 UI。首次创建记录目录也会创建协作锁文件，失败时可能保留空目录/锁，但不破坏旧主文件。
-- **结论：用户已接受上述验收范围，Phase 3 关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务交接记录` 提交并正常推送 main。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；逐项核对范围为 10 个文件，不纳入个人记录、锁、备份或临时数据。沿用已通过验证，不追加测试/构建；实际交付以 Git refs 及收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 及其他知识库不动。后续资料选择 Phase 1 已明确授权，待本次 Git 收尾成功后实施。
+- **结论：用户已接受上述验收范围，Phase 3 关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务交接记录` 提交并正常推送 main。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；逐项核对范围为 10 个文件，不纳入个人记录、锁、备份或临时数据。沿用已通过验证，不追加测试/构建。实际提交 `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`，parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；正常推送后 ls-remote 核对远端 main，main / origin/main / 远端 main 一致、ahead/behind 0/0、工作区干净。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 及其他知识库不动。后续资料选择 Phase 1 的实施见 §25。
+
+
+## 25. 任务上下文资料选择 Phase 1 — 2026-10-10
+
+### 当前流程与读取边界
+
+- 选择活动/步骤 → 明确选择参考产物 → 读取并预览原文 → 完整提示词 → 复制 / 手动记录交接。默认不选、不读正文，仅提供当前 Campaign 已管理的 Workflow.artifacts，不扫描目录、导入产物或读取其他知识库。
+- 复用知识与资产中心的 ZhuowangAssetTextReader 与 request(for:)：元数据正文优先，UTF-8 文本文件后备，限量读取、符号链接/路径拒绝、读取前后文件检查、缓存及原文保留。图片、PDF、HTML、Figma、Word、Excel、URL 等只显示元数据，不新增提取/转换。
+- 唯一当前采用版本优先展示；历史、未采用及采用冲突置于需明确展开选择的区域。按既有 versionGroupKey / isApprovedVersion 判断，不以最新版本代替采用版本。重复 Artifact ID 显示错误，拒绝可靠选择。
+- 所选正文可查看、移除、重新读取。提示词标记名称、版本、稳定身份、来源步骤、逻辑组、采用状态、正文来源、登记位置及文件核对状态；使用不会出现在正文中的分隔符，逐 UTF-8 字节保留空白、CRLF、Unicode 和尾部。正文中的指令只作参考，不提升为当前任务授权。
+- 单份正文最多 **2 MiB**（沿用安全读取器）；**最终完整提示词最多 4 MiB UTF-8**（包括基础说明与全部正文），超限拒绝，不静默截断。读取失败且无有效正文则阻止交接；若有效元数据正文存在而文件不可读、不一致或文件超限，沿用资产中心优先级，明确显示使用元数据正文和文件核对失败/超限，不冒充已加入文件正文。元数据自身超限或读取期间文件变化仍拒绝。
+- 切换活动清空资料并使晚到异步结果失效；切换步骤保留同活动明确选择项，显示保留数量及核对用途提示，本次目标/要求仍清空。移除、切换或正在读取时不会交接旧正文。
+- 复制与记录前只重新校验所选资料及主元数据；文件修订、正文、元数据或采用状态变化先更新预览并拒绝当前操作，用户核对后再次点击。即使元数据仍是优先正文、显示文本未变化，文件修订变化也要求再次操作。最终逐字比较可见预览，不能静默复制或保存另一文本。
+- Phase 3 保存最终完整提示词快照；历史查看与复制始终使用保存原文，不随资料变化重新生成。资料选择及正文仅页面内存，无新持久化结构；历史存储位置仍为 §24 独立目录。不写业务 Store、不修改源文件、Workflow、Run、Approval 或采用状态。
+- DEBUG 资料读取复用既有隔离 asset root；隔离缺根失败关闭，不回退正式文件。Phase 1 检测、Phase 2 准备及 Phase 3 历史入口保留。
+
+### 本轮实测与保护证据
+
+- 新增 AIWorkspaceTaskReferencesTests **14/14 通过，0 失败**，无集中修复：默认零磁盘读取、当前活动限定/采用优先、明确历史/未采用/冲突；原文字节与完整预览/私有剪贴板/保存重载历史一致；活动清空、步骤明确保留、晚到读取失效；元数据优先及 Unicode 原字节缓存校验；文件修订/正文或采用变化首次交接拒绝、再次明确操作成功；缺失/非 UTF-8/符号链接失败；单份及总上限拒绝且不截断；非支持类型仅元数据、隔离缺根零读取；删除产物/重复身份；实际选择视图离屏布局。测试使用 UUID 临时目录，业务数据源零写入、源文件逐字节不变。
+- **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`，签名关闭、临时 DerivedData/隔离 Bundle。新增代码无编译警告；既有省份规则 actor 警告和 AppIntents 提示不扩大修复。git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，不纳入变更。未跑全量或历史测试、Release 或独立复审。
+- 一次真实 App 后台 LaunchServices 隔离启动，使用随机 suite、临时 asset root 和历史 root，仅截目标窗口、不移动用户窗口：任务准备/交接记录入口呈现，Phase 1 自动检测完成时间可见。Campaign / Workflow / Workspace 三份载荷逐字节不变、无新增业务键，样本源文件 SHA-256 不变，临时历史目录无记录/锁/备份文件。结束隔离进程并删除随机 suite，正式数据未读写。
+- 证据：`/private/tmp/CosmosTaskReferences-Focused.xcresult`、`/private/tmp/CosmosTaskReferences-focused.log`、`/private/tmp/CosmosTaskReferences-build.log`；窗口、载荷及完整性报告 `/private/tmp/CosmosAssetPhase1-a2441e3b-4ccb-43a2-b071-7bf4d183930b/`。
+
+### 限制、待办与结论
+
+- 原生 UI 工具本会话先前已超时，不重试。真实 App 未选择活动/资料、滚动正文、点击复制/记录或体验变化后二次确认；新选择区域位于截图可见区域以下。逻辑、离屏视图与私有剪贴板测试不等于完整端到端 UI 验收。未触碰正式文件、未跑历史读取器完整测试；本轮新增路径的实际读取风险由新测试覆盖。
+- 非阻塞：大段正文/完整预览目前直接 Text 呈现，接近上限时可能有排版成本；选中资料仅页面内存，离开页面不保证保留。校验为操作前检查及既有 stat 修订检查，不承诺防止外部进程在检查结束后修改文件。无全文搜索、编辑、转换、任意目录资料或跨知识库同步。
+- 修改范围：新增 AIWorkspaceTaskReferences.swift、AIWorkspaceTaskReferencesView.swift、AIWorkspaceTaskReferencesTests.swift；修改 AIWorkspaceTaskPreparation.swift、AIWorkspaceTaskPreparationView.swift、AIWorkspaceHandoffStore.swift、AIWorkspaceView.swift、DashboardView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetTextReader.swift，以及本文件和当日日志，共 12 个文件。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 用户授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main，仅包含报告中的 12 个文件。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`。沿用 14/14 测试、Universal Debug 构建及隔离数据保护证据，不追加测试/构建/复审；真实按钮交互未覆盖及大段正文排版成本继续作为验收限制。实际 Git 交付以仓库 refs 和收尾报告为准，完成后停止，下一模块不自动开启。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他知识库保持不动。

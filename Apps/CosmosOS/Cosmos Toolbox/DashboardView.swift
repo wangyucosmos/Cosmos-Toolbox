@@ -210,7 +210,7 @@ struct DashboardView: View {
                         .id(SidebarItem.learningCenter)
 
                 } else if selection == .aiWorkspace {
-                    AIWorkspaceView(cache: aiWorkspaceCache, configuration: storePersistenceConfiguration, autoDetect: aiWorkspaceAutoDetect)
+                    AIWorkspaceView(cache: aiWorkspaceCache, configuration: storePersistenceConfiguration, referenceRoot: isolatedAssetRoot, autoDetect: aiWorkspaceAutoDetect)
                         .id(SidebarItem.aiWorkspace)
 
                 } else if let selection {

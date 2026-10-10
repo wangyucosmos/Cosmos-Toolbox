@@ -52,5 +52,6 @@ nonisolated struct ZhuowangAssetBody: Equatable, Sendable {
     let comparison: String
     let admittedPath: String?
     let limitation: String?
+    var fileRevision: String? = nil
     var canCopy: Bool { text != nil }
 }

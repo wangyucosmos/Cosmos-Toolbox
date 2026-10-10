@@ -60,6 +60,13 @@ final class AIWorkspaceHandoffStore: ObservableObject {
         saving = true
         defer { saving = false }
         do {
+            guard let displayed = preparation.preview else {
+                saveFeedback = preparation.validation; return
+            }
+            try await preparation.revalidateReferencesForDelivery()
+            guard let current = preparation.preview, Data(current.utf8) == Data(displayed.utf8) else {
+                saveFeedback = "预览已变化，未记录；请核对后再次记录。"; return
+            }
             let retry = pendingRecord.flatMap { pending -> AIWorkspaceHandoffRecord? in
                 guard let preview = preparation.preview,
                       Data(pending.prompt.utf8) == Data(preview.utf8),

@@ -52,3 +52,25 @@ Git：未提交/推送/合并，等待授权。Xcode 对工程文件的自动重
 ## Phase 3 验收与 Git 收尾授权
 
 用户接受既有验证范围，授权提交 `feat: 新增 AI 工作台任务交接记录` 并正常推送 main，不追加测试/构建。实际 origin `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；提交前 HEAD 与远端 main 同为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`。核对并逐项暂存报告中的 10 个文件，不纳入个人 handoffs.json / 备份 / 写锁 / 临时数据或截图。Current Status §13 的 Phase 1 等待收尾及过期调查候选矛盾在本次正常收尾中消除。实际提交和推送以 Git refs 及收尾报告为准。收尾成功后直接进入用户已授权的“任务上下文资料选择 Phase 1”；新阶段仅开发与验证，不自动提交/推送。
+
+
+## Phase 3 正式关闭与资料选择阶段实施
+
+Phase 3 收尾成功：origin https://github.com/wangyucosmos/Cosmos-Toolbox.git；提交 bc9cb33bdf66b85e8645180b8ea8602d1c25f0af，parent e66dd21fe228828ba05753ff78cebf97efdd6806，消息 `feat: 新增 AI 工作台任务交接记录`。只逐项提交已报告的 10 个文件，正常推送后 main / origin/main / 实际远端 main 一致、ahead/behind 0/0、工作区干净，无个人记录/锁/备份/临时数据；沿用此前验证，未追加测试/构建。Current Status §13 过期 Phase 1 收尾描述已在正常收尾中消除。
+
+随后按授权直接实现“任务上下文资料选择 Phase 1”。开工 HEAD 为上述提交；仅相关代码按需阅读，无调查报告或独立复审。默认不选择正文，只供当前活动已管理的文本产物；采用版本优先，历史明确选取。复用知识与资产中心的安全读取/优先级/限量/缓存，新增原字节 metadata 缓存核对和文件修订标识，避免不同 Unicode 原文或文件修订被误当不变。不新增扫描、转换或持久化结构。
+
+闭环为资料选择、原文预览、完整提示词、复制/手动记录。切活动清空、切步骤提示保留同活动资料；复制/记录前重校验，变化更新预览并拒绝首次操作，再次明确操作才能交接。参考正文不提升授权；Phase 3 保存最终全文，历史仍逐字复制原文。上限为单份正文 2 MiB、最终完整提示词 4 MiB UTF-8，拒绝而不截断。
+
+文件：新增 AIWorkspaceTaskReferences.swift、AIWorkspaceTaskReferencesView.swift、AIWorkspaceTaskReferencesTests.swift；修改 AIWorkspaceTaskPreparation.swift、AIWorkspaceTaskPreparationView.swift、AIWorkspaceHandoffStore.swift、AIWorkspaceView.swift、DashboardView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetTextReader.swift、Current Status 和本日志（12 个）。工程文件仅自动重排，解析内容相等后恢复。
+
+一次集中测试 14/14 通过，无失败/修复；一次 Universal Debug 构建成功（x86_64 arm64），diff check 通过。临时测试覆盖文本/版本/采用/切换/限量/变化阻断/完整快照一致及零业务写入。一次后台隔离 App 启动显示准备与历史入口、检测完成；三个业务载荷原字节不变、源文件哈希不变，临时历史目录未写入，进程/随机 suite 已清理。详细证据路径、真实 UI 缺口与读取边界统一以 Current Status §25 为当前事实，不宣称完整端到端 UI 验收。
+
+结论：按声明验收范围可收尾，无已知阻塞。新阶段只授权开发与验证，成果未提交/推送/合并，等待下一次收尾授权。暂缓事项和其他知识库未动。
+
+
+## 任务上下文资料选择 Phase 1 验收与正式收尾
+
+用户接受声明验收范围，阶段关闭，授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main。沿用 14/14 测试、Universal Debug 构建及隔离保护证据，不追加测试、构建或复审。真实按钮交互未覆盖、大段正文排版成本保留为限制，不阻止收尾。
+
+提交前核对：实际 origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git；本地 main / HEAD 与实际远端 main 均为预期 parent bc9cb33bdf66b85e8645180b8ea8602d1c25f0af。工作区仅报告中的 12 个文件，逐项暂存，不纳入正式业务数据、源资料、个人交接记录、截图或隔离数据。实际提交和推送结果以 Git refs 及最终收尾报告为准。完成后停止，不自动开发下一模块，所有暂缓事项保持不动。

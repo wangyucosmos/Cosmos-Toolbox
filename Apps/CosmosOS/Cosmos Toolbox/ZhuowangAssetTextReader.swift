@@ -23,6 +23,7 @@ nonisolated final class ZhuowangAssetTextReader: @unchecked Sendable {
     }
     private struct Cached {
         let fingerprint: Fingerprint?
+        let metadata: String?
         let body: ZhuowangAssetBody
         let cost: Int
     }
@@ -91,6 +92,7 @@ nonisolated final class ZhuowangAssetTextReader: @unchecked Sendable {
     private func resolve(_ request: ZhuowangAssetTextRequest, cancellation: Cancellation) -> ZhuowangAssetBody {
         let inspected = inspect(request.location.trimmingCharacters(in: .whitespacesAndNewlines))
         if let cached = cache[request], cached.fingerprint == inspected.0,
+           cached.metadata.map({ Data($0.utf8) }) == request.content.map({ Data($0.utf8) }),
            cached.body.fileStatus == inspected.1 {
             order.removeAll { $0 == request }; order.append(request)
             return cached.body
@@ -140,7 +142,8 @@ nonisolated final class ZhuowangAssetTextReader: @unchecked Sendable {
         else { comparison = "未核对：" + status }
         if !request.readsTextFile && metadata == nil { limitation = "此类型不支持正文提取；可按名称和活动检索。" }
         let body = ZhuowangAssetBody(text: text, source: source, fileStatus: status,
-            comparison: comparison, admittedPath: admittedPath, limitation: limitation)
+            comparison: comparison, admittedPath: admittedPath, limitation: limitation,
+            fileRevision: inspected.0.map { "\($0.device):\($0.inode):\($0.size):\($0.modified):\($0.modifiedNanos):\($0.changed):\($0.changedNanos)" })
         // Account for both retained request content and resolved String storage.
         let cost = (metadata.map { max($0.utf8.count, $0.utf16.count * 2) } ?? 0)
             + (text.map { max($0.utf8.count, $0.utf16.count * 2) } ?? 0)
@@ -148,7 +151,7 @@ nonisolated final class ZhuowangAssetTextReader: @unchecked Sendable {
             while bytes + cost > Self.cacheLimit, let first = order.first {
                 order.removeFirst(); if let removed = cache.removeValue(forKey: first) { bytes -= removed.cost }
             }
-            cache[request] = Cached(fingerprint: inspected.0, body: body, cost: cost)
+            cache[request] = Cached(fingerprint: inspected.0, metadata: request.content, body: body, cost: cost)
             order.append(request); bytes += cost
         }
         return body

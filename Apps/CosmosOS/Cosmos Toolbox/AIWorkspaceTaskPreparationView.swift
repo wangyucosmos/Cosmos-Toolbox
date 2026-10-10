@@ -41,11 +41,12 @@ struct AIWorkspaceTaskPreparationView: View {
                 .font(.body).frame(height: 100)
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
                 .accessibilityIdentifier("ai-task-requirements")
+            AIWorkspaceTaskReferencesView(selection: model.referenceSelection)
             HStack {
                 Text("任务提示词预览").font(.title3)
                 Spacer()
                 Button("复制当前提示词", systemImage: "doc.on.doc") { model.copyPreview() }
-                    .disabled(model.preview == nil)
+                    .disabled(model.preview == nil || model.copying)
                     .accessibilityIdentifier("ai-task-copy")
             }
             if let history {

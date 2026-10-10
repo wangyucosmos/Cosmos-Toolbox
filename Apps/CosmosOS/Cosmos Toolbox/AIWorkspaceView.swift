@@ -9,7 +9,7 @@ struct AIWorkspaceView: View {
     @StateObject private var history: AIWorkspaceHandoffStore
     @State private var showsHistory = false
 
-    init(cache: AIWorkspaceResultCache, configuration: ZhuowangStorePersistenceConfiguration, autoDetect: Bool = false) {
+    init(cache: AIWorkspaceResultCache, configuration: ZhuowangStorePersistenceConfiguration, referenceRoot: URL? = nil, autoDetect: Bool = false) {
         let reader = AIWorkspaceTaskContextReader(source: configuration.dataSource)
 #if DEBUG
         if configuration.isIsolated && ProcessInfo.processInfo.arguments.contains("--cosmos-ai-workspace-history") {
@@ -21,7 +21,13 @@ struct AIWorkspaceView: View {
         let location = AIWorkspaceHandoffLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
 #endif
         _history = StateObject(wrappedValue: AIWorkspaceHandoffStore(location: location))
-        _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { try reader.read() }))
+#if DEBUG
+        let referenceError = configuration.isIsolated && referenceRoot == nil ? "隔离资料读取缺少临时文件根，已停止正文读取。" : nil
+#else
+        let referenceError: String? = nil
+#endif
+        _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { try reader.read() },
+            referenceReader: ZhuowangAssetTextReader(allowedRoot: referenceRoot), referenceIsolationError: referenceError))
         _model = StateObject(wrappedValue: AIWorkspaceViewModel(cache: cache))
         self.autoDetect = autoDetect
     }
