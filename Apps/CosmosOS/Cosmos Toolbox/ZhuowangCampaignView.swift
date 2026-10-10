@@ -21,6 +21,8 @@ struct ZhuowangCampaignView: View {
     /// receive new Campaigns; existing Campaigns are never affected.
     var isProvinceEnabled: (UUID) -> Bool = { _ in true }
 
+    var canCreate: () -> Bool = { true }
+
     private var canCreateCampaign: Bool {
         guard let province else {
             return true
@@ -119,6 +121,7 @@ struct ZhuowangCampaignView: View {
                 !store.persistenceState
                     .allowsMutations
                 || !canCreateCampaign
+                || !canCreate()
             )
         }
         .sheet(isPresented: $showCreateSheet) {
@@ -126,7 +129,9 @@ struct ZhuowangCampaignView: View {
                 store: store,
                 province: province,
                 module: module,
-                isProvinceEnabled: isProvinceEnabled
+                isProvinceEnabled: isProvinceEnabled,
+                canCreate: canCreate,
+                onCreated: openCampaignWindow
             )
         }
     }
@@ -883,6 +888,9 @@ struct ZhuowangCampaignCreateView: View {
     /// Campaign in it. Input is kept when the save is refused.
     var isProvinceEnabled: (UUID) -> Bool = { _ in true }
 
+    var canCreate: () -> Bool = { true }
+    var onCreated: (ZhuowangCampaign) -> Void = { _ in }
+
     @Environment(\.dismiss)
     private var dismiss
 
@@ -1132,6 +1140,8 @@ struct ZhuowangCampaignCreateView: View {
                     in: .whitespacesAndNewlines
                 )
                 .isEmpty
+                || !canCreate()
+                || !isProvinceEnabledForCreation
                 || !store.persistenceState
                     .allowsMutations
             )
@@ -1143,6 +1153,13 @@ struct ZhuowangCampaignCreateView: View {
     // MARK: Create
 
     private func createCampaign() {
+
+        guard canCreate() else {
+            mutationMessage = "当前范围已不可创建，草稿未保存。"
+            showMutationAlert = true
+            return
+        }
+        let previousIDs = Set(store.campaigns.map(\.id))
 
         if let refusal =
             ZhuowangProvinceRules.creationRefusalMessage(
@@ -1248,8 +1265,15 @@ struct ZhuowangCampaignCreateView: View {
         }
 
         dismiss()
+        if let created = ZhuowangWorkspaceEntry.createdCampaign(
+            result: result, previousIDs: previousIDs, campaigns: store.campaigns) {
+            onCreated(created)
+        }
     }
 
+    private var isProvinceEnabledForCreation: Bool {
+        province.map { isProvinceEnabled($0.id) } ?? true
+    }
 
     // MARK: Monthly type
 

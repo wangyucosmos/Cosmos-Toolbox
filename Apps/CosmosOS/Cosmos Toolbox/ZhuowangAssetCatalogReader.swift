@@ -49,7 +49,9 @@ struct ZhuowangAssetCatalogReader {
                         scopeName: province?.name ?? module?.name ?? (campaign == nil ? "关联缺失" : "全国及其他 / 省份未关联"),
                         stepName: workflow.steps.first { $0.id == artifact.stepID && workflow.campaignID == artifact.campaignID }?.title ?? "Step 未关联或缺失",
                         providerName: providers.first { $0.id == providerID }?.name,
-                        adoptedCount: groups[artifact.campaignID.uuidString + "::" + artifact.versionGroupKey]?.filter(\.isApprovedVersion).count ?? 0)
+                        adoptedCount: groups[artifact.campaignID.uuidString + "::" + artifact.versionGroupKey]?.filter(\.isApprovedVersion).count ?? 0,
+                        moduleID: campaign?.moduleID,
+                        stepKind: workflow.steps.first { $0.id == artifact.stepID && workflow.campaignID == artifact.campaignID }?.kind)
                 }
             }.sorted {
                 if $0.artifact.updatedAt != $1.artifact.updatedAt { return $0.artifact.updatedAt > $1.artifact.updatedAt }

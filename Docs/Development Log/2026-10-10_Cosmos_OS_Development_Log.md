@@ -170,3 +170,45 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 ## Projects Phase 1 验收与正式收尾
 
 用户接受已报告的功能与验证范围，阶段关闭，授权逐项提交本阶段 19 文件并正常推送 main，消息为 `feat: 新增个人项目 Projects Phase 1`。保留 Current Status §30 的验收限制；沿用已有证据，不追加修复、测试、构建、UI 验收或部署。提交前 origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git，HEAD 与一次必要远端核对所得 main 均为 `f6a1e903914f4d5d37af14d3453180206ef336ad`，工作区仅有本阶段 19 文件。实际提交与同步状态以收尾报告为准，不开始下一模块，全部暂缓事项保持不动。
+
+
+## 卓望工作区入口接通 Phase 1 — 编译阻塞停止
+
+- 基线 `caf6150a8dddfe674747685994bba3a8d2c1dc89`，开工干净，沿用 Projects 已接受证据；无 Claude / 子代理、无历史全量验证。
+- 本阶段源码接通概览/顶部创建到现有表单及成功详情回调；共享 Store 与实时创建准入；资产省份/模块范围、步骤分类与真实版本计数；Step06 只读检索、全局 Prompt Vault 导航；隐藏弹窗快捷入口。没有新业务实体、AI 执行或知识仓库同步。
+- 首轮集中 XCTest 在卡片多余左括号处编译停止。一次集中修复后 syntax parse 通过，但受影响构建仍在活动列表初始化参数次序失败：ZhuowangWorkspaceView 中 isProvinceEnabled 必须先于 canCreate。两个 xcresult：`/private/tmp/CosmosEntry-Focused.xcresult`、`/private/tmp/CosmosEntry-Fixed.xcresult`；对应 focused/fixed 日志位于同目录。
+- 新增测试尚未执行，不能宣称创建保护、取消/失败、资产隔离计数/版本或导航验收通过。没有真实隔离详情窗口测试，沿用既有隔离详情正式路径风险边界。未用正式数据测试。
+- 按最多一轮集中修复停止，不继续代码修改/重试，不部署；日常 App 未替换。git diff --check 通过，Xcode 工程仅重排已按解析相等恢复。
+- 10 文件范围：DashboardView.swift、ZhuowangWorkspaceView.swift、ZhuowangCampaignView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetCatalogReader.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangWorkspaceEntry.swift、ZhuowangWorkspaceEntryTests.swift；Current Status、本日志。
+- 结论存在阻塞、不能收尾；等待追加指令调整最小参数次序并验证受影响项，验证通过后才执行既有可回退部署脚本。未提交/推送/合并，所有暂缓事项和其他知识库不动。
+
+
+## 卓望工作区入口 Phase 1 — 追加编译修复与集中测试结果
+
+- 用户授权不重新开工，最小修正活动列表构造器的 isProvinceEnabled / canCreate 顺序；仅该参数顺序发生产品源码变化，未改测试、旧待办或其他范围。
+- Debug arm64 App / XCTest 宿主编译链接成功，未重复独立 build。实际只执行 ZhuowangWorkspaceEntryTests 3 项：资产范围/步骤/版本/异常及实时创建准入两项通过；创建身份/写失败测试第 45 行失败。没有历史测试执行或全套验证。
+- 失败断言为两次默认 JSONEncoder 结果比较（602 字节 vs 602 字节）；默认键顺序不稳定，源码核对确认活动模型已 Hashable，可直接比较活动数组。此为最小原因判断与处理建议，不是修复通过结论；未继续改断言或重跑。
+- `/private/tmp/CosmosEntry-Resume.xcresult` 与 `/private/tmp/CosmosEntry-resume.log` 保存本轮 2/3 通过、TEST FAILED 证据。此前 Focused / Fixed 仅编译停止的历史结果保留，Current Status §31 已更新成当前真实状态。
+- 未覆盖真实按钮取消/创建/失败提示、原生详情和资产/Prompt 导航完整交互；内存源及离屏表单无正式数据操作。旧隔离详情正式路径风险仍保留边界。
+- diff check 通过，工程重排按 plutil 解析相等恢复。不关闭日常 App、不运行部署脚本，未替换安装、未创建回退副本。HEAD 不变 caf6150a8dddfe674747685994bba3a8d2c1dc89，未 commit/push/merge。
+- 结论仍存在测试阻塞，不能收尾。按“若仍失败则报告停止”执行；后续最小范围仅第 45 行直接比较数组与该项重测，两项通过证据沿用，再决定部署。全部暂缓事项与其他知识库不动。
+
+
+## 卓望入口 Phase 1 — 断言修正、失败项通过与日常部署
+
+- 用户授权检查原断言目的后最小修正，保留比较强度；原第 45 行验证保存失败后的内存活动数组，不是持久化文件字节。改为直接 XCTAssertEqual(store.campaigns, memory)，使用既有 Hashable/Equatable 保留顺序与全部字段；未改业务代码，原 source.storage Data 比较保留。
+- 仅运行此前失败的 testCreationIdentityFailureAndCancelledFormHaveNoPublishedResidue，**1/1 TEST SUCCEEDED**，证据 `/private/tmp/CosmosEntry-Assertion.xcresult`、`/private/tmp/CosmosEntry-assertion.log`。上轮准入与资产范围两项通过证据沿用，最终有效 3/3，未重跑历史或其他已通过测试；Debug arm64 成功编译沿用上轮，只有本次测试必要增量编译。
+- 按授权复用既有 scripts/deploy-macos.py，**Universal Release BUILD SUCCEEDED**，lipo x86_64 arm64、正式 Bundle 与签名校验通过；旧 App 正常退出，新版从 ~/Applications/Cosmos Toolbox.app 启动，脚本确认 PID 4650。没有强杀、绕过未保存保护或正式数据测试。
+- 实际回退副本 ~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-164055-e86ec645.app；部署日志 `/private/tmp/CosmosEntry-deploy.log`，构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-lpwrx1lp/build.log`。未执行回退，未实机触发未保存阻止退出。正常启动可能写窗口偏好，不宣称正式数据全域零写入。
+- 版本 1.0/构建 1，Release，com.wangyucosmos.Cosmos-Toolbox，commit caf6150a8dddfe674747685994bba3a8d2c1dc89、dirty=true；安装 Info.plist 与双架构读回一致。工程仅序列化重排已按解析相等恢复，diff check 通过。
+- 真实按钮取消/保存/失败提示、成功后活动详情、资产独立详情与 Prompt Vault 的完整点击导航仍未覆盖；原生目标由源码检查，测试覆盖成功身份与失败不发布。不能宣称完整端到端 UI 验收。沿用既有隔离活动详情正式路径风险边界，不恢复旧待办。
+- 本轮仅测试断言及 Current Status §31 / 本日志变化，阶段共 10 文件。结论声明范围内可收尾、无已知阻塞，等待用户接受范围；不追加验收或自动开发下一模块。未 commit/push/merge，HEAD 不变，全部暂缓事项及其他知识库保持不动。
+
+
+## 卓望工作区入口接通 Phase 1 — 验收接受与正式 Git 收尾
+
+- 用户接受本阶段声明验收范围，阶段正式关闭，授权仅提交指定 10 文件并正常推送 main；提交信息 `feat: 接通卓望工作区创建与资产入口`。Current Status §31 已标明关闭，保留原真实按钮/详情导航、未保存退出与实际回退未覆盖等限制；本日志此前阻塞与修复过程保留，不重写历史。
+- 沿用已接受有效测试 3/3（最后失败项 1/1 + 前轮 2/2）、Debug arm64、Universal Release、回退副本与正常启动证据。不追加修复、测试、构建、UI 验收、部署或独立复审。
+- 提交前 status 仅本阶段 10 文件；当前分支 main，HEAD 与 git ls-remote 实际远端 main 均为预期 parent caf6150a8dddfe674747685994bba3a8d2c1dc89，origin https://github.com/wangyucosmos/Cosmos-Toolbox.git。按 §31 清单逐项暂存，不使用 git add .，不纳入正式数据、证据日志或部署产物。
+- 实际 commit/parent、文件数量、HEAD/main/origin/main、ahead/behind 和工作区状态以本次正常提交推送后的收尾报告为准；如意外变化则停止，不重置、不覆盖、不强推。
+- 不自动开始下一模块，Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 全部继续暂缓，其他知识库不动。

@@ -197,7 +197,9 @@ struct DashboardView: View {
 
                     ZhuowangWorkspaceView(
                         persistenceConfiguration:
-                            storePersistenceConfiguration
+                            storePersistenceConfiguration,
+                        isolatedAssetRoot: isolatedAssetRoot,
+                        openPromptVault: { selection = .promptVault }
                     )
                         .id(SidebarItem.zhuowang)
                         .transition(

@@ -9,23 +9,41 @@ struct ZhuowangWorkspaceView: View {
     @StateObject private var campaignStore: ZhuowangCampaignStore
     /// One Workflow Store for the Campaign list, the progress workbench and
     /// every Campaign window opened from them.
-    @StateObject private var workflowStore = ZhuowangWorkflowStore()
+    @StateObject private var workflowStore: ZhuowangWorkflowStore
     @State private var selectedNavigation: ZhuowangNavigationItem?
     @State private var selectedCategoryID = "overview"
     @State private var showManager = false
     @State private var showStoppedProvinces = false
+    @State private var showCreateCampaign = false
+    @State private var assetDestination: ZhuowangAssetFilter?
+    @StateObject private var assetModel: ZhuowangAssetCatalogViewModel
+    private let openPromptVault: () -> Void
 
 
     init(
         persistenceConfiguration:
-            ZhuowangStorePersistenceConfiguration = .production
+            ZhuowangStorePersistenceConfiguration = .production,
+        isolatedAssetRoot: URL? = nil,
+        openPromptVault: @escaping () -> Void = { }
     ) {
+        self.openPromptVault = openPromptVault
+#if DEBUG
+        let requiresRoot = persistenceConfiguration.isIsolated
+#else
+        let requiresRoot = false
+#endif
+        _assetModel = StateObject(wrappedValue: ZhuowangAssetCatalogViewModel(
+            dataSource: persistenceConfiguration.dataSource,
+            allowedRoot: isolatedAssetRoot, requiresIsolatedRoot: requiresRoot))
         _store = StateObject(
             wrappedValue: ZhuowangWorkspaceStore(
                 persistenceConfiguration:
                     persistenceConfiguration
             )
         )
+
+        _workflowStore = StateObject(wrappedValue: ZhuowangWorkflowStore(
+            persistenceConfiguration: persistenceConfiguration))
 
         _campaignStore = StateObject(
             wrappedValue: ZhuowangCampaignStore(
@@ -84,6 +102,22 @@ struct ZhuowangWorkspaceView: View {
         }
         .onAppear {
             prepareInitialSelection()
+            assetModel.refresh()
+        }
+        .onReceive(campaignStore.$campaigns.dropFirst()) { _ in assetModel.refresh() }
+        .onReceive(workflowStore.$workflows.dropFirst()) { _ in assetModel.refresh() }
+        .sheet(isPresented: $showCreateCampaign) {
+            ZhuowangCampaignCreateView(
+                store: campaignStore, province: selectedProvince, module: selectedModule,
+                isProvinceEnabled: { id in
+                    ZhuowangProvinceRules.canCreateCampaign(provinceID: id, in: store.provinces)
+                },
+                canCreate: { canCreateCampaign },
+                onCreated: { campaign in
+                    ZhuowangCampaignWindowManager.shared.open(
+                        campaign: campaign, store: campaignStore, workflowStore: workflowStore,
+                        province: selectedProvince, module: selectedModule)
+                })
         }
         .sheet(isPresented: $showManager) {
             ZhuowangWorkspaceManagerView(
@@ -503,7 +537,16 @@ struct ZhuowangWorkspaceView: View {
                     Divider()
                         .opacity(0.35)
 
-                    if selectedCategoryID == "overview" {
+                    if let assetDestination {
+                        Button("返回概览", systemImage: "chevron.left") { self.assetDestination = nil }
+                        Text(currentWorkspaceTitle + " · 内容资产").font(.headline)
+                        if assetDestination.stepKind == .customerService {
+                            Text("仅查看已有 Step06 客服文档产物，不创建或执行 AI。")
+                                .foregroundStyle(.secondary)
+                        }
+                        ZhuowangAssetCenterView(model: assetModel, fixedScope: assetDestination)
+                            .id(String(describing: assetDestination))
+                    } else if selectedCategoryID == "overview" {
 
                         overviewContent
 
@@ -519,7 +562,8 @@ struct ZhuowangWorkspaceView: View {
                                     provinceID: id,
                                     in: store.provinces
                                 )
-                            }
+                            },
+                            canCreate: { canCreateCampaign }
                         )
 
                     } else {
@@ -654,17 +698,18 @@ struct ZhuowangWorkspaceView: View {
                 )
 
                 Button {
-
+                    showCreateCampaign = true
                 } label: {
 
                     Label(
-                        "新建",
+                        "新建活动",
                         systemImage: "plus"
                     )
                 }
                 .buttonStyle(
                     .borderedProminent
                 )
+                .disabled(!canCreateCampaign)
             }
         }
         .padding(
@@ -1061,6 +1106,7 @@ struct ZhuowangWorkspaceView: View {
             )
         ) {
 
+            assetDestination = nil
             selectedCategoryID =
                 category.id
         }
@@ -1104,93 +1150,80 @@ struct ZhuowangWorkspaceView: View {
 
     // MARK: Quick Actions
 
+    private var canCreateCampaign: Bool {
+        ZhuowangWorkspaceEntry.canCreate(
+            workspaceWritable: store.persistenceState.allowsMutations,
+            campaignWritable: campaignStore.persistenceState.allowsMutations,
+            province: selectedProvince, module: selectedModule,
+            isProvinceEnabled: { id in
+                ZhuowangProvinceRules.canCreateCampaign(provinceID: id, in: store.provinces)
+            })
+    }
+
+    private func scopedAssetFilter(step: ZhuowangWorkflowStepKind? = nil) -> ZhuowangAssetFilter {
+        var filter = ZhuowangAssetFilter()
+        filter.provinceID = selectedProvince?.id
+        filter.moduleID = selectedProvince == nil ? selectedModule?.id : nil
+        filter.stepKind = step
+        return filter
+    }
+
     private var quickActionsSection: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            CosmosSectionTitle(
-                title: "快捷创建",
-                subtitle: "Quick Actions"
-            )
-
-            HStack(
-                spacing: CosmosDesign.spacingM
-            ) {
-
-                ZhuowangQuickAction(
-                    icon: "plus.circle",
-                    title: "新建活动",
-                    subtitle: "Campaign"
-                )
-
-                ZhuowangQuickAction(
-                    icon: "rectangle.portrait",
-                    title: "弹窗需求",
-                    subtitle: "Popup"
-                )
-
-                ZhuowangQuickAction(
-                    icon: "headphones",
-                    title: "客服文档",
-                    subtitle: "FAQ"
-                )
-
-                ZhuowangQuickAction(
-                    icon: "text.quote",
-                    title: "提示词",
-                    subtitle: "Prompt"
-                )
+        VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
+            CosmosSectionTitle(title: "快捷入口", subtitle: "Quick Actions")
+            HStack(spacing: CosmosDesign.spacingM) {
+                ZhuowangQuickAction(icon: "plus.circle", title: "新建活动", subtitle: "Campaign") {
+                    showCreateCampaign = true
+                }.disabled(!canCreateCampaign)
+                ZhuowangQuickAction(icon: "headphones", title: "查看客服文档", subtitle: "已有 Step06 产物") {
+                    assetDestination = scopedAssetFilter(step: .customerService)
+                }
+                ZhuowangQuickAction(icon: "text.quote", title: "提示词库", subtitle: "全局 Prompt Vault") {
+                    openPromptVault()
+                }
             }
         }
     }
 
-
     // MARK: Asset Summary
 
     private var assetSummarySection: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            CosmosSectionTitle(
-                title: "内容资产",
-                subtitle: "Content Assets"
-            )
-
-            HStack(
-                spacing: CosmosDesign.spacingM
-            ) {
-
-                ZhuowangAssetTile(
-                    icon: "doc.text",
-                    title: "活动方案",
-                    count: "3"
-                )
-
-                ZhuowangAssetTile(
-                    icon: "rectangle.portrait",
-                    title: "弹窗",
-                    count: "5"
-                )
-
-                ZhuowangAssetTile(
-                    icon: "headphones",
-                    title: "客服文档",
-                    count: "4"
-                )
-
-                ZhuowangAssetTile(
-                    icon: "text.quote",
-                    title: "提示词",
-                    count: "6"
-                )
+        VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
+            HStack {
+                CosmosSectionTitle(title: "内容资产", subtitle: "Content Assets · 当前采用版本")
+                Spacer()
+                Button("刷新", systemImage: "arrow.clockwise") { assetModel.refresh() }
+            }
+            if let error = assetModel.error {
+                Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+            } else if assetModel.loading {
+                ProgressView("正在核对资产…")
+            } else {
+                let scoped = assetModel.entries.filter(scopedAssetFilter().includes)
+                let conflicts = Set(scoped.filter { $0.adoptedCount > 1 }.map(\.groupID)).count
+                if conflicts > 0 {
+                    Text("采用冲突 \(conflicts) 组；计数包含冲突版本，请进入资产中心核对。")
+                        .foregroundStyle(.orange)
+                }
+                HStack(spacing: CosmosDesign.spacingM) {
+                    assetTile("全部资产", icon: "archivebox", step: nil)
+                    assetTile("完整策划案", icon: "doc.text", step: .plan)
+                    assetTile("产品原型", icon: "rectangle.portrait", step: .prototype)
+                    assetTile("客服文档", icon: "headphones", step: .customerService)
+                }
+                Text("按 Workflow 步骤分类；未采用组与历史版本可进入资产中心查看全部版本。")
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach(assetModel.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
             }
         }
+    }
+
+    private func assetTile(_ title: String, icon: String, step: ZhuowangWorkflowStepKind?) -> some View {
+        let filter = scopedAssetFilter(step: step)
+        return ZhuowangAssetTile(icon: icon, title: title,
+            count: String(assetModel.entries.filter(filter.includes).count)) {
+                assetDestination = filter
+            }
     }
 
 
@@ -1417,6 +1450,8 @@ struct ZhuowangWorkspaceView: View {
                 navigation
         }
 
+        assetDestination = nil
+        assetModel.refresh()
         selectedCategoryID =
             "overview"
     }
@@ -1804,14 +1839,14 @@ struct ZhuowangQuickAction: View {
     let title: String
     let subtitle: String
 
+    let action: () -> Void
+
     @State
     private var isHovering = false
 
     var body: some View {
 
-        Button {
-
-        } label: {
+        Button(action: action) {
 
             VStack(
                 alignment: .leading,
@@ -1902,14 +1937,14 @@ struct ZhuowangAssetTile: View {
     let title: String
     let count: String
 
+    let action: () -> Void
+
     @State
     private var isHovering = false
 
     var body: some View {
 
-        Button {
-
-        } label: {
+        Button(action: action) {
 
             HStack(
                 spacing: CosmosDesign.spacingM

@@ -8,6 +8,8 @@ struct ZhuowangAssetEntry: Identifiable, Equatable {
     let stepName: String
     let providerName: String?
     let adoptedCount: Int
+    var moduleID: String? = nil
+    var stepKind: ZhuowangWorkflowStepKind? = nil
     var id: UUID { artifact.id }
     var groupID: String { artifact.campaignID.uuidString + "::" + artifact.versionGroupKey }
     var adoptionLabel: String {
@@ -22,12 +24,16 @@ struct ZhuowangAssetFilter: Equatable {
     var provinceID: UUID?
     var campaignID: UUID?
     var type: ZhuowangArtifactType?
+    var moduleID: String?
+    var stepKind: ZhuowangWorkflowStepKind?
 
     func includes(_ entry: ZhuowangAssetEntry) -> Bool {
         (allVersions || entry.artifact.isApprovedVersion || entry.adoptedCount > 1)
         && (provinceID == nil || entry.provinceID == provinceID)
         && (campaignID == nil || entry.artifact.campaignID == campaignID)
         && (type == nil || entry.artifact.type == type)
+        && (moduleID == nil || (entry.provinceID == nil && entry.moduleID == moduleID))
+        && (stepKind == nil || entry.stepKind == stepKind)
     }
 }
 

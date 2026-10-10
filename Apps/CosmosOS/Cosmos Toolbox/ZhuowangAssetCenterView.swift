@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ZhuowangAssetCenterView: View {
+    var fixedScope: ZhuowangAssetFilter? = nil
     @StateObject private var model: ZhuowangAssetCatalogViewModel
 
     init(configuration: ZhuowangStorePersistenceConfiguration, isolatedRoot: URL? = nil) {
@@ -13,7 +14,10 @@ struct ZhuowangAssetCenterView: View {
             dataSource: configuration.dataSource, allowedRoot: isolatedRoot, requiresIsolatedRoot: requiresRoot))
     }
 
-    init(model: ZhuowangAssetCatalogViewModel) { _model = StateObject(wrappedValue: model) }
+    init(model: ZhuowangAssetCatalogViewModel, fixedScope: ZhuowangAssetFilter? = nil) {
+        _model = StateObject(wrappedValue: model)
+        self.fixedScope = fixedScope
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -33,13 +37,20 @@ struct ZhuowangAssetCenterView: View {
                     Text("当前采用").tag(false)
                     Text("全部版本").tag(true)
                 }.frame(width: 200)
+                if fixedScope == nil {
                 Picker("省份", selection: $model.filter.provinceID) {
                     Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
                     ForEach(model.provinces) { Text($0.isEnabled ? $0.name : $0.name + "（已停用）").tag(Optional($0.id)) }
                 }
+                }
                 Picker("活动", selection: $model.filter.campaignID) {
                     Text("全部活动").tag(Optional<UUID>.none)
-                    ForEach(model.campaigns) { Text($0.name).tag(Optional($0.id)) }
+                    ForEach(model.campaigns.filter { campaign in
+                        fixedScope.map { scope in
+                            (scope.provinceID == nil || campaign.provinceID == scope.provinceID)
+                            && (scope.moduleID == nil || (campaign.provinceID == nil && campaign.moduleID == scope.moduleID))
+                        } ?? true
+                    }) { Text($0.name).tag(Optional($0.id)) }
                 }
                 Picker("类型", selection: $model.filter.type) {
                     Text("全部类型").tag(Optional<ZhuowangArtifactType>.none)
@@ -84,6 +95,9 @@ struct ZhuowangAssetCenterView: View {
         }
         .padding(24)
         .frame(minWidth: 760, minHeight: 560)
-        .onAppear { model.refresh() }
+        .onAppear {
+            if let fixedScope { model.filter = fixedScope }
+            model.refresh()
+        }
     }
 }

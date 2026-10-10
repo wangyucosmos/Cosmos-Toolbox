@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 个人项目 Projects Phase 1 已完成实现、集中隔离验证及可回退日常部署（§30），用户已接受声明验收范围，阶段关闭，已授权本次正常提交推送；保留既有验证边界。独立个人项目列表/原生详情、原文进展与引用、归档恢复，核心备份导出扩展 V2 并兼容 V1。
+**Current stage:** 卓望工作区入口接通 Phase 1 用户已接受声明验收范围，阶段正式关闭（§31），授权按 `feat: 接通卓望工作区创建与资产入口` 提交指定 10 文件并正常推送。沿用有效 3/3 测试、Debug arm64 与 Universal Release 构建及可回退部署证据；真实按钮及详情导航限制保留，不追加验收。实际 Git 结果以本次收尾报告为准。
 **Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
 **Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
 **Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
@@ -613,7 +613,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** Projects Phase 1 已完成开发、验证与可回退部署（§30），用户已接受声明验收范围并关闭阶段；本次仅完成已授权 Git 收尾，下一模块等待明确指令。Mac 概览、恢复与备份均已正式关闭（§28 / §27 / §26）；暂缓事项不动。
+**Current:** 卓望工作区入口接通 Phase 1 已接受并关闭，本次仅完成已授权 10 文件 Git 收尾；下一模块等待明确指令，不追加修复、验证或部署。Projects、Mac 概览、核心备份与恢复等既有关闭阶段及全部暂缓事项保持不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1351,3 +1351,39 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 按授权复用既有部署脚本完成一次必要 **Universal Release BUILD SUCCEEDED**、双架构/签名/正式 Bundle 校验；旧日常 App 正常退出，新版本从 `~/Applications/Cosmos Toolbox.app` 启动（PID 98251），无测试参数或样例。版本 1.0（构建 1），commit `f6a1e903914f4d5d37af14d3453180206ef336ad`、dirty=true，如实显示本次未提交的 Projects 改动。
 - 实际旧版回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-154702-5e6f9985.app`。未执行回退，没有强杀或业务操作；正式启动沿用既有行为，可能写窗口偏好，不宣称正式数据全域写入审计。部署日志 `/private/tmp/CosmosProjects-deploy.log`，Release 构建证据 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-5qsm4yu0/`；部署脚本未修改。
 - **结论：用户已接受上述声明验收范围，阶段正式关闭，无已知阻塞。** 本次授权逐项提交 19 文件并正常推送，提交消息为 `feat: 新增个人项目 Projects Phase 1`。沿用已接受证据，不追加修复、测试、构建、UI 验收或部署；提交前 HEAD 与实际远端 main 均为 `f6a1e903914f4d5d37af14d3453180206ef336ad`，实际 Git 结果以收尾报告为准。所有暂缓事项保持不动，不写其他知识库，不自动开发下一模块。
+
+
+## 31. 卓望工作区入口接通 Phase 1 — 2026-10-10
+
+### 本阶段实现与边界
+
+- 开工快速 status/HEAD：工作区干净，HEAD 为已接受基线 `caf6150a8dddfe674747685994bba3a8d2c1dc89`。未 pull/fetch、未重复 Projects 构建/测试或复审；Claude 暂停，无子代理。
+- 概览顶部“新建活动”和快捷创建复用 ZhuowangCampaignCreateView / Campaign Store；省份身份来自现有配置，模块使用当前 moduleID。新增共享创建准入与成功身份投影，保存成功回调到既有原生活动详情，沿用共享 Campaign/Workflow Store；取消不调用保存，失败不回调打开。概览/列表入口及草稿保存时检查可写状态和实时停用规则。以上为源码实现，不等于本轮行为验证通过。
+- 资产目录追加非持久化 moduleID 与 stepKind 投影及筛选；当前省份 UUID / 无省份模块 moduleID 隔离；分类按关联步骤 kind，不猜文件名。卡片改为全部资产、完整策划案、产品原型、客服文档，计数使用与资产中心相同的当前采用/冲突版本规则。读取异常显示原因、加载中不显示假 0；采用冲突提示，历史版本可切换。复用同一目录模型、现有检索与独立详情，范围导航隐藏跨省份选择并限制活动选项，手动及共享 Store 变更刷新。
+- “查看客服文档”只筛选已有 customerService / Step06 产物；“提示词库”通过 Dashboard 导航到既有全局 Prompt Vault，明确全局身份；隐藏本区域弹窗快捷入口。其他分类占位页未扩展。
+- Dashboard 只传递既有隔离资产根和 Prompt Vault 导航回调。Workspace Workflow Store 显式沿用当前 persistenceConfiguration，未改持久化 schema、Workflow 执行或恢复机制。
+
+### 集中验证、追加修复与有效证据
+
+- 历史过程保留：首轮 `/private/tmp/CosmosEntry-Focused.xcresult` 因卡片多余括号编译停止；一次修复后 `/private/tmp/CosmosEntry-Fixed.xcresult` 因初始化参数顺序编译停止，测试均未执行。用户追加授权调整活动列表调用，使 `isProvinceEnabled` 位于 `canCreate` 前；Debug arm64 App / XCTest 宿主成功编译链接。
+- 上轮 `/private/tmp/CosmosEntry-Resume.xcresult`、`/private/tmp/CosmosEntry-resume.log` 实际执行 3 项，2 项通过，1 项失败。通过证据沿用：`testLiveCreationGateForProvinceModuleStoppedAndLocked`（实时省份停用、模块、无范围、Workspace/Campaign 可写门控）；`testAssetScopeStepCountsVersionConflictAndReadFailure`（省份/全国/其他模块隔离、Step06 kind、当前采用/历史数量、采用冲突版本计入、读取异常不写数据）。这两项本轮未重跑。
+- 失败定位为新测试原第 45 行，两次默认 JSONEncoder 的 602 字节结果比较。用户本轮授权先核对原始目的再最小修正：该断言验证写失败后内存活动数组未变化，不是持久化文件原字节；改为 `XCTAssertEqual(store.campaigns, memory)`。已有 Hashable/Equatable 结构比较保留数组顺序与全部字段，未排序、删字段或修改业务代码；离屏表单无操作前后 source.storage 原始 Data 比较保持不变。
+- **本轮仅该失败项 1/1 TEST SUCCEEDED**：`/private/tmp/CosmosEntry-Assertion.xcresult`、`/private/tmp/CosmosEntry-assertion.log`。覆盖无操作表单零保存、省份/全国创建身份、注入备份写失败不产生成功身份投影、失败后活动数组完整保留。并非真实取消按钮点击，也不宣称失败写入后主/备份文件原字节全面验收。
+- **本阶段最终有效 3/3 = 本轮 1 + 上轮沿用 2**，不是本轮重跑 3 项。上轮 Debug arm64 编译结果沿用；本轮测试必要增量编译与部署所需 Universal Release 构建，不重跑历史全套测试、不重复独立 Debug build 或复审。历史测试文件属于同一 target 因而可被编译，但历史测试未执行。
+- **部署必要 Universal Release BUILD SUCCEEDED**，安装产物 `lipo` 为 x86_64 arm64；签名与正式 Bundle 校验通过。构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-lpwrx1lp/build.log`。既有 actor / Sendable / AppIntents 等 warning 保留，不扩大处理。
+- 受影响 diff 检查与 git diff --check 通过；Xcode 工程仅序列化重排，经 plutil 解析相等恢复原字节，无工程语义修改。
+
+### 实际验收限制
+
+- 未覆盖真实取消/新建保存按钮、失败弹窗、成功后活动原生详情、资产卡片/独立详情及 Prompt Vault 的完整点击导航。创建表单仅内存源离屏布局且无操作；成功回调身份通过测试、导航目标由源码检查，不宣称完整端到端 UI 验收。
+- 既有 §13 指出隔离 Campaign 详情可能写正式 Workspace，本阶段未打开合成活动真实详情，未改旧风险或使用正式业务数据测试。没有为本阶段新增大型验收框架；正式启动不等于正式数据验收。
+- 本阶段复用资产中心已接受的历史版本检索、独立详情与异常提示能力，未重新验收所有媒介/正文读取或旧模块。无知识仓库导入同步，无 AI 执行、Workflow/多 Workspace 重构或旧待办修复。
+
+### 文件、日常部署与收尾判断
+
+- 当前阶段共 **10 文件**：修改 DashboardView.swift、ZhuowangWorkspaceView.swift、ZhuowangCampaignView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetCatalogReader.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangWorkspaceEntry.swift、ZhuowangWorkspaceEntryTests.swift；文档仅本文件和当日 Development Log。本轮新增修改仅测试断言与两份文档，业务代码未因测试变化。
+- 按授权复用未修改的 `/usr/bin/python3 scripts/deploy-macos.py`，先完成 Universal Release、双架构/正式身份与签名校验，再正常退出旧 App，创建可回退副本并发布新版本。脚本确认 `~/Applications/Cosmos Toolbox.app` 正常启动 **PID 4650**；没有强杀或绕过未保存保护。没有实际触发未保存阻止退出或执行回退，不宣称这些分支本轮实机覆盖。
+- 版本 1.0（构建 1）、Release、正式 Bundle `com.wangyucosmos.Cosmos-Toolbox`；元数据 commit `caf6150a8dddfe674747685994bba3a8d2c1dc89`、dirty=true，准确表示基于 Projects 收尾提交包含本阶段未提交成果。安装 Info.plist 与 lipo 已读回核对。
+- 实际回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-164055-e86ec645.app`；部署日志 `/private/tmp/CosmosEntry-deploy.log`。脚本不读写正式业务数据；正常启动沿用既有 App 行为，可能写窗口偏好，不宣称正式 UserDefaults 全域零写入。构建产物、日志与回退 App 不纳入源码。
+- **结论：用户已接受声明的测试/构建/部署验收范围，阶段正式关闭，无已知阻塞；真实按钮及详情导航缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
+- Git 收尾授权：逐项仅提交上述 10 文件，提交信息 `feat: 接通卓望工作区创建与资产入口`，正常推送 main，不强推。提交前本地 main/HEAD 与实际远端 main 均为预期 parent `caf6150a8dddfe674747685994bba3a8d2c1dc89`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；工作区仅本阶段 10 文件。实际 commit、parent、refs、ahead/behind 与工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓，未读写其他知识库。
