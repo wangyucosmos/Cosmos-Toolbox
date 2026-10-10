@@ -40,11 +40,13 @@ enum CosmosDesign {
 struct CosmosCardStyle: ViewModifier {
 
     let isHovering: Bool
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
+    @Environment(\.cosmosPreferences) private var preferences
 
     func body(content: Content) -> some View {
         content
             .padding(CosmosDesign.cardPadding)
-            .background(.thinMaterial)
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: CosmosDesign.cornerRadiusLarge,
@@ -71,15 +73,13 @@ struct CosmosCardStyle: ViewModifier {
                 y: isHovering ? 6 : 2
             )
             .scaleEffect(
-                isHovering ? 1.01 : 1
+                isHovering && !preferences.reducesMotion(system: systemMotion) ? 1.01 : 1
             )
             .offset(
-                y: isHovering ? -2 : 0
+                y: isHovering && !preferences.reducesMotion(system: systemMotion) ? -2 : 0
             )
             .animation(
-                .easeOut(
-                    duration: CosmosDesign.animationFast
-                ),
+                preferences.reducesMotion(system: systemMotion) ? nil : .smooth(duration: CosmosDesign.animationFast),
                 value: isHovering
             )
     }

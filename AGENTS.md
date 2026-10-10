@@ -408,9 +408,9 @@ Avoid:
 - unnecessary animations;
 - fake "AI futuristic" aesthetics.
 
-Current development priority is functionality and architecture first.
+The user resumed global UI / Motion improvements on 2026-10-10 as a staged experience upgrade. Visual work must preserve business logic, data formats and native independent detail windows.
 
-Do not spend significant time on global visual polish until the core information architecture and workflow are stable.
+Use the macOS 26 native Liquid Glass direction: glass belongs only to navigation and controls; content cards, lists and charts use semantic system backgrounds and fills. Keep motion quick, light and predictable, and honor both system Reduce Motion and the Cosmos preference. Use system typography, semantic colors and accentColor; keep long explanations in an info popover with one concise subtitle, while essential data-safety notices remain visible.
 
 ---
 

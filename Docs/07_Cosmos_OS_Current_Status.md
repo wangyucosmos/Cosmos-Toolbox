@@ -10,10 +10,10 @@
 
 ## 1. 当前检查点
 
-- **日期：** 2026-10-10。**项目：** Cosmos OS / Cosmos-Toolbox（原生 macOS SwiftUI 个人工作操作系统）。
+- **日期：** 2026-10-11。**项目：** Cosmos OS / Cosmos-Toolbox（原生 macOS SwiftUI 个人工作操作系统）。
 - **代码基线：** `main` = `origin/main`，提交 `ebf42802e3c499820f2ade8bb9aafc0e5e772e9f`（`feat: 新增个人内容导出模块`，parent `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`）；其后只有文档提交。
-- **当前阶段：** 个人内容导出**已关闭**（用户接受声明验收范围，一次提交并推送）。**下一模块待统筹提出范围、用户确认；不自动开始。当前无进行中的开发。**
-- **已部署版本：** `~/Applications/Cosmos Toolbox.app` 为内容导出代码的 Universal Release（Info.plist 记录 commit `6272a52b…` 且 `CosmosBuildDirty=true`，即基于该提交加上当时未提交的导出代码，等价于 `ebf4280` 的代码部分）。版本显示 1.0（构建 1），**不代表达到 PRD 的 V1.0 标准**。
+- **当前阶段：** 体验升级第一步（设计系统 / 应用外壳 / 设置窗口 / 仪表盘 2.0）已完成实现、隔离验证与 Universal Release 部署，可交给用户体验验收；未提交。正式 HEAD 为 `93e25a86017040c07dbc648fe90c300ed37f396b`。Debug build-for-testing 成功，95 个唯一测试通过（新增 16），36 张离屏截图已查看。玻璃 / Settings 标签栏离屏绘制有缺口，真实交互、跨窗口主题传播仍待体验验收。仪表盘跳工作台通过既有卓望页面与同一组 Store；业务层未变。
+- **已部署版本：** `~/Applications/Cosmos Toolbox.app` 为本模块 Universal Release，Info.plist 记录 commit `93e25a86017040c07dbc648fe90c300ed37f396b`、`CosmosBuildDirty=true`（含本模块未提交源码）。2026-10-11 已确认正式安装位置启动，PID 32087。版本显示 1.0（构建 1），不代表达到 PRD 的 V1.0 标准。
 - **代码规模：** `Apps/CosmosOS/Cosmos Toolbox/` 下 121 个平铺 Swift 文件（文件名前缀分模块）；测试方法静态计数 547 个（grep 计数，**不是执行结果**；没有一次覆盖当前全部代码的全量运行证据，各模块验证证据见归档与开发日志）。
 
 ---
@@ -28,12 +28,13 @@
 
 ---
 
-## 3. 模块清单（已关闭）
+## 3. 模块清单（在用与进行中）
 
-“关闭提交”为 `git log` 上实际存在的短哈希；早期（2026-08/09）英文提交为该能力的主要实现提交。入口为侧栏名称（`SidebarItem`，分组：首页[仪表盘、统一检索]｜工作[卓望工作、项目、知识库]｜AI[AI 工作台、提示词库]｜学习[AI 学习中心]｜系统[Mac 优化、设置]）。
+“关闭提交”为 `git log` 上实际存在的短哈希；早期（2026-08/09）英文提交为该能力的主要实现提交。入口为侧栏名称（`SidebarItem`，本模块已改为分组：首页[仪表盘、统一检索]｜工作[卓望工作、项目、知识库]｜AI[AI 工作台、提示词库]｜学习[AI 学习中心]｜系统[Mac 优化]；设置改为侧栏底部入口与原生 Settings scene，隔离验证已通过）。
 
 | 模块 | 入口位置 | 状态 | 关闭提交 | 归档 | 一句话主要限制 |
 |---|---|---|---|---|---|
+| 体验升级第一步 | 仪表盘 / 工作台指标 / 统一检索 / 设置窗口 / 侧栏 | 可体验验收，已部署 | 未提交（HEAD 93e25a8） | 2026-10-11 开发日志 | Debug / Universal Release 成功；95 唯一测试通过；36 张离屏截图已查看 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
 | AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
@@ -81,6 +82,10 @@
 
 业务键（Data）：`cosmos.zhuowang.campaigns.v1`、`…workspace.v1`（含省份配置）、`…workflows.v1`（内嵌 Artifact / Run / Approval）、`…ai.providers.v1`、`…ai.connections.v1`、`…ai.toolIntegrations.v1`、`…ai.agentToolRoutes.v1`；每个主键有同名 `.backup`。保护：向后兼容解码（新增字段不使旧数据不可解码）；解码失败锁定 Store、保留原字节、不以空数据覆盖；写前备份并读回；写失败不发布到内存；陈旧 Store 实例重读后拒绝写；仅主键真正缺失时才种默认配置。Workspace 模块更新 / 删除只是 Store API，无正式 UI。完整性闸门口径：逐键 SHA-256 + 解码检查；整份 plist 哈希只作诊断（含 AppKit 窗口状态键）。
 
+### 4.1.1 UI 偏好（本模块新增，隔离测试通过，已部署）
+
+仅新增 `cosmos.ui.appearance`（system / light / dark）、`cosmos.ui.textSize`（standard / large / extraLarge）、`cosmos.ui.startup`（dashboard / lastPage）、`cosmos.ui.sidebarEnglish`（Bool，默认 false）、`cosmos.ui.motion`（system / reduced）、`cosmos.ui.lastPage`（侧栏模块白名单）。非法值只读回退默认值，不修复原键；不修改业务键，不进入核心备份。外观使用 NSApp.appearance；近期检索词与导航筛选只在内存。待随机 suite 测试和实际体验验证。
+
 ### 4.2 独立 JSON 文件存储（`~/Library/Application Support/Cosmos OS/…`）
 
 共同模式（Prompt Vault 首创，Learning / Handoff / Projects / Notes 复制改写，未抽象成框架）：缺库只读零初始化；lstat 父路径与文件类型校验、拒绝符号链接、`O_NOFOLLOW` 读；flock 协作写锁；锁内重读最新磁盘文档并核对目标修订；写前备份**精确原字节**并读回；同目录临时文件 fsync + 原子 rename；发布后读回校验，失败 = `uncertainWrite` 并锁定保存；损坏 / 未知 schema / 重复身份 / 缺主有备份 / 符号链接 → 锁定写入，不自动恢复、不以空库覆盖；容量超限拒绝而不截断，其中带历史的模块（提示词、笔记）用 `capacityExceeded` **不锁定模块**。
@@ -126,7 +131,7 @@
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261010-231413-e78e7eea.app`（该目录当前共 8 个 2026-10-10 的副本，不自动清理）。
+- **最近一次回退副本：** `Cosmos Toolbox-20261011-005043-613eac70.app`；历史副本不自动清理。本模块不改变业务数据格式，副本可回到部署前的旧界面；历史 schema 降级风险仍按 §5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -158,12 +163,15 @@
 - Provider 覆盖窄：只有 DeepSeek Harness 完成端到端；`DeepSeekHarnessAdapter` 仍写死用户特定 `npx` 路径（运行时发现层仅限 DeepSeek）；Figma / Pixso 自动执行、Claude Desktop / ChatGPT / Codex 在 Cosmos 内直接执行均未实现。
 - Step 06 仅 Harness → Markdown，未采用结果仅存会话内；其验收只覆盖 2026-09-29 一轮，不证明后续 Harness 版本的约束。
 - Artifact 持久化模型仍偏 HTML；二进制 / 外部文档的采用、恢复、持久化引用（安全书签）未做。
-- 多处同步或 UI actor 上的读取 / 解码 / 线性搜索（资产中心、统一检索缓存、首页）在大数据量下的性能未测。
+- 多处同步或 UI actor 上的读取 / 解码 / 线性搜索（资产中心、统一检索缓存）在大数据量下的性能未测；仪表盘 2.0 除交付计数外的读取 / 解码 / 聚合在后台，合成数据测试已通过。
 - 真实 UI 交互验收普遍缺口（点击、保存面板、关闭 / 退出提醒、重启）；Swift 6 迁移 actor / Sendable warning 保留。
 
 ---
 
 ## 9. 非阻塞待办（按模块，去重）
+
+- **体验升级第一步：** 95 唯一测试通过、36 组合离屏截图已查看；原生玻璃与 Settings 标签栏离屏绘制仍有缺口。真实点击 / hover / 动效、⌘, / ⌘F、独立窗口主题传播、保存面板及重启行为未覆盖，交用户体验验收。
+- 仪表盘“可以交付”在主线程计算，复用工作台交付检查；活动数量大时可能卡顿，后续需要把交付候选检查改为可后台执行（涉及业务层，需单独确定范围）。
 
 - **卓望 / 推进工作台：** 指标卡把列表挤出首屏；摘要每次渲染重算；省份概览与首页残留占位；活动列表行不标省份停用；路由请求在编辑中到达不重放。
 - **资产中心：** F1–F5（打开的详情保留旧快照、详情与搜索共用代次、窗口身份被 Campaign Review 共用、读不到正文的资产在正文搜索中缺席无提示、隔离根过滤 / Review 关闭 / 并发测试覆盖不足）；失败读取不缓存。
@@ -179,13 +187,15 @@
 
 ---
 
-## 10. 暂缓事项（原样保留，不得自行恢复）
+## 10. 暂缓事项（未明确恢复者不得自行恢复）
+
+- **全局 UI / Motion 美化：** 2026-10-10 用户恢复，分步进行：第一步本模块；第二步 A 页面逐页改版、第二步 B 知识库外部文件夹接入；第三步卓望大页面。当前只授权第一步，其余步骤不自动开始。
 
 - **Word WIP：** 本地分支 `wip/markdown-word-export-phase1-20260930`（提交 `2d26b2a`，未合并、未推送、部分 UI 验收、未接受）。
 - **Step 06 Harness：** 不运行；不重复采用；不再触发真实 Harness。
 - **客服文档 V1 重新采用 / 导入：** 不做；事故文件 `客服文档 _ AI 采用结果_V1.md` 不导入。
 - **Evidence / Quarantine：** 四个文件保持原样（均在正式 Workspace 与知识库路径之外，31,878 字节，SHA-256 `a198eb7d2336c4487683360bc3f008fd94f569601d3a1850d65a412e67aaa9ec`），不删除、不覆盖、不恢复、不自动导入。
-- **旧 P3**（Store Phase 2 / 细分错误枚举 / 内置模块删除规则 / 整 Store `@MainActor` 迁移 / 陈旧冲突重载 / 重复 `allowsMutations` 守卫等）、**F1–F5**（见 §9）、Browser / 桌面宽度 Preview、批注 / 评论、persistent draft / revision、外部引用 Renderer（Figma / Pixso / URL）、通用 AI Runtime Adapter 层、全局 UI / Motion 美化、通用多 Workspace 重构、Artifact 窗口性能与 DeepSeek 子进程权限优化。
+- **旧 P3**（Store Phase 2 / 细分错误枚举 / 内置模块删除规则 / 整 Store `@MainActor` 迁移 / 陈旧冲突重载 / 重复 `allowsMutations` 守卫等）、**F1–F5**（见 §9）、Browser / 桌面宽度 Preview、批注 / 评论、persistent draft / revision、外部引用 Renderer（Figma / Pixso / URL）、通用 AI Runtime Adapter 层、通用多 Workspace 重构、Artifact 窗口性能与 DeepSeek 子进程权限优化。
 - 远端另有分支 `wip/pdf-renderer-phase1-20260902`（归档未记录，不处理）。
 - 内容导出本期明确不做：Word / PDF / 富文本导出、导入、历史删除、云分享、自动 / 定时导出、持久化导出记录。
 
@@ -196,7 +206,7 @@
 - 01–04 Workflow 恢复能力；完整策划案当前采用 V1；产品原型采用 V3 的选择未经用户明确更改不覆盖。
 - **Figma 是 Tool，不是 AI Provider**；原型步骤（`prototypeDesign`）保持工具无关；Workflow Step = AI Provider + Tool → Artifact。
 - Artifact 保留全部历史版本，每个逻辑 Artifact 恰有一个当前采用版本；后续步骤只消费当前采用版本；采用后才落盘并解锁下一步。
-- 本地工作文件不是一次性数据；原生业务详情窗口保持原生独立窗口；核心架构先于视觉美化；不过早做通用多 Workspace 重构。
+- 本地工作文件不是一次性数据；原生业务详情窗口保持原生独立窗口；用户已于 2026-10-10 启动体验升级；美化不得改变业务逻辑与数据格式；不过早做通用多 Workspace 重构。
 - 数据安全：不清空 / 重置 UserDefaults 或工作区作为修复捷径；元数据恢复幂等且不删用户文件；新增 Codable 字段保持旧数据可解码。
 - 首页不显示编造的任务 / 健康数；任何位置不显示学习百分比进度（三态手动）。
 - 引用（Campaign / Projects / 笔记）只登记，不读取、复制、移动、删除实体；登记不等于 Artifact 采用或交付资格。
@@ -206,4 +216,4 @@
 
 ## 12. 下一优先级
 
-**由统筹提出范围、用户确认后开始。** 在此之前不开始任何新模块，不恢复暂缓事项，不追加已关闭模块的验收。
+**先由用户体验验收本模块，再单独授权 Git 收尾及第二步范围。** 第二步 A 优先考虑 Projects、提示词库、AI 工作台逐页套用组件；第二步 B 的外部知识库接入另定范围。共享设计 token / 偏好 / 导航 / 外壳需指定单一负责人，集成与部署串行。

@@ -4,6 +4,12 @@ struct UnifiedSearchView: View {
     @StateObject private var model: UnifiedSearchViewModel
     @StateObject private var navigator: UnifiedSearchNavigator
     @State private var query = UnifiedSearchQuery()
+    @Environment(\.cosmosNavigator) private var appNavigator
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
+    @FocusState private var searchFocused: Bool
+    @Namespace private var selectionIndicator
+    private var followsNavigation = true
 
     init(configuration: ZhuowangStorePersistenceConfiguration, projects: ProjectsLocation,
          prompts: PromptVaultLocation, learning: LearningLocation,
@@ -24,81 +30,130 @@ struct UnifiedSearchView: View {
     }
     init(model: UnifiedSearchViewModel, navigator: UnifiedSearchNavigator) {
         _model = StateObject(wrappedValue: model); _navigator = StateObject(wrappedValue: navigator)
+        _query = State(initialValue: model.query); followsNavigation = false
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("统一检索").font(.largeTitle)
-                Spacer()
-                Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }
-                    .disabled(query.keyword.isEmpty)
-            }
-            Text("仅检索已保存的元数据：活动名称/说明；Artifact 名称/类型/活动/省份或模块；引用名称/版本/备注/位置；项目与学习主题的名称/目标/下一步；Prompt 名称/分类；个人笔记标题/分类。")
-                .font(.callout).foregroundStyle(.secondary)
-            Text("不检索文件、Prompt 或个人笔记的正文与历史、项目进展或学习历史（笔记正文仅可在个人笔记列表内搜索）。不保存搜索记录与索引。点击结果复用原模块详情；引用不会自动打开。")
-                .font(.caption).foregroundStyle(.secondary)
-            TextField("输入关键词跨模块搜索", text: $query.text).textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("unified-search-query")
-            HStack {
-                Picker("来源", selection: $query.source) {
-                    Text("全部来源").tag(Optional<UnifiedSearchSource>.none)
-                    ForEach(UnifiedSearchSource.allCases) { Text($0.title).tag(Optional($0)) }
-                }.frame(maxWidth: 220)
-                Toggle("包含归档（项目/Prompt/学习/笔记）", isOn: $query.includeArchived)
-                Toggle("Artifact 历史版本", isOn: $query.includeHistory)
-            }
+        VStack(alignment: .leading, spacing: 18) {
+            CosmosPageHeader("统一检索", subtitle: "跨模块查找已保存的名称、分类与位置。",
+                info: "仅检索元数据：活动名称与说明；Artifact 名称、类型、活动、省份或模块；引用名称、版本、备注与位置；项目及学习主题的名称、目标、下一步；Prompt 名称与分类；个人笔记标题与分类。不检索文件、Prompt、笔记正文与历史、项目进展或学习历史。空查询不读取业务库；搜索词只保存在本次运行的内存。点击结果按 UUID 核验后打开，引用不会自动打开。")
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
+                TextField("输入关键词跨模块搜索", text: $query.text).textFieldStyle(.plain)
+                    .font(CosmosDesign.font(.section)).focused($searchFocused)
+                    .accessibilityIdentifier("unified-search-query")
+                if !query.text.isEmpty {
+                    Button("清空", systemImage: "xmark.circle.fill") { query.text = "" }.labelStyle(.iconOnly).buttonStyle(.borderless).foregroundStyle(.secondary)
+                }
+            }.padding(16).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+                .overlay { RoundedRectangle(cornerRadius: 14).stroke(searchFocused ? Color.accentColor.opacity(0.6) : Color.primary.opacity(0.1)) }
+            HStack(spacing: 14) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        sourceButton("全部", nil)
+                        ForEach(UnifiedSearchSource.allCases) { sourceButton($0.title, $0) }
+                    }
+                }
+                Toggle("包含归档", isOn: $query.includeArchived).toggleStyle(.checkbox).fixedSize()
+                Toggle("Artifact 历史", isOn: $query.includeHistory).toggleStyle(.checkbox).fixedSize()
+            }.font(CosmosDesign.font(.body))
             if !model.states.isEmpty {
-                DisclosureGroup("来源状态（单源失败不影响其他来源）") {
+                DisclosureGroup("来源状态") {
                     ForEach(UnifiedSearchSource.allCases) { source in
-                        if let state = model.states[source] {
-                            Text(source.title + "：" + state.description)
-                                .foregroundStyle(isFailed(state) ? Color.orange : Color.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                        if let state = model.states[source] { Text(source.title + "：" + state.description).font(CosmosDesign.font(.caption)).foregroundStyle(isFailed(state) ? Color.orange : Color.secondary).frame(maxWidth: .infinity, alignment: .leading) }
                     }
-                }
-                // Failures stay visible even when the details are collapsed.
+                }.font(CosmosDesign.font(.caption))
                 ForEach(UnifiedSearchSource.allCases) { source in
-                    if case .failed(let reason) = model.states[source] {
-                        Text(source.title + "读取失败：" + reason).foregroundStyle(.orange).font(.callout)
-                    }
+                    if case .failed(let reason) = model.states[source] { Text(source.title + "读取失败：" + reason).foregroundStyle(.orange).font(CosmosDesign.font(.body)) }
                 }
             }
-            ForEach(model.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
+            ForEach(model.notices, id: \.self) { Text($0).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary) }
             if query.keyword.isEmpty {
-                ContentUnavailableView("输入关键词开始检索", systemImage: "magnifyingglass", description: Text("空查询不全量展示，也不读取业务库。"))
+                CosmosEmptyState(icon: "magnifyingglass", title: "输入关键词开始检索", detail: "活动 · Artifact · 引用 · 项目 · 提示词 · 学习 · 个人笔记")
+                if !appNavigator.lastSearchText.isEmpty {
+                    Button("上次检索：" + appNavigator.lastSearchText) { query.text = appNavigator.lastSearchText }.buttonStyle(.glass)
+                }
+                Spacer()
             } else if model.loading {
                 ProgressView("正在读取本地元数据…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if model.rows.isEmpty {
-                ContentUnavailableView("可读取来源中没有匹配", systemImage: "magnifyingglass", description: Text("可调整来源、归档或历史选项；读取失败另行标示，不代表零结果。"))
+                CosmosEmptyState(icon: "magnifyingglass", title: "可读取来源中没有匹配", detail: "试试更短的关键词、全部来源，或包含归档与历史。读取失败会单独提示。")
+                Spacer()
             } else {
-                Text("\(model.rows.count) 个匹配").font(.caption).foregroundStyle(.secondary)
-                List(model.rows) { row in
-                    Button { Task { await navigator.open(row) } } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(row.name).font(.headline)
-                                Text(row.id.source.title).font(.caption).foregroundStyle(.secondary)
-                                if row.archived { Text("已归档").font(.caption).foregroundStyle(.orange) }
-                                if row.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow) }
-                                if row.id.source == .artifact {
-                                    Text(row.adoptionConflict ? "采用冲突" : (row.historical ? "历史/未采用" : "当前采用"))
-                                        .font(.caption).foregroundStyle(row.adoptionConflict ? Color.orange : Color.secondary)
-                                }
-                            }
-                            Text(row.ownership).font(.caption).foregroundStyle(.secondary)
-                            Text(model.query.summary(row)).font(.callout).lineLimit(3)
-                        }.padding(.vertical, 6).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityIdentifier("unified-result-" + row.id.source.rawValue + "-" + row.id.objectID.uuidString)
-                }
+                Text("\(model.rows.count) 个匹配").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                List {
+                    ForEach(UnifiedSearchSource.allCases) { source in
+                        let rows = model.rows.filter { $0.id.source == source }
+                        if !rows.isEmpty {
+                            Section {
+                                ForEach(rows) { row in resultRow(row) }
+                            } header: { Text(source.title + " · \(rows.count)").font(CosmosDesign.font(.section)) }
+                        }
+                    }
+                }.listStyle(.inset).scrollContentBackground(.hidden)
             }
-        }.padding(24).frame(minWidth: 760, minHeight: 560)
-            .onChange(of: query) { _, value in model.search(value) }
+        }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .toolbar {
+                ToolbarItem { Button("聚焦搜索", systemImage: "magnifyingglass") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).buttonStyle(.glass) }
+                ToolbarItem { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.buttonStyle(.glass).disabled(query.keyword.isEmpty) }
+            }
+            .task {
+                searchFocused = true
+                if followsNavigation && !appNavigator.searchText.isEmpty { query.text = appNavigator.searchText }
+            }
+            .onChange(of: appNavigator.searchText) { _, text in if followsNavigation { query.text = text; searchFocused = true } }
+            .onChange(of: query) { _, value in
+                model.search(value)
+                if !value.keyword.isEmpty { appNavigator.lastSearchText = value.keyword }
+            }
             .onDisappear { model.cancel() }
             .sheet(item: $navigator.referenceRow) { row in referenceDetail(row) }
             .alert("检索导航", isPresented: Binding(get: { navigator.message != nil }, set: { if !$0 { navigator.message = nil } })) {
                 Button("好") { navigator.message = nil }
             } message: { Text(navigator.message ?? "") }
+            .modifier(CosmosMotionPolicy())
+    }
+    private func sourceButton(_ title: String, _ source: UnifiedSearchSource?) -> some View {
+        Button { query.source = source } label: {
+            Text(title).padding(.horizontal, 12).padding(.vertical, 7)
+                .background {
+                    if query.source == source { Capsule().fill(Color.accentColor.opacity(0.13)).matchedGeometryEffect(id: "source", in: selectionIndicator) }
+                    else { Capsule().fill(Color.primary.opacity(0.035)) }
+                }
+        }.buttonStyle(.plain).accessibilityAddTraits(query.source == source ? .isSelected : [])
+            .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.motion, value: query.source)
+    }
+    private func resultRow(_ row: UnifiedSearchRow) -> some View {
+        Button { Task { await navigator.open(row) } } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: row.id.source.cosmosIcon).foregroundStyle(.secondary).frame(width: 22).padding(.top, 2)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(highlight(row.name)).font(CosmosDesign.font(.section))
+                        if row.archived { Text("已归档").font(CosmosDesign.font(.caption)).foregroundStyle(.orange) }
+                        if row.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow) }
+                        if row.id.source == .artifact { Text(row.adoptionConflict ? "采用冲突" : row.historical ? "历史/未采用" : "当前采用").font(CosmosDesign.font(.caption)).foregroundStyle(row.adoptionConflict ? Color.orange : Color.secondary) }
+                    }
+                    Text(row.id.source.title + " · " + row.ownership).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                    Text(highlight(model.query.summary(row))).font(CosmosDesign.font(.body)).lineLimit(3)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+            }.padding(.vertical, 8).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier("unified-result-" + row.id.source.rawValue + "-" + row.id.objectID.uuidString)
+    }
+    private func highlight(_ text: String) -> AttributedString {
+        var result = AttributedString(text)
+        guard !query.keyword.isEmpty else { return result }
+        var remaining = text.startIndex..<text.endIndex
+        while let range = text.range(of: query.keyword, options: [.caseInsensitive, .diacriticInsensitive], range: remaining) {
+            if let lower = AttributedString.Index(range.lowerBound, within: result), let upper = AttributedString.Index(range.upperBound, within: result) {
+                result[lower..<upper].foregroundColor = .accentColor
+                result[lower..<upper].font = CosmosDesign.font(.body).bold()
+            }
+            remaining = range.upperBound..<text.endIndex
+        }
+        return result
     }
     private func isFailed(_ state: UnifiedSearchState) -> Bool { if case .failed = state { return true }; return false }
     @ViewBuilder private func referenceDetail(_ row: UnifiedSearchRow) -> some View {

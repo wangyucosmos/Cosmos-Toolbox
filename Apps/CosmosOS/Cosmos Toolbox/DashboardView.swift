@@ -1,7 +1,17 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @State private var selection: SidebarItem? = .dashboard
+    @Environment(\.cosmosNavigator) private var navigator
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
+    @Environment(\.openSettings) private var openSettings
+    @State private var didRestoreNavigation = false
+    @State private var preciseNavigator: UnifiedSearchNavigator?
+    @State private var navigationMessage: String?
+    private var selection: SidebarItem? {
+        get { navigator.selection }
+        nonmutating set { navigator.selection = newValue }
+    }
 
     /// Reused across visits to the Home so unchanged data is not decoded again.
     @State private var homeCache = DashboardReadCache()
@@ -21,17 +31,7 @@ struct DashboardView: View {
         self.storePersistenceConfiguration =
             storePersistenceConfiguration
 
-#if DEBUG
-        // Isolated UI acceptance only: open a sidebar item at launch so a
-        // fixture run can be captured without scripting the interface.
-        let arguments = ProcessInfo.processInfo.arguments
-        if storePersistenceConfiguration.isIsolated,
-           let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
-           index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings", "macOptimizer", "projects", "unifiedSearch"].contains(arguments[index + 1]) {
-            _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
-        }
-#endif
+
     }
 
     var body: some View {
@@ -133,15 +133,15 @@ struct DashboardView: View {
     }
 
     private var navigationContent: some View {
-        NavigationSplitView {
-            List(selection: $selection) {
+        return NavigationSplitView {
+            List(selection: Binding(get: { selection }, set: { navigator.pendingWorkbenchMetric = nil; selection = $0 })) {
 
-                Section("首页 · Home") {
+                Section("首页") {
                     sidebarRow(.dashboard)
                     sidebarRow(.unifiedSearch)
                 }
 
-                Section("工作 · Work") {
+                Section("工作") {
                     sidebarRow(.zhuowang)
                     sidebarRow(.projects)
                     sidebarRow(.knowledgeBase)
@@ -152,16 +152,19 @@ struct DashboardView: View {
                     sidebarRow(.promptVault)
                 }
 
-                Section("学习 · Learning") {
+                Section("学习") {
                     sidebarRow(.learningCenter)
                 }
 
-                Section("系统 · System") {
+                Section("系统") {
                     sidebarRow(.macOptimizer)
-                    sidebarRow(.settings)
                 }
             }
-            .navigationTitle("Cosmos OS")
+            .safeAreaInset(edge: .bottom) {
+                Button { navigator.navigate(.settings(.general)) } label: {
+                    Label("设置", systemImage: "gearshape").frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                }.buttonStyle(.plain).padding(10)
+            }
             .navigationSplitViewColumnWidth(
                 min: 220,
                 ideal: 250
@@ -185,7 +188,8 @@ struct DashboardView: View {
                                 root: learningLocation.root,
                                 reason: learningLocation.error?.localizedDescription
                             ),
-                        cache: homeCache,
+                        notesLocation: dashboardLocation(root: personalNotesLocation.root, reason: personalNotesLocation.error?.localizedDescription),
+                        cache: homeCache, mac: macEnvironment, ai: aiWorkspaceCache,
                         open: { selection = $0 }
                     )
                         .id(SidebarItem.dashboard)
@@ -235,7 +239,7 @@ struct DashboardView: View {
                         .id(SidebarItem.unifiedSearch)
 
                 } else if selection == .knowledgeBase {
-                    KnowledgeHubView(
+                    CosmosKnowledgeDestinationView(
                         configuration: storePersistenceConfiguration,
                         isolatedRoot: isolatedAssetRoot,
                         notesLocation: personalNotesLocation,
@@ -263,10 +267,6 @@ struct DashboardView: View {
                     MacEnvironmentView(model: macEnvironment)
                         .id(SidebarItem.macOptimizer)
 
-                } else if selection == .settings {
-                    CoreBackupSettingsView(source: coreBackupSource, restoreTarget: try? CoreRestoreTarget.resolve(configuration: storePersistenceConfiguration))
-                        .id(SidebarItem.settings)
-
                 } else if let selection {
 
                     PlaceholderView(item: selection)
@@ -287,17 +287,75 @@ struct DashboardView: View {
                         )
                 }
             }
-            .animation(
-                .spring(
-                    response: 0.42,
-                    dampingFraction: 0.88,
-                    blendDuration: 0.12
-                ),
-                value: selection
-            )
+            .id(selection)
+            .transition(preferences.reducesMotion(system: systemMotion) ? .opacity : .opacity.combined(with: .offset(x: 8)))
+            .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.motion, value: selection)
         }
+        .modifier(CosmosMotionPolicy())
+        .task { restoreNavigationOnce() }
+        .onChange(of: selection) { _, value in
+            if let value, value != .settings { preferences.lastPage = value.rawValue }
+        }
+        .onChange(of: navigator.settingsRequest) { _, _ in openSettings() }
+        .onChange(of: navigator.newRecordRequest) { _, source in
+            guard let source else { return }
+            Task {
+                if source == .note {
+                    let store = PersonalNotesStore(location: personalNotesLocation); await store.reload()
+                    if store.canSave { PersonalNoteWindowManager.shared.open(store: store, note: nil) }
+                    else { navigationMessage = store.error?.localizedDescription ?? "笔记库不可编辑" }
+                } else if source == .prompt {
+                    let store = PromptVaultStore(root: promptVaultLocation.root, startupError: promptVaultLocation.error); await store.reload()
+                    if store.canSave { PromptTemplateWindowManager.shared.open(store: store, template: nil) }
+                    else { navigationMessage = store.error?.localizedDescription ?? "提示词库不可编辑" }
+                }
+                navigator.newRecordRequest = nil
+            }
+        }
+        .onChange(of: navigator.recordRequest) { _, row in
+            guard let row else { return }
+            if storePersistenceConfiguration.isIsolatedForUI && row.id.source == .campaign {
+                navigator.navigate(.workbench(.all)); navigator.recordRequest = nil; return
+            }
+            Task { await openRecord(row); navigator.recordRequest = nil }
+        }
+        .alert("打开记录", isPresented: Binding(get: { navigationMessage != nil }, set: { if !$0 { navigationMessage = nil } })) {
+            Button("好") { navigationMessage = nil }
+        } message: { Text(navigationMessage ?? "") }
     }
 
+    private func restoreNavigationOnce() {
+        guard !didRestoreNavigation else { return }; didRestoreNavigation = true
+        if preferences.startup == .lastPage { selection = SidebarItem(rawValue: preferences.lastPage) ?? .dashboard }
+#if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if storePersistenceConfiguration.isIsolated, let index = args.firstIndex(of: "--cosmos-initial-sidebar"), index + 1 < args.count {
+            if args[index + 1] == "settings" { navigator.navigate(.settings(.general)) }
+            else if let item = SidebarItem(rawValue: args[index + 1]) { selection = item }
+        }
+#endif
+    }
+
+    private func openRecord(_ row: UnifiedSearchRow) async {
+        if preciseNavigator == nil {
+            var roots: [UnifiedSearchSource: URL] = [:], blocked: [UnifiedSearchSource: String] = [:]
+            for (key, root, error) in [(UnifiedSearchSource.project, projectsLocation.root, projectsLocation.error?.localizedDescription),
+                (.prompt, promptVaultLocation.root, promptVaultLocation.error?.localizedDescription),
+                (.learning, learningLocation.root, learningLocation.error?.localizedDescription),
+                (.note, personalNotesLocation.root, personalNotesLocation.error?.localizedDescription)] {
+                if let root { roots[key] = root } else { blocked[key] = error ?? "位置不可用" }
+            }
+            let dataSource = storePersistenceConfiguration.dataSource
+            let reader = UnifiedSearchReader(readPreference: { key in
+                if let source = dataSource as? ZhuowangUserDefaultsDataSource { return try source.coreBackupData(forKey: key) }
+                return dataSource.data(forKey: key)
+            }, roots: roots, blocked: blocked)
+            preciseNavigator = UnifiedSearchNavigator(reader: reader, configuration: storePersistenceConfiguration,
+                projects: projectsLocation, prompts: promptVaultLocation, learning: learningLocation, notes: personalNotesLocation, assetRoot: isolatedAssetRoot)
+        }
+        await preciseNavigator?.open(row)
+        navigationMessage = preciseNavigator?.message
+    }
 
 #if DEBUG
     private var isolatedSuiteBanner: some View {
@@ -362,103 +420,19 @@ struct DashboardView: View {
                 spacing: CosmosDesign.spacingXS
             ) {
 
-                Text(item.chineseName)
+                Text(item.chineseName).font(CosmosDesign.font(.body))
 
-                Text(item.englishName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if preferences.sidebarEnglish {
+                    Text(item.englishName).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                }
             }
 
         } icon: {
 
             Image(systemName: item.icon)
         }
+        .frame(minHeight: 30)
         .tag(item)
-    }
-}
-
-
-// MARK: - Cosmos Card
-
-struct CosmosCard<Content: View>: View {
-
-    let icon: String
-    let title: String
-    let englishTitle: String
-
-    @ViewBuilder
-    let content: Content
-
-    @State
-    private var isHovering = false
-
-
-    init(
-        icon: String,
-        title: String,
-        englishTitle: String,
-        @ViewBuilder content: () -> Content
-    ) {
-
-        self.icon = icon
-        self.title = title
-        self.englishTitle = englishTitle
-        self.content = content()
-    }
-
-
-    var body: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingXL
-        ) {
-
-            HStack(
-                spacing: CosmosDesign.spacingM
-            ) {
-
-                Image(systemName: icon)
-                    .font(
-                        .system(
-                            size: 17,
-                            weight: .medium
-                        )
-                    )
-
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingXS
-                ) {
-
-                    Text(title)
-                        .font(.headline)
-
-                    Text(englishTitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            content
-
-            Spacer()
-        }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: CosmosDesign.cardMinHeight,
-            alignment: .topLeading
-        )
-        .modifier(
-            CosmosCardStyle(
-                isHovering: isHovering
-            )
-        )
-        .contentShape(Rectangle())
-        .onHover { hovering in
-
-            isHovering = hovering
-        }
     }
 }
 

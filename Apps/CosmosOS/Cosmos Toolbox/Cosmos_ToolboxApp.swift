@@ -17,12 +17,22 @@ struct Cosmos_ToolboxApp: App {
 
         WindowGroup {
             CosmosRootView()
+                .environment(\.cosmosPreferences, CosmosUIPreferences.shared)
+                .environment(\.cosmosNavigator, CosmosNavigator.shared)
+                .modifier(CosmosMotionPolicy())
+                .task { CosmosUIPreferences.shared.applyAppearance() }
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("关于 Cosmos OS") { showAbout() }
             }
         }
+        Settings {
+            CosmosSettingsSceneView()
+                .environment(\.cosmosPreferences, CosmosUIPreferences.shared)
+                .environment(\.cosmosNavigator, CosmosNavigator.shared)
+        }
+
     }
 
     private func showAbout() {

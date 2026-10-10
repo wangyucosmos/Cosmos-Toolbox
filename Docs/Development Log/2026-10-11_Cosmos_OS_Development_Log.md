@@ -1,0 +1,28 @@
+# Cosmos OS Development Log — 2026-10-11
+
+## 体验升级第一步 — 主要源码保留，构建阻塞，未部署
+
+- 正式仓库 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`，干净基线 `93e25a86017040c07dbc648fe90c300ed37f396b`；未 pull / reset / stash / add / commit / push / merge。读取 AGENTS（重点 §23、§10–12）、Current Status 全文、当日已有日志、UI 基线状态说明及本模块依赖；旧验收不重跑。跨日后按用户时间使用本日志。
+- 用户 2026-10-10 恢复全局 UI / Motion 分步升级，本模块为设计系统、外壳、Settings、仪表盘 2.0、工作台指标和统一检索呈现。用户进一步明确：交付候选检查、Workspace 路径服务、ZhuowangCampaignProgress 及其它业务层不动；仅“可以交付”允许主线程聚合，后台其它来源发布后单独计算，加载 / 错误仅在这张卡片显示。后续后台交付检查需另定范围。
+- 新增：`CosmosUIPreferences.swift`（六个 cosmos.ui. 偏好、非法值只读回退、NSApp.appearance、减少动效）、`CosmosNavigator.swift`（目的地与工作台过滤、设置标签、检索词、UUID 请求）、`CosmosDesignComponents.swift`（字体 token、标题 / ⓘ、Button 卡片、数字指标、图表容器、空态、玻璃操作组）、`CosmosNavigationSurfaces.swift`（外部工作台导航和知识库子分段接线，复用原页面）、`CosmosSettingsView.swift`（三个 Settings 标签；复用原备份 ViewModel、恢复 View、保存面板行为，不修改备份 / 恢复源文件）、`DashboardHomeSnapshot.swift`（非隔离的后台只读数据投影 DTO、来源错误隔离、近 7 天 / 8 周次数、真实分布、最多八条最近记录）、`CosmosUIUpgradeTests.swift`（16 个新增测试方法，未执行）。
+- 修改：`CosmosDesignSystem.swift`（兼容样式采用系统填充并遵循减少动效）、`Cosmos_ToolboxApp.swift`（原生 Settings scene 与 UI 环境）、`DashboardView.swift`（中文分组、英文名称偏好、底部设置、统一导航及既有精确打开）、`DashboardHomeView.swift`（真实指标 / Charts / 快捷操作 / 最近记录 / Mac 与已有 AI 缓存）、`DashboardHomeViewModel.swift`（生产首页后台 load 分支、合并刷新、后台结果发布后用既有 ProgressBuilder 默认 DeliverableCounter 主线程交付计数；原首页投影接口保留给历史测试）、`UnifiedSearchView.swift`（搜索焦点、⌘F、来源胶囊、按来源分组与命中高亮，原读取 / 搜索模型 / 导航未动）、`ZhuowangCampaignWorkbenchView.swift`（指标筛选 / 再点取消 / 外部筛选；增加仅由隔离外壳关闭详情的安全开关）。
+- SDK 确认：当前 Xcode 27.0 / SwiftUI SDK 包含 glassEffect、GlassEffectContainer、glass 按钮样式、numericText；仓库目标仍 macOS 26.5 / Swift 5 / 默认 MainActor，不改工程配置。先前边界探针仅在 /private/tmp，后台调用主 actor 方法得到警告，未修改业务层。
+- 集中验证：先 `build-for-testing`（Debug、独立 Bundle ID `com.wangyucosmos.cosmostoolbox.persistenceui.UIUpgradeTestHost`、`CODE_SIGNING_ALLOWED=NO`、DerivedData `/private/tmp/CosmosUIUpgrade-01a1267e/DerivedData`）。沙箱内官方 SwiftUI 宏插件无法启动，产生既有文件级联宏错误；同命令获自动批准后沙箱外执行，得到有效编译诊断。这是环境重试，不宣称通过。
+- 一次集中修复：MacEnvironmentViewModel 的主 actor 默认参数改为可选后在初始化内部构造；Workflow 状态接线改为 workflowPersistenceState；自查同步修正最近活动行的 campaignID、交付发布代次检查、后台 Workspace 解码辅助的隔离声明、Settings 重复打开以及离屏夹具 Provider 初始化。修复未涉及业务层。
+- 修复后构建仍 FAILED：`CosmosNavigationSurfaces.swift:17` 的 `ScrollView {}` 在 SDK 上匹配 `init(_:showsIndicators:content:)` 与 `init(_:content:)`，报 `ambiguous use of init`。**按用户附件 §5 / §9“集中修复后仍构建失败或核心测试失败”停止；不继续第二轮修复、不部署。** 最小下一范围是消除该新增外壳的重载歧义并继续必要验证；是否还有其它诊断尚不确定，不保证只需改一行。
+- 证据：`/private/tmp/CosmosUIUpgrade-initial-build.log`（有效首轮，覆盖了环境失败日志）、`/private/tmp/CosmosUIUpgrade-fixed-build.log`（修复后失败）。新增 16 方法只是源码静态计数，**本轮唯一测试执行数 0**；既有受影响类也未执行。未生成 xcresult 或 36 组合截图；截图测试代码中的目标 `/private/tmp/CosmosUIUpgrade-01a1267e/screenshots` 仅是计划路径，不能作为已生成证据。真实点击 / hover / 动效、窗口主题传播未覆盖。Swift 6 actor / Sendable 警告仍在（业务层既有警告与新增数据源捕获 / Workspace Codable 警告），不宣称已消除。
+- 文档：更新 Current Status 的阻塞检查点 / 进行中模块 / UI 偏好 / 风险与后续主线程交付待办；更新 AGENTS §11 的已确认设计方向，§23 及其它章节保持字节不变；UI Design 仅追加状态说明，不改历史正文。
+- 部署：未执行脚本；既有安装与回退副本均未触碰。当前模块没有业务 schema / 格式变更，但尚无新版回退或启动证据，不声称已部署。
+- 可复用：交付数必须沿用既有交付候选检查，不用 Workflow 完成数代替；导航按源类型 + UUID + 活动归属交给原 UnifiedSearchNavigator；仅 UI 偏好使用 cosmos.ui.。后续步骤优先考虑 Projects、提示词与 AI 工作台套用组件，共享设计 token / 偏好 / 导航 / 外壳由单一负责人修改，集成与部署串行。
+
+## 用户追加集中修复 — 导航复用既有 Store，验证及部署完成
+
+- 用户授权处理导航架构、同轮编译与测试夹具问题。删除 CosmosWorkbenchDestinationView，CosmosNavigationSurfaces 仅保留知识库原页面接线，不创建卓望 Store。仪表盘 `.workbench(metric)` 写入 CosmosNavigator.pendingWorkbenchMetric 并设置侧栏 `.zhuowang`；DashboardView 始终构造原 ZhuowangWorkspaceView。工作台 onAppear / onChange 消费请求、清除原局部筛选、应用指标后清空待应用请求；指标点击使用同一 applyMetric，重复点击取消。
+- ZhuowangWorkspaceView 仅增加 5 行：第 8 行 Environment；第 106 行初次出现时切 workbench；第 109–111 行监听待应用请求并调用原 selectNavigation(.workbench)。原 Store 初始化、内容、ScrollView 与业务数据流未改。隔离保护在工作台内部使用传入 Store 的配置：禁详情、默认交付计数注入 0；生产仍用原默认 DeliverableCounter。
+- 编译诊断：父页面内三元闭包参数触发 ScrollView 歧义及 failed-to-produce-diagnostic，移回工作台内显式类型计算属性解决，父页面恢复原构造参数。最终 Debug build-for-testing 成功：/private/tmp/CosmosUIUpgrade-round-build.log；截图夹具更新后的最终构建亦成功：/private/tmp/CosmosUIUpgrade-offscreen-build.log。
+- 测试身份为独立 Bundle ID；随机 Store suite 与七个临时根通过 xctestrun CommandLineArguments 注入。第一次临时 xctestrun 移出 Products 导致相对路径找不到产品（0 测试），放回 Products 后执行。集中测试 95 个唯一测试通过、0 失败：CoreBackup 12、CoreRestore 14、CosmosUIUpgrade 16、DashboardSnapshot 24、MacEnvironment 11、UnifiedSearch 10、ZhuowangCampaignWorkbench 8。结果 /private/tmp/CosmosUIUpgrade-isolated-tests.xcresult。
+- 首轮离屏图的 List 不完整，改为挂接不显示的 NSWindow。中间夹具关闭窗口时异常退出，设置 isReleasedWhenClosed=false 后只重验截图方法，最终 1/1 通过（属于上述 95 个，不重复计数），结果 /private/tmp/CosmosUIUpgrade-offscreen-final.xcresult。合成来源 writeCount 为 0 断言通过；玻璃组指定系统前景色。
+- 36 张 PNG：/private/tmp/CosmosUIUpgrade-01a1267e/screenshots；亲自查看四张 9 图联系表，浅 / 深 × 1180×760 / 900×620。检索分组、命中高亮、工作台选中态、指标换行、图表与空态可见；900 宽下 Dashboard 图表自动两列并可滚动。原生玻璃 / Settings 标签栏在位图中仍出现纯色块与低对比，无法作为实际窗口效果证据；不再为此搭建 UI 自动化或重复夹具。真实点击 / 悬停 / 动画、快捷键、跨窗口主题及面板 / 重启未覆盖。
+- diff --check 通过；git diff --name-only 匹配 Store / FileStorage / CoreBackup / CoreRestore / CampaignProgress / WorkspaceFileManager 无结果。AGENTS 除 §11 外保持原文；Current Status 仍低于 40 KB。业务格式与交付 / 路径 / 并发隔离源文件未改，无正式业务数据测试。保留既有与新增 actor / Sendable 的 Swift 6 迁移警告，不扩大业务层修改。
+- 部署：/usr/bin/python3 scripts/deploy-macos.py 成功；Universal Release arm64 / x86_64、ad-hoc 签名及安装身份按脚本核对。旧 App 正常退出，回退副本 Cosmos Toolbox-20261011-005043-613eac70.app。正式安装 /Users/rainiesmac-15/Applications/Cosmos Toolbox.app 已启动，PID 32087；Info.plist commit 93e25a86017040c07dbc648fe90c300ed37f396b，dirty=true。构建日志 /var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-fls0mosm/build.log；部署输出 /private/tmp/CosmosUIUpgrade-deploy.log。本模块无业务格式变化，回退可恢复旧界面；历史 schema 降级风险仍保留。
+- 本轮结论：可交用户体验验收。未 add / commit / push / merge；文档在部署确认后收尾，App 源码未再改动。下一步可复用组件至 Projects、提示词与 AI 工作台；共享设计 / 偏好 / 导航 / 外壳单一负责人，知识库接入另定范围。

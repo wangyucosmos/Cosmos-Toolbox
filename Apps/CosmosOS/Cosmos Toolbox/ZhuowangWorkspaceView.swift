@@ -5,6 +5,7 @@ import Combine
 
 struct ZhuowangWorkspaceView: View {
 
+    @Environment(\.cosmosNavigator) private var navigator
     @StateObject private var store: ZhuowangWorkspaceStore
     @StateObject private var campaignStore: ZhuowangCampaignStore
     /// One Workflow Store for the Campaign list, the progress workbench and
@@ -102,7 +103,11 @@ struct ZhuowangWorkspaceView: View {
         }
         .onAppear {
             prepareInitialSelection()
+            if navigator.pendingWorkbenchMetric != nil { selectNavigation(.workbench) }
             assetModel.refresh()
+        }
+        .onChange(of: navigator.pendingWorkbenchMetric) { _, metric in
+            if metric != nil { selectNavigation(.workbench) }
         }
         .onReceive(campaignStore.$campaigns.dropFirst()) { _ in assetModel.refresh() }
         .onReceive(workflowStore.$workflows.dropFirst()) { _ in assetModel.refresh() }

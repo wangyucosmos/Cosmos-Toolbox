@@ -17,6 +17,9 @@ struct ZhuowangCampaignWorkbenchView: View {
     var fixedScope: ZhuowangCampaignWorkbenchFilter.Scope?
 
     var now: () -> Date = Date.init
+    var permitsDetailOpening = true
+    @Environment(\.cosmosNavigator) private var navigator
+    @State private var selectedMetric: CosmosWorkbenchMetric?
 
     /// Defaults to the delivery-package eligibility rules.
     var deliverableCounter: ZhuowangCampaignProgressBuilder.DeliverableCounter?
@@ -35,7 +38,7 @@ struct ZhuowangCampaignWorkbenchView: View {
             provinces: workspaceStore.provinces,
             modules: workspaceStore.modules,
             now: today,
-            deliverableCounter: deliverableCounter
+            deliverableCounter: effectiveDeliverableCounter
         )
         var effective = filter
         if let fixedScope {
@@ -44,7 +47,7 @@ struct ZhuowangCampaignWorkbenchView: View {
         var scopeOnly = ZhuowangCampaignWorkbenchFilter()
         scopeOnly.scope = effective.scope
         let scoped = all.filter(scopeOnly.matches)
-        let visible = scoped.filter(effective.matches)
+        let visible = scoped.filter(effective.matches).filter { selectedMetric?.matches($0) ?? true }
 
         return VStack(
             alignment: .leading,
@@ -54,7 +57,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                 header
             }
 
-            metrics(visible)
+            metrics(scoped)
             filterBar
 
             if scoped.isEmpty {
@@ -75,52 +78,42 @@ struct ZhuowangCampaignWorkbenchView: View {
                 overviewSection(visible)
             }
         }
+        .onAppear { applyPendingMetric() }
+        .onChange(of: navigator.pendingWorkbenchMetric) { _, _ in applyPendingMetric() }
     }
 
+
+    private var effectiveDeliverableCounter: ZhuowangCampaignProgressBuilder.DeliverableCounter? {
+        if let deliverableCounter { return deliverableCounter }
+        if campaignStore.persistenceConfiguration.isIsolatedForUI { return { _, _, _, _ in 0 } }
+        return nil
+    }
+
+    private func applyMetric(_ metric: CosmosWorkbenchMetric?) {
+        selectedMetric = metric
+    }
+
+    private func applyPendingMetric() {
+        guard fixedScope == nil, let metric = navigator.consumeWorkbenchMetric() else { return }
+        filter = ZhuowangCampaignWorkbenchFilter()
+        applyMetric(metric)
+    }
 
     // MARK: Header / Metrics
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
-            Text("推进工作台")
-                .font(.system(size: 26, weight: .semibold))
-            Text("Campaign Progress")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            Text("汇总卓望工作区全部活动的 Workflow 进度、活动日期和采用产物。只读汇总，不会修改活动状态或采用版本。")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
-        }
+        CosmosPageHeader("推进工作台", subtitle: "查看活动日期、Workflow 状态与采用产物。",
+            info: "只读汇总全部活动，不修改状态或采用版本。指标遵循下方推进列表的分组口径；点击筛选，再点同一指标取消。")
     }
 
-
     private func metrics(_ items: [ZhuowangCampaignProgress]) -> some View {
-        HStack(spacing: CosmosDesign.spacingL) {
-            ZhuowangMetricCard(
-                icon: "megaphone",
-                value: "\(items.count)",
-                title: "活动",
-                subtitle: "Campaigns"
-            )
-            ZhuowangMetricCard(
-                icon: "calendar",
-                value: "\(items.filter { $0.datePhase == .ongoing }.count)",
-                title: "活动日期内",
-                subtitle: "Ongoing by Date"
-            )
-            ZhuowangMetricCard(
-                icon: "exclamationmark.triangle",
-                value: "\(items.filter { $0.category == .needsAttention }.count)",
-                title: "失败或需修改",
-                subtitle: "Needs Attention"
-            )
-            ZhuowangMetricCard(
-                icon: "shippingbox",
-                value: "\(items.filter { $0.category == .deliverable }.count)",
-                title: "可以交付",
-                subtitle: "Deliverable"
-            )
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 12)], spacing: 12) {
+            ForEach(CosmosWorkbenchMetric.allCases) { metric in
+                CosmosMetricTile(icon: metric.icon, title: metric.title, value: items.filter(metric.matches).count,
+                    selected: selectedMetric == metric) {
+                    applyMetric(metric.toggled(from: selectedMetric))
+                }
+            }
         }
     }
 
@@ -173,7 +166,7 @@ struct ZhuowangCampaignWorkbenchView: View {
 
             if isFiltering {
                 Button("清除筛选") {
-                    filter = ZhuowangCampaignWorkbenchFilter()
+                    filter = ZhuowangCampaignWorkbenchFilter(); selectedMetric = nil
                 }
                 .buttonStyle(.borderless)
             }
@@ -184,7 +177,7 @@ struct ZhuowangCampaignWorkbenchView: View {
 
 
     private var isFiltering: Bool {
-        filter.status != nil
+        selectedMetric != nil || filter.status != nil
             || !filter.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || (fixedScope == nil && filter.scope != .all)
     }
@@ -507,7 +500,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                 .multilineTextAlignment(.center)
             if showsClear {
                 Button("清除筛选") {
-                    filter = ZhuowangCampaignWorkbenchFilter()
+                    filter = ZhuowangCampaignWorkbenchFilter(); selectedMetric = nil
                 }
             }
         }
@@ -528,6 +521,7 @@ struct ZhuowangCampaignWorkbenchView: View {
         _ row: ZhuowangCampaignProgress,
         _ destination: ZhuowangCampaignDetailRoute.Destination
     ) {
+        guard permitsDetailOpening && !campaignStore.persistenceConfiguration.isIsolatedForUI else { return }
         ZhuowangCampaignWindowManager.shared.open(
             campaign: row.campaign,
             store: campaignStore,
