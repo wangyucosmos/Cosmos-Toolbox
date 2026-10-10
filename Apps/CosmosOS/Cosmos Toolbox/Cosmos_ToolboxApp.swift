@@ -44,10 +44,7 @@ struct CosmosRootView: View {
 #if DEBUG
         switch bootstrap {
         case .ready(let configuration):
-            DashboardView(
-                storePersistenceConfiguration:
-                    configuration
-            )
+            CoreRestoreStartupView(configuration: configuration)
 
         case .blocked(let message):
             CosmosStoreBootstrapBlockedView(
@@ -55,7 +52,7 @@ struct CosmosRootView: View {
             )
         }
 #else
-        DashboardView()
+        CoreRestoreStartupView(configuration: .production)
 #endif
     }
 }

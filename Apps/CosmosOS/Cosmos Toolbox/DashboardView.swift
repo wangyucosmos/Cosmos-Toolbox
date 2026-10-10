@@ -225,7 +225,7 @@ struct DashboardView: View {
                         .id(SidebarItem.aiWorkspace)
 
                 } else if selection == .settings {
-                    CoreBackupSettingsView(source: coreBackupSource)
+                    CoreBackupSettingsView(source: coreBackupSource, restoreTarget: try? CoreRestoreTarget.resolve(configuration: storePersistenceConfiguration))
                         .id(SidebarItem.settings)
 
                 } else if let selection {

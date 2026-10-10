@@ -96,3 +96,23 @@ V1 为不压缩 ZIP，固定源清单及 SHA-256；仅本格式可直接读取�
 ## 核心数据备份 Phase 1 验收与 Git 收尾授权
 
 用户接受声明验收范围，阶段关闭，授权提交 `feat: 新增核心数据备份与完整性校验` 并正常推送 main。仅逐项暂存报告中的 10 个文件，不纳入业务数据、备份包或临时证据。沿用已通过验证与覆盖缺口，不追加测试/构建/复审。提交前实际 origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git，HEAD 与实际远端 main 均为预期 parent 3024ceb6b9a501d19ef37002bdb108c3e63c27d8，实际交付以 Git refs / 收尾报告为准。成功后直接开发用户明确授权的空环境恢复；恢复阶段仅开发与隔离验证，不操作正式数据、不提交推送。
+
+
+## 核心数据备份正式关闭与空环境恢复 Phase 1
+
+备份阶段已正常收尾：origin https://github.com/wangyucosmos/Cosmos-Toolbox.git；commit `16dd38682e8c17ef15dc97cae2718a261db441dc`，parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`，消息 `feat: 新增核心数据备份与完整性校验`。恰好逐项提交报告中 10 个文件，正常推送后 main/origin/main/实际远端 main 一致、ahead/behind 0/0，收尾时工作区干净。沿用已接受验证，无额外测试/构建/复审。
+
+随后直接开发用户授权的空环境恢复。复用固定 10 源和 V1 安全校验：选择、校验、预览、明确确认、复查空目标、恢复、要求重启。根视图新增启动门控，新安装在业务 Store 默认初始化前可恢复；已有空载荷、备份、锁、损坏及未知状态一律拒绝覆盖。配置恢复禁用/needsSetup，跳过恢复安装的身份规范化和默认补建，不补造缺失配置。原文、UUID、历史采用和文件引用保留，不恢复实体或认证。
+
+独立 CoreRestore 控制命名空间持久化收据和中断状态；文件以已验证暂存 hardlink 原子防覆盖发布、UserDefaults 使用现有每键锁及读回。不宣称跨进程原子事务；仅可确认属于本次且未变化的数据允许回退，归属不明保留并阻断启动。完整当前行为、实际位置、一致性限制以 Current Status §27 为唯一检查点。
+
+新增 CoreRestoreModels.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreRestoreView.swift、CoreRestoreStartupView.swift、CoreRestoreTests.swift；修改 CoreBackupService.swift、CoreBackupSettingsView.swift、Cosmos_ToolboxApp.swift、DashboardView.swift、ZhuowangAIConnectionStore.swift、ZhuowangProtectedPersistence.swift、ZhuowangWorkflowStore.swift、Current Status、本日志，共 15 文件。
+
+集中新测试 14/14 通过；一次集中补齐文件原子发布后只重跑受影响 7/7 通过，未变化 7 项沿用首轮，无循环修复。一次 Universal Debug 构建成功（x86_64 arm64），diff check 通过。隔离 App 后台显示新安装恢复/创建入口，随机域无业务键、三个业务根和控制根未建立；只截图目标窗口、进程已结束，随机域已不存在。没有真实按钮及重启完整交互，不重试受限原生工具；真实断电未测，Swift 6 Sendable warning 与跨卷安全失败限制保留。
+
+结论：按声明证据范围可收尾，无已知阻塞。恢复成果未暂存/提交/推送/合并，等待用户验收与收尾授权；不操作正式数据、不写知识库、不自动开发下一模块，所有暂缓事项不动。
+
+
+## 核心数据恢复 Phase 1 验收与 Git 收尾
+
+用户接受既有声明验收范围，阶段关闭，授权提交 `feat: 新增核心数据空环境恢复` 并正常推送 main。沿用已有验证，不追加测试/构建/复审；只逐项提交报告中 15 个文件，不纳入收据、备份包、正式或临时业务数据。origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git，提交前实际远端 main 与预期 parent `16dd38682e8c17ef15dc97cae2718a261db441dc` 一致。实际交付以 Git refs / 收尾报告为准。收尾成功后直接实施用户授权的 Mac 环境概览，新阶段仅开发与验证。

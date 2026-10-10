@@ -31,7 +31,10 @@ final class CoreBackupViewModel: ObservableObject {
 
 struct CoreBackupSettingsView: View {
     @StateObject private var model: CoreBackupViewModel
-    init(source: CoreBackupSource) { _model = StateObject(wrappedValue: CoreBackupViewModel(source: source)) }
+    let restoreTarget: CoreRestoreTarget?
+    init(source: CoreBackupSource, restoreTarget: CoreRestoreTarget? = nil) {
+        _model = StateObject(wrappedValue: CoreBackupViewModel(source: source)); self.restoreTarget = restoreTarget
+    }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -59,6 +62,8 @@ struct CoreBackupSettingsView: View {
                         Button("在 Finder 中查看", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([result.url]) }
                     }
                 }.disabled(model.busy)
+                Divider()
+                CoreRestoreView(target: restoreTarget)
                 if model.busy { ProgressView() }
                 if let status = model.status { Text(status).textSelection(.enabled).accessibilityIdentifier("core-backup-status") }
                 if let result = model.result {

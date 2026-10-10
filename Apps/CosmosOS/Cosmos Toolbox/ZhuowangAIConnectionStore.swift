@@ -69,7 +69,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
         loadToolIntegrations()
         loadAgentToolRoutes()
 
-        if connectionLoadState == .missing {
+        if connectionLoadState == .missing && !CoreRestoreRuntime.restoredInstallation {
 
             connections =
                 Self.defaultConnections
@@ -77,7 +77,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             save()
         }
 
-        if toolIntegrationLoadState == .missing {
+        if toolIntegrationLoadState == .missing && !CoreRestoreRuntime.restoredInstallation {
 
             toolIntegrations =
                 Self.defaultToolIntegrations
@@ -85,7 +85,7 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             saveToolIntegrations()
         }
 
-        if agentToolRouteLoadState == .missing {
+        if agentToolRouteLoadState == .missing && !CoreRestoreRuntime.restoredInstallation {
 
             agentToolRoutes =
                 Self.defaultAgentToolRoutes
@@ -93,15 +93,15 @@ final class ZhuowangAIConnectionStore: ObservableObject {
             saveAgentToolRoutes()
         }
 
-        if connectionLoadState != .locked {
+        if connectionLoadState != .locked && !CoreRestoreRuntime.restoredInstallation {
             removeLegacyBuiltInFigmaConnection()
         }
 
-        if toolIntegrationLoadState != .locked {
+        if toolIntegrationLoadState != .locked && !CoreRestoreRuntime.restoredInstallation {
             ensureBuiltInHTMLPrototypeTool()
         }
 
-        if agentToolRouteLoadState != .locked {
+        if agentToolRouteLoadState != .locked && !CoreRestoreRuntime.restoredInstallation {
             ensureBuiltInDeepSeekHTMLRoute()
         }
     }

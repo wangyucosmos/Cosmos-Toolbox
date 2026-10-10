@@ -115,11 +115,11 @@ final class ZhuowangWorkflowStore: ObservableObject {
         loadProviders()
         loadWorkflows()
 
-        if providerLoadState == .missing {
+        if providerLoadState == .missing && !CoreRestoreRuntime.restoredInstallation {
             providers = Self.defaultProviders
             saveProviders()
 
-        } else if providerLoadState != .locked {
+        } else if providerLoadState != .locked && !CoreRestoreRuntime.restoredInstallation {
             normalizeBuiltInProviderIDs()
             removeLegacyToolProvidersFromAIRegistry()
         }

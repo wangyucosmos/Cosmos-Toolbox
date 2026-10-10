@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 核心数据备份 Phase 1（导出与完整性校验）已由用户接受声明验收范围并关闭，授权正常提交推送（§26）。Settings 手动导出版本化元数据 ZIP，发布前校验；可独立校验已有包，不导入、不恢复、不打包产物实体。
+**Current stage:** 核心数据恢复 Phase 1｜空环境恢复已由用户接受声明验收范围并关闭，授权正常提交推送（§27）。只恢复固定业务元数据，先校验/预览、明确确认，成功后必须重启；不覆盖或合并已有数据。
+**Previous stage (备份):** 核心数据备份 Phase 1 已接受并正式关闭，提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`、正常推送与同步核对完成（§26）。导出与独立校验语义保持。
 **Previous stage (任务资料):** 任务上下文资料选择 Phase 1 已接受并正式关闭，正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`（§25）；其历史验证及已声明限制沿用。
 **Previous stage (交接记录):** AI 工作台 Phase 3 已正式关闭并正常推送，实际 Git 收尾见 §24；独立历史、手动记录及历史原文复制能力保留。
 **Previous stage (任务准备):** Phase 2 已由用户接受验收并关闭，正式提交与正常推送已完成（见 §23）；有效收尾基线 main = origin/main = 远端 main、ahead/behind 0/0、工作区干净沿用，不重复 fetch 或历史验证。
@@ -609,7 +610,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** 核心数据备份 Phase 1 已接受并关闭（§26）；本次授权 Git 收尾成功后直接实施用户明确授权的“核心数据恢复 Phase 1｜空环境恢复”。恢复阶段仅开发与隔离验证，未授权正式数据操作或 Git 收尾。已关闭 AI 工作台各阶段保持现有能力；暂缓事项不动。
+**Current:** 核心数据恢复 Phase 1 已接受并关闭（§27）；正常 Git 收尾成功后，直接实施用户明确授权的 Mac 环境概览 Phase 1。核心数据备份 Phase 1 已正式关闭（§26）。Mac 环境概览仅开发与必要验证，未授权提交推送；未操作正式数据。已关闭 AI 工作台各阶段保持现有能力；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1219,4 +1220,46 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 原生 UI 工具此前受限，本会话不重试。真实 App 未点击保存/打开面板、导出/校验反馈、重复操作或 Finder 按钮，不宣称完整端到端验收；服务风险由本轮测试覆盖。未验证真实正式数据导出、Release、任意第三方 ZIP 改写兼容、接近 128 MiB 的性能/内存峰值；不跑全量或历史测试、不安排独立复审。
 - 非阻塞：V1 未压缩 ZIP 与源载荷在内存操作，接近上限可能有内存成本；只有特定版本格式可校验，没有来源签名、加密、恢复或自动备份。配置自由字典全部排除，未来需要保留特定安全字段时应明确扩展白名单，不能放宽为全量导出。Swift 6 actor 迁移 warning 待未来统一处理。
 - 修改文件：新增 CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupArchive.swift、CoreBackupService.swift、CoreBackupSettingsView.swift、CoreBackupTests.swift；修改 DashboardView.swift、ZhuowangProtectedPersistence.swift、本文件和当日开发日志，共 10 个文件。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权以 `feat: 新增核心数据备份与完整性校验` 正常提交推送 main，仅包含报告中的 10 个文件，沿用 12/12 测试、Universal Debug 和隔离数据保护证据，不追加测试/构建/复审。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与远端 main 均为预期 parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`；实际交付以 Git refs 和收尾报告为准。收尾成功后按用户明确授权实施空环境恢复，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3、其他仓库和知识库保持不动。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权以 `feat: 新增核心数据备份与完整性校验` 正常提交推送 main，仅包含报告中的 10 个文件，沿用 12/12 测试、Universal Debug 和隔离数据保护证据，不追加测试/构建/复审。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与远端 main 均为预期 parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`；实际提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`，parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`，消息 `feat: 新增核心数据备份与完整性校验`。正常推送后实测 main = origin/main = 远端 main，ahead/behind 0/0，备份收尾时工作区干净；恰好提交上述 10 个文件。随后按授权实施空环境恢复，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3、其他仓库和知识库保持不动。
+
+
+## 27. 核心数据恢复 Phase 1 — 空环境恢复 — 2026-10-10
+
+### 流程与范围
+
+- Settings → 选择备份 → 完整校验与关联检查 → 展示导出时间/格式版本/各源状态与摘要/实际恢复项及限制 → 明确确认 → 再校验包和空目标 → 后台恢复 → 提示退出并重启。确认前、取消和校验失败均不创建恢复数据。不提供覆盖、合并、强制恢复或选择性恢复。
+- 复用 §26 的固定 10 源、V1 格式与安全 ZIP 校验；单源 16 MiB、整包 128 MiB、清单 256 KiB。不从包内路径推导外部目的地。实际目标为当前安装原有 7 个业务 UserDefaults 主键及 PromptVault/templates.json、Learning/learning.json、AIWorkspace/handoffs.json；逐源位置以 §26 表为准。
+- Campaign、Workspace、Workflow、Prompt、Learning、Handoff 原字节保留，包括正文、CRLF、Unicode、UUID、历史版本、Run/Approval、采用选择与历史交接文本。Workflow→Campaign、Run/Approval→Step、Artifact 所属 Campaign 结构关联错误拒绝；历史产物 Step/Run、历史 Provider 或配置关联缺失提示限制，不补造身份。关联已删除的交接历史仍保留快照。
+- 原文件路径仅是历史引用。不读取、产生、移动或修复实体文件；不恢复认证、端点、自由配置字典或被排除字段，不执行 CLI/联网验证。
+- AI 配置恢复使用固定白名单：Provider 禁用；Connection/Tool 禁用且 needsSetup；Connection 关闭自动选择；Connection/Route 自动执行及自动返回选项关闭，Route needsSetup。历史 available 不表示当前可用，UI 提示重新设置。恢复安装跳过既有 Provider 规范化与默认连接补建，避免脱敏身份被改写或缺失配置被伪造；missing 配置源仍不存在。
+
+### 空环境与启动门控
+
+- 空不是“列表为空”：固定主键及其 .backup 必须不存在，三个业务模块不得有主文件、备份或相关写锁。有效空载荷、错类型、损坏、不可读取、状态不明均拒绝；不恢复缺失主文件、不删除默认数据来绕过检查。未知恢复控制数据也拒绝。
+- 根视图先进入数据启动保护，再决定是否构造 Dashboard/业务 Store。新安装可在初始化任何业务数据前选择恢复；“创建新环境”先持久化 started 标记，再进入工作台，之后不能再当作空环境恢复。
+- 恢复成功的当前进程保持重启提示，不构造仍持有旧状态的业务 Store；下一启动核对 complete 收据与实际数据，清暂存并转 started/restored 后才加载。inProgress/failed 或损坏标记阻止业务加载，提供明确的本次事务安全回退入口；不自动清空修复。
+
+### 发布、失败与中断保护
+
+- 独立控制目录：`~/Library/Application Support/Cosmos OS/CoreRestore/`。`state.json` 保存版本、事务 UUID、状态、恢复安装标志及逐源 planned/pending/written 收据；`.restore.lock` 为非阻塞 flock 协作锁；`payload-<sourceID>.json` 为已验证暂存。journal 临时文件 fsync 后原子 rename，目录也 fsync；不把业务旧备份或写锁恢复为正式状态。
+- 解析、结构和关联检查全部先完成。确认时重新读取有界备份，核对包 hash 与文件修订；写前复查目标、已写收据和备份/锁。UserDefaults 使用现有同进程每键锁、存在性检查、set/remove + synchronize + 读回；文件用完整暂存的 exclusive hardlink 原子发布，拒绝覆盖，核对 inode/device/字节并 fsync 目录。
+- 同卷 hardlink 是文件发布前提，当前生产位置同属 Application Support；跨卷 EXDEV 安全失败，不用非原子 copy 降级。文件收据记录修订身份；只有可确认属于本次创建且未变化的数据才能回退。并发变化、归属不明 pending 数据不删除，保留失败/未完成标记并阻止成功加载。
+- 这是带持久化收据、启动门控及协作锁的恢复协议，不是文件与 UserDefaults 的跨进程原子事务。UserDefaults 无跨进程 CAS；非协作程序在检查后写入的竞态不能完全排除。中断后新 service 可显式安全回退，无法确认时保留并阻断，不把半套数据视作成功。
+- 备份导出语义未变；仅抽出既有有界字节校验以供恢复复用。未恢复任何暂缓事项，不写其他仓库或知识库。
+
+### 本轮验证与证据边界
+
+- 一轮集中 CoreRestoreTests **14/14 通过**。随后一次集中补齐文件原子发布，仅重跑受影响的 **7/7 通过**；最终 14 项覆盖由未变化 7 项沿用首轮、文件相关 7 项修复后证据组成，未重新跑整套或历史测试，无第二轮修复。
+- 覆盖备份→恢复→新 service/新偏好 wrapper 重新加载原文、UUID、Run/Approval、V1 采用及 V3 历史；实际 WorkflowStore 重载不补建 Provider、偏好字节不变；禁用配置不补造秘密；missing 源不创建；确认前/取消零写；已有空库、损坏/错类型/不可读目标、备份/锁拒绝；坏包/结构关联错误/预览后包修订变化拒绝。
+- 覆盖写失败回退已确认前缀；目标变化保留并阻断启动；注入中断、重新创建 service 后显式回退；不确定偏好写入不删除；变化文件/符号链接保护；complete 后目标变化或损坏 marker 阻断；创建新环境后拒绝恢复。源资料与备份未修改，缺失实体不生成，恢复视图离屏渲染通过。所有目标为完整隔离临时目录及随机 suite，未操作正式 App 数据。
+- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`，隔离 Bundle ID、关闭签名、临时 DerivedData。工程自动重排经 plutil 内容相等核对后恢复，不纳入修改；git diff --check 通过。
+- 一次后台隔离真实 App 显示“数据启动保护”、选择备份及创建新环境入口；仅截图目标窗口，不激活或移动用户窗口。随机偏好域无 cosmos 业务键，Prompt/Learning/Handoff/CoreRestore 四个临时根均未创建，证明初始化门控未写业务数据。隔离进程已结束；清理随机 suite 时域已不存在，defaults 未改其他域。
+- 证据：首轮 `/private/tmp/CosmosCoreRestore-Focused.xcresult` 与 focused.log；受影响项 `/private/tmp/CosmosCoreRestore-FilePublish.xcresult` 与 file-publish.log；构建 `/private/tmp/CosmosCoreRestore-build.log`；真实窗口及 integrity.json 位于 `/private/tmp/CosmosCoreRestoreUI-d41ae7fd-6eb9-499a-90d8-b5b3e220b892/`。
+- 未覆盖：真实打开面板、确认/恢复/回退按钮及真实重启恢复完整交互；实际断电/kill 中断仅由注入模拟覆盖；未验证正式数据、Release、容量上限性能或非协作跨进程竞态，不宣称完整端到端 UI 验收。原生点击工具此前受限，本轮不重试。
+- 非阻塞待办：新模块 4 条非 Sendable 后台闭包捕获 warning（CoreRestoreStartupView 三处、CoreRestoreView 一处），当前 Swift 5 构建通过，未来 Swift 6 迁移需明确契约；既有 WorkspaceSnapshot.Decodable、省份 actor 和 AppIntents warning 沿用，不扩大修复。
+
+### 修改与结论
+
+- 新增：CoreRestoreModels.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreRestoreView.swift、CoreRestoreStartupView.swift、CoreRestoreTests.swift。
+- 修改：CoreBackupService.swift、CoreBackupSettingsView.swift、Cosmos_ToolboxApp.swift、DashboardView.swift、ZhuowangAIConnectionStore.swift、ZhuowangProtectedPersistence.swift、ZhuowangWorkflowStore.swift、本文件、当日开发日志。共 **15 个文件**，无工程语义修改或业务数据纳入。
+- **结论：用户已接受上述声明验证范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增核心数据空环境恢复` 正常提交推送，仅逐项纳入上述 15 个文件，沿用已有验证，不追加测试、构建或复审。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，实际远端 main 与预期 parent 一致。当前基线 `16dd38682e8c17ef15dc97cae2718a261db441dc`；实际交付以本次 Git refs 和收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。不自动开发下一模块。

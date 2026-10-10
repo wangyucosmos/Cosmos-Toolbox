@@ -84,6 +84,10 @@ nonisolated struct CoreBackupService {
 
     static func verify(_ url: URL) throws -> CoreBackupResult {
         guard let raw = try readFile(url, limit: packageLimit)?.0 else { throw CoreBackupError.invalid("备份包不存在。") }
+        return try verifyBytes(raw, at: url)
+    }
+
+    static func verifyBytes(_ raw: Data, at url: URL) throws -> CoreBackupResult {
         let entries = try CoreBackupArchive.decode(raw)
         guard let bytes = entries["manifest.json"], bytes.count <= manifestLimit else { throw CoreBackupError.invalid("清单缺失或超限。") }
         let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601

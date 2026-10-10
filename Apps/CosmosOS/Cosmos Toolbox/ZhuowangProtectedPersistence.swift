@@ -147,6 +147,14 @@ nonisolated final class ZhuowangUserDefaultsDataSource:
         return data
     }
 
+    /// Used only by the confirmed empty-environment restore transaction.
+    func coreRestoreSetAndSync(_ data: Data?, key: String) throws {
+        if let data { defaults.set(data, forKey: key) } else { defaults.removeObject(forKey: key) }
+        guard defaults.synchronize(), try coreBackupData(forKey: key) == data else {
+            throw CoreRestoreError.invalid("恢复偏好持久化结果无法确认；保持启动门控，未声明成功。")
+        }
+    }
+
     func set(
         _ data: Data,
         forKey key: String
