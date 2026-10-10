@@ -17,7 +17,7 @@ nonisolated enum CosmosSettingsTab: String, CaseIterable, Identifiable, Sendable
     var title: String { switch self { case .general: return "通用"; case .data: return "数据与备份"; case .about: return "关于" } }
     var icon: String { switch self { case .general: return "gearshape"; case .data: return "externaldrive"; case .about: return "info.circle" } }
 }
-nonisolated enum CosmosKnowledgeSection: String, Sendable { case notes, assets }
+nonisolated enum CosmosKnowledgeSection: String, Sendable { case notes, assets, sources }
 nonisolated enum CosmosDestination: Equatable {
     case module(String), workbench(CosmosWorkbenchMetric), knowledge(CosmosKnowledgeSection)
     case search(String), settings(CosmosSettingsTab), record(UnifiedSearchRow)

@@ -97,6 +97,15 @@ struct DashboardView: View {
 #endif
     }
 
+    private var knowledgeSourcesLocation: KnowledgeSourcesLocation {
+#if DEBUG
+        KnowledgeSourcesLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+#else
+        KnowledgeSourcesLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+    }
+
     private var coreBackupSource: CoreBackupSource {
 #if DEBUG
         let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
@@ -210,7 +219,7 @@ struct DashboardView: View {
                 } else if selection == .unifiedSearch {
                     UnifiedSearchView(configuration: storePersistenceConfiguration,
                         projects: projectsLocation, prompts: promptVaultLocation,
-                        learning: learningLocation, notes: personalNotesLocation, assetRoot: isolatedAssetRoot)
+                        learning: learningLocation, notes: personalNotesLocation, knowledge: knowledgeSourcesLocation, assetRoot: isolatedAssetRoot)
                         .id(SidebarItem.unifiedSearch)
 
                 } else if selection == .knowledgeBase {
@@ -218,7 +227,8 @@ struct DashboardView: View {
                         configuration: storePersistenceConfiguration,
                         isolatedRoot: isolatedAssetRoot,
                         notesLocation: personalNotesLocation,
-                        promptLocation: promptVaultLocation
+                        promptLocation: promptVaultLocation,
+                        knowledgeSourcesLocation: knowledgeSourcesLocation
                     )
                     .id(SidebarItem.knowledgeBase)
 
@@ -275,6 +285,9 @@ struct DashboardView: View {
                 navigator.newRecordRequest = nil
             }
         }
+        .onChange(of: KnowledgeSourceOpenCenter.shared.pending) { _, request in
+            if request != nil { navigator.navigate(.knowledge(.sources)) }
+        }
         .onChange(of: navigator.recordRequest) { _, row in
             guard let row else { return }
             if storePersistenceConfiguration.isIsolatedForUI && row.id.source == .campaign {
@@ -305,7 +318,8 @@ struct DashboardView: View {
             for (key, root, error) in [(UnifiedSearchSource.project, projectsLocation.root, projectsLocation.error?.localizedDescription),
                 (.prompt, promptVaultLocation.root, promptVaultLocation.error?.localizedDescription),
                 (.learning, learningLocation.root, learningLocation.error?.localizedDescription),
-                (.note, personalNotesLocation.root, personalNotesLocation.error?.localizedDescription)] {
+                (.note, personalNotesLocation.root, personalNotesLocation.error?.localizedDescription),
+                (.knowledgeDocument, knowledgeSourcesLocation.root, knowledgeSourcesLocation.error?.localizedDescription)] {
                 if let root { roots[key] = root } else { blocked[key] = error ?? "位置不可用" }
             }
             let dataSource = storePersistenceConfiguration.dataSource

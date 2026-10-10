@@ -13,12 +13,13 @@ struct UnifiedSearchView: View {
 
     init(configuration: ZhuowangStorePersistenceConfiguration, projects: ProjectsLocation,
          prompts: PromptVaultLocation, learning: LearningLocation,
-         notes: PersonalNotesLocation, assetRoot: URL?) {
+         notes: PersonalNotesLocation, knowledge: KnowledgeSourcesLocation, assetRoot: URL?) {
         var roots: [UnifiedSearchSource: URL] = [:], blocked: [UnifiedSearchSource: String] = [:]
         if let root = projects.root { roots[.project] = root } else { blocked[.project] = projects.error?.localizedDescription ?? "位置不可用" }
         if let root = prompts.root { roots[.prompt] = root } else { blocked[.prompt] = prompts.error?.localizedDescription ?? "位置不可用" }
         if let root = learning.root { roots[.learning] = root } else { blocked[.learning] = learning.error?.localizedDescription ?? "位置不可用" }
         if let root = notes.root { roots[.note] = root } else { blocked[.note] = notes.error?.localizedDescription ?? "位置不可用" }
+        if let root = knowledge.root { roots[.knowledgeDocument] = root } else { blocked[.knowledgeDocument] = knowledge.error?.localizedDescription ?? "位置不可用" }
         let dataSource = configuration.dataSource
         let reader = UnifiedSearchReader(readPreference: { key in
             if let source = dataSource as? ZhuowangUserDefaultsDataSource { return try source.coreBackupData(forKey: key) }
@@ -35,7 +36,7 @@ struct UnifiedSearchView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             CosmosPageHeader("统一检索", subtitle: "跨模块查找已保存的名称、分类与位置。",
-                info: "仅检索元数据：活动名称与说明；Artifact 名称、类型、活动、省份或模块；引用名称、版本、备注与位置；项目及学习主题的名称、目标、下一步；Prompt 名称与分类；个人笔记标题与分类。不检索文件、Prompt、笔记正文与历史、项目进展或学习历史。空查询不读取业务库；搜索词只保存在本次运行的内存。点击结果按 UUID 核验后打开，引用不会自动打开。")
+                info: "仅检索元数据：活动名称与说明；Artifact 名称、类型、活动、省份或模块；引用名称、版本、备注与位置；项目及学习主题的名称、目标、下一步；Prompt 名称与分类；个人笔记标题与分类；知识库文档：标题、路径、标签，不检索正文。不检索文件、Prompt、笔记正文与历史、项目进展或学习历史。空查询不读取业务库；搜索词只保存在本次运行的内存。点击结果按 UUID 核验后打开，引用不会自动打开。")
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
                 TextField("输入关键词跨模块搜索", text: $query.text).textFieldStyle(.plain)
@@ -68,7 +69,7 @@ struct UnifiedSearchView: View {
             }
             ForEach(model.notices, id: \.self) { Text($0).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary) }
             if query.keyword.isEmpty {
-                CosmosEmptyState(icon: "magnifyingglass", title: "输入关键词开始检索", detail: "活动 · Artifact · 引用 · 项目 · 提示词 · 学习 · 个人笔记")
+                CosmosEmptyState(icon: "magnifyingglass", title: "输入关键词开始检索", detail: "活动 · Artifact · 引用 · 项目 · 提示词 · 学习 · 个人笔记 · 知识库文档（标题、路径、标签；不检索正文）")
                 if !appNavigator.lastSearchText.isEmpty {
                     Button("上次检索：" + appNavigator.lastSearchText) { query.text = appNavigator.lastSearchText }.buttonStyle(.glass)
                 }

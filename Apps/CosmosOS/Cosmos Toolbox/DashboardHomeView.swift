@@ -146,7 +146,7 @@ struct DashboardHomeView: View {
 }
 
 extension UnifiedSearchSource {
-    var cosmosIcon: String { switch self { case .campaign: return "megaphone"; case .artifact: return "doc.richtext"; case .reference: return "link"; case .project: return "folder"; case .prompt: return "text.book.closed"; case .learning: return "graduationcap"; case .note: return "note.text" } }
+    var cosmosIcon: String { switch self { case .campaign: return "megaphone"; case .artifact: return "doc.richtext"; case .reference: return "link"; case .project: return "folder"; case .prompt: return "text.book.closed"; case .learning: return "graduationcap"; case .note: return "note.text"; case .knowledgeDocument: return "books.vertical" } }
 }
 
 extension ZhuowangStorePersistenceConfiguration {
