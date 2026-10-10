@@ -184,6 +184,32 @@ nonisolated struct UnifiedSearchReader {
         result.rows += notes.map { .init(id: .init(source: .note, objectID: $0.id), name: $0.title,
             ownership: "个人笔记 · " + ($0.category ?? "未分类"), fields: [field("标题", $0.title), field("分类", $0.category ?? "")],
             archived: $0.isArchived, favorite: $0.isFavorite) }
+        // 外部知识库文档：只解码来源登记并以“仅元数据”模式扫描（标题 / 路径 / 标签）；正文不保留、不搜索，被排除的文件不出现。
+        var knowledgeNotices: [String] = []
+        let knowledgeRows: [UnifiedSearchRow] = load([.knowledgeDocument]) {
+            if let reason = blocked[.knowledgeDocument] { throw ReadError.invalid(reason) }
+            guard let root = roots[.knowledgeDocument] else { throw ReadError.invalid("缺少明确存储根，未回退正式位置。") }
+            let snapshot: KnowledgeSourcesSnapshot
+            do { snapshot = try KnowledgeSourceFileStorage(root: root).loadSynchronously() }
+            catch { throw ReadError.invalid(error.localizedDescription) }
+            guard snapshot.established else { return nil }
+            var rows: [UnifiedSearchRow] = []
+            for source in snapshot.sources where source.isEnabled {
+                do {
+                    for document in try KnowledgeSourceScanner.scan(source: source, mode: .metadata).documents {
+                        let ref = KnowledgeDocumentRef(sourceID: source.id, relativePath: document.relativePath)
+                        rows.append(.init(id: .init(source: .knowledgeDocument, objectID: ref.stableID), name: document.title,
+                            ownership: "知识库 · " + source.displayName,
+                            fields: [field("标题", document.title), field("路径", document.relativePath),
+                                     field("标签", document.tags.joined(separator: " "))], knowledge: ref))
+                    }
+                } catch { knowledgeNotices.append("知识库来源「\(source.displayName)」无法读取：" + error.localizedDescription) }
+            }
+            try unique(rows.map(\.id.objectID))
+            return rows
+        } ?? []
+        result.rows += knowledgeRows
+        result.notices += knowledgeNotices
         result.rows.sort { $0.id.source.rawValue == $1.id.source.rawValue ? $0.id.objectID.uuidString < $1.id.objectID.uuidString : $0.id.source.rawValue < $1.id.source.rawValue }
         return result
     }
