@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** Mac 环境概览 Phase 1 已由用户接受声明验收范围并关闭，授权正常提交推送（§28）。原有 Mac 优化导航现展示只读系统、内存、主目录卷容量和内置电池信息，首次读取及手动刷新，无持久化或轮询。
+**Current stage:** 日常使用部署已完成（§29）：正式 Bundle ID 的 Universal Release 安装于 `~/Applications/Cosmos Toolbox.app` 并正常启动，临时 App 正常退出；关于菜单显示版本/构建 commit/未提交标记。用户已接受声明范围并授权正常提交推送，阶段关闭。
+**Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
 **Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
 **Previous stage (备份):** 核心数据备份 Phase 1 已接受并正式关闭，提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`、正常推送与同步核对完成（§26）。导出与独立校验语义保持。
 **Previous stage (任务资料):** 任务上下文资料选择 Phase 1 已接受并正式关闭，正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`（§25）；其历史验证及已声明限制沿用。
@@ -611,7 +612,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** Mac 环境概览 Phase 1 已接受并关闭（§28），本次按授权正常 Git 收尾；成功后用已有产物启动正常 App 供日常使用。下一模块等待用户确定，不自动开发。恢复与备份均已正式关闭（§27 / §26）；暂缓事项不动。
+**Current:** 日常使用部署已接受并关闭（§29）；本次正常 Git 收尾成功后直接实施用户授权的个人项目 Projects Phase 1（含必要备份兼容与可回退部署），新阶段未授权提交推送。Mac 概览、恢复与备份均已正式关闭（§28 / §27 / §26）；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1291,4 +1292,19 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 - 真实 UI 未点击刷新或操作滚动后的电池区域，取消/迟到由自动化覆盖，不宣称完整端到端 UI 验收。无电池通过合成电源数据覆盖，未在台式 Mac 实测；未在 Intel/Rosetta 实机或 Release 验证。本期内存压力、循环次数与健康最大容量未读取；不为此增加命令或私有字段。部分 SDK/API 在受限进程中可能失败，页面按字段报告原因。
 - 新增：MacEnvironmentModels.swift、MacEnvironmentService.swift、MacEnvironmentViewModel.swift、MacEnvironmentView.swift、MacEnvironmentTests.swift。修改：DashboardView.swift、本文件、当日开发日志，共 **8 个文件**；未纳入正式数据、截图或临时证据。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增 Mac 环境只读概览` 正常提交推送 main，仅逐项纳入上述 8 个文件；沿用 11/11 测试、Universal Debug 及本机对照证据，不追加测试、构建或复审。提交前 HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；实际交付以 Git refs / 收尾报告为准。推送后复用最新双架构构建产物，制作正式 Bundle ID 的独立日常启动副本，不重新编译、不传入隔离/样例参数、不自动执行业务操作。所有暂缓事项不动，不写其他知识库、不自动开发下一模块。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增 Mac 环境只读概览` 正常提交推送 main，仅逐项纳入上述 8 个文件；沿用 11/11 测试、Universal Debug 及本机对照证据，不追加测试、构建或复审。提交前 HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；实际 commit `7124c4f2c918fc39eb52ae05209898654fa24c4e`，parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，恰好提交 8 个文件；正常推送后 main/origin/main/远端一致、ahead/behind 0/0、工作区干净。随后复用双架构构建产物，以正式 Bundle ID 从临时独立副本正常启动（未重新编译、未传测试参数）；该临时副本现由 §29 的稳定 Release 部署替代。所有暂缓事项不动，不写其他知识库、不自动开发下一模块。
+
+
+## 29. 日常使用部署 — Universal Release — 2026-10-10
+
+- 用户授权本机构建、可回退部署与正常启动，未授权提交推送。开工仅查 status/HEAD，干净基线 `7124c4f2c918fc39eb52ae05209898654fa24c4e`；不调查/复审已关闭阶段，不跑历史或全量测试。
+- 稳定安装：`~/Applications/Cosmos Toolbox.app`，正式 Bundle ID `com.wangyucosmos.Cosmos-Toolbox`。本次为首次安装，该目标没有旧 App；先前 `/private/tmp/CosmosOS-Daily-7124c4f/` 的临时 App 通过 NSRunningApplication.terminate 正常退出，新 App 已从稳定路径启动，确认 PID 94945，不传任何测试/隔离/样例参数。
+- 版本 `1.0`、构建 `1`、配置 Release；部署元数据记录完整 commit `7124c4f2c918fc39eb52ae05209898654fa24c4e`，`CosmosBuildDirty=true`，如实表示基于该提交并包含本次未提交代码。沿用系统“关于”菜单和原生 About 面板，显示版本/构建/commit/源码状态；普通非部署构建没有元数据时标记未记录，不编造 commit。未递增产品版本或宣称本次源码已提交。
+- 可复用命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。脚本按自身位置定位仓库，使用 Path.home() 定位 Applications，不硬编码用户路径。固定现有 Xcode project/scheme、正式 Bundle，构建 Universal Release（arm64 x86_64），临时 DerivedData 与日志；检查两架构、正式身份及构建期间 HEAD/源码状态，注入元数据后本地 ad-hoc 签名并验证。
+- 部署有独立 flock；先准备并校验安装暂存副本，再正常请求旧 App 退出。仅关闭安装目标或已知 CosmosOS-Daily 临时位置的正式 Bundle；其他位置同身份 App、身份未知、符号链接、并发部署或拒绝/超时退出均停止，不强杀。未保存内容可通过现有退出处理保留，脚本不绕过确认。
+- 若目标已有同身份 App，移至 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app` 后，以 renamex_np/RENAME_EXCL 发布新 App，不覆盖中途出现的目标。发布失败且目标仍缺失时保留旧版本回退；目标出现时保留回退副本并停止。只清理本次唯一暂存 App，不删除旧回退版本。启动失败报告并保留安装/备份，不强杀或自动迁移数据。该位置只放 App 副本，不迁移业务文件。
+- 本轮只完成必需的 **一次 Universal Release BUILD SUCCEEDED**、lipo 双架构确认、签名/身份/元数据及稳定路径进程确认；没有新增测试、历史验收或独立复审。工程文件自动序列化变化由脚本在 plutil 内容完全一致时还原，没有工程语义改动。diff check 通过。
+- 构建/部署证据：`/private/tmp/CosmosOS-daily-deploy.log`；构建日志与 DerivedData 位于 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-62motejj/`。脚本未读写正式业务 Store、创建活动/样例、调用 AI 或恢复备份；正常启动沿用既有 App 行为，可能写入自身窗口偏好，不宣称全域 UserDefaults 零写入。
+- 验收限制：未点击关于面板做排版验收；本次首次安装，已有旧版本更新/回退及真实未保存内容阻止退出分支未实机触发。未做签名公证或第三方分发，本机 ad-hoc 签名供当前用户日常使用；没有添加自动更新、安装器或后台常驻。既有阶段待办不扩大处理。
+- 修改文件仅 **4 个**：Cosmos_ToolboxApp.swift、scripts/deploy-macos.py、本文件、当日 Development Log。安装 App、构建日志及临时证据不纳入仓库。
+- **结论：用户接受本次声明验收范围，日常部署阶段关闭，无已知阻塞。** 授权按 `feat: 支持 Cosmos OS 本机日常部署` 正常提交推送，逐项仅纳入上述 4 文件，沿用已完成构建与启动证据、不追加验证。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与实际远端 main 为预期 parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`。实际交付以 Git refs / 收尾报告为准。随后直接实施已授权 Projects；全部暂缓事项及其他知识库保持不动。

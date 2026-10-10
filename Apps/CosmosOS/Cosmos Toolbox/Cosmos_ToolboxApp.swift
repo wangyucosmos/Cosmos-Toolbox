@@ -5,6 +5,7 @@
 //  Created by Cosmos on 2026/8/17.
 //
 
+import AppKit
 import SwiftUI
 
 @main
@@ -17,6 +18,25 @@ struct Cosmos_ToolboxApp: App {
         WindowGroup {
             CosmosRootView()
         }
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("关于 Cosmos OS") { showAbout() }
+            }
+        }
+    }
+
+    private func showAbout() {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "未知"
+        let build = info["CFBundleVersion"] as? String ?? "未知"
+        let commit = info["CosmosBuildCommit"] as? String ?? "未记录（非部署构建）"
+        let dirty = info["CosmosBuildDirty"] as? Bool
+        let sourceState = dirty.map { $0 ? "含未提交改动" : "已提交源码" } ?? "源码状态未记录"
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [
+            .applicationName: "Cosmos OS",
+            .applicationVersion: "\(version)（构建 \(build)）",
+            .version: "commit: \(commit) · \(sourceState)"
+        ])
     }
 }
 

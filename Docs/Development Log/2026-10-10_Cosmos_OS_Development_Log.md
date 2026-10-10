@@ -134,3 +134,19 @@ V1 为不压缩 ZIP，固定源清单及 SHA-256；仅本格式可直接读取�
 ## Mac 环境概览 Phase 1 验收与 Git 收尾
 
 用户接受声明验收范围，阶段关闭，授权提交 `feat: 新增 Mac 环境只读概览` 并正常推送 main。仅逐项纳入报告中 8 个文件，不含业务或临时数据；保留未覆盖项，沿用 11/11 测试、Universal Debug 与本机对照证据，无新增测试/构建/复审。提交前 origin https://github.com/wangyucosmos/Cosmos-Toolbox.git，HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`。正常推送后复用最新双架构产物制作正式 Bundle ID 日常启动副本，不重新编译、不注入测试参数或样例，不自动创建活动/执行 AI/恢复备份。实际 Git 与启动结果以收尾报告为准。所有暂缓事项保持不动。
+
+
+## 日常使用部署：稳定 Universal Release
+
+用户授权直接完成本机构建与可回退部署，未授权提交推送；开工干净基线为 `7124c4f2c918fc39eb52ae05209898654fa24c4e`。此前 Mac 概览提交正常推送、main/origin/main/实际远端一致、0/0、工作区干净；已有阶段证据沿用，未重新验收。
+
+本次修改 Cosmos_ToolboxApp.swift 的既有关于菜单，显示版本/构建 commit 与未提交标记；新增 scripts/deploy-macos.py，从自身位置及用户 Home 解析路径，复用现有 Xcode 构建方式、Universal Release、正式 Bundle、本地签名、正常退出、身份检查、防覆盖发布与可回退副本。只同步 Current Status 和本日志，共 4 文件。
+
+一次必要 Universal Release 构建成功（arm64 x86_64），签名和正式身份/元数据确认；临时 App 正常退出，稳定 `~/Applications/Cosmos Toolbox.app` 已正常启动（PID 94945），无测试参数。版本 1.0（构建 1），基于上述 commit 并包含本次未提交改动，已如实标记。本次目标无旧 App，首次安装没有旧版备份；后续更新保留回退副本。diff check 通过，无测试或额外复审。
+
+关于面板排版、真实旧版回退和未保存内容拒绝退出分支未现场触发；不宣称第三方分发或公证完成。实际路径、脚本命令、安全边界及证据统一见 Current Status §29。本次未操作业务数据、不迁移目录、不创建样例或执行业务任务，正常启动可能写窗口偏好。结论：按声明范围可收尾，无已知阻塞；4 文件未暂存/提交/推送，停止等待授权，全部暂缓事项不动。
+
+
+## 日常部署阶段验收与 Git 收尾
+
+用户接受声明范围并授权 `feat: 支持 Cosmos OS 本机日常部署` 正常提交推送，仅逐项纳入应用入口、部署脚本及两份文档，共 4 文件。沿用构建和正常启动证据，不追加验证。提交前 HEAD/实际远端 main 均为 `7124c4f2c918fc39eb52ae05209898654fa24c4e`，origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git。随后直接实施已授权 Projects，范围包括隔离验证、备份兼容与可回退部署，不授权 Projects 提交推送。
