@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AIWorkspaceTaskPreparationView: View {
     @ObservedObject var model: AIWorkspaceTaskPreparation
+    var history: AIWorkspaceHandoffStore? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -46,6 +47,9 @@ struct AIWorkspaceTaskPreparationView: View {
                 Button("复制当前提示词", systemImage: "doc.on.doc") { model.copyPreview() }
                     .disabled(model.preview == nil)
                     .accessibilityIdentifier("ai-task-copy")
+            }
+            if let history {
+                AIWorkspaceHandoffRecordingView(preparation: model, history: history)
             }
             if let feedback = model.copyFeedback {
                 Text(feedback).font(.callout).accessibilityIdentifier("ai-task-copy-feedback")

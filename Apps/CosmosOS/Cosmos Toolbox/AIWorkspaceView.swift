@@ -6,9 +6,21 @@ struct AIWorkspaceView: View {
     @StateObject private var model: AIWorkspaceViewModel
     private let autoDetect: Bool
     @StateObject private var preparation: AIWorkspaceTaskPreparation
+    @StateObject private var history: AIWorkspaceHandoffStore
+    @State private var showsHistory = false
 
     init(cache: AIWorkspaceResultCache, configuration: ZhuowangStorePersistenceConfiguration, autoDetect: Bool = false) {
         let reader = AIWorkspaceTaskContextReader(source: configuration.dataSource)
+#if DEBUG
+        if configuration.isIsolated && ProcessInfo.processInfo.arguments.contains("--cosmos-ai-workspace-history") {
+            _showsHistory = State(initialValue: true)
+        }
+        let location = AIWorkspaceHandoffLocation.resolve(isIsolated: configuration.isIsolated,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+#else
+        let location = AIWorkspaceHandoffLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+        _history = StateObject(wrappedValue: AIWorkspaceHandoffStore(location: location))
         _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { try reader.read() }))
         _model = StateObject(wrappedValue: AIWorkspaceViewModel(cache: cache))
         self.autoDetect = autoDetect
@@ -17,6 +29,7 @@ struct AIWorkspaceView: View {
     /// Injectable model, for offscreen rendering and tests.
     init(model: AIWorkspaceViewModel, autoDetect: Bool = false) {
         _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { AIWorkspaceTaskContext() }))
+        _history = StateObject(wrappedValue: AIWorkspaceHandoffStore(location: .init(root: nil, error: .unsafePath)))
         _model = StateObject(wrappedValue: model)
         self.autoDetect = autoDetect
     }
@@ -25,7 +38,16 @@ struct AIWorkspaceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: CosmosDesign.spacingXL) {
                 header
-                AIWorkspaceTaskPreparationView(model: preparation)
+                Picker("工作台", selection: $showsHistory) {
+                    Text("准备任务").tag(false)
+                    Text("交接记录").tag(true)
+                }.pickerStyle(.segmented).frame(maxWidth: 360)
+                    .accessibilityIdentifier("ai-workspace-section")
+                if showsHistory {
+                    AIWorkspaceHandoffHistoryView(history: history, preparation: preparation)
+                } else {
+                    AIWorkspaceTaskPreparationView(model: preparation, history: history)
+                }
                 Divider()
                 Text("本机工具与运行环境").font(.title2)
                 notice
@@ -46,6 +68,7 @@ struct AIWorkspaceView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .task {
             preparation.refresh()
+            await history.reload()
             if autoDetect, model.snapshot == nil { model.refresh() }
         }
         .onDisappear { model.cancel() }

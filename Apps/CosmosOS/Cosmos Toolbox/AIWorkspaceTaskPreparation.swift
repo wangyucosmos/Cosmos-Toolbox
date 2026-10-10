@@ -63,6 +63,7 @@ final class AIWorkspaceTaskPreparation: ObservableObject {
     @Published var requirements = "" { didSet { copyFeedback = nil } }
     @Published private(set) var error: String?
     @Published private(set) var copyFeedback: String?
+    @Published private(set) var lastCopiedPrompt: String?
 
     private let read: () throws -> AIWorkspaceTaskContext
     private let copyText: (String) -> Bool
@@ -147,8 +148,60 @@ final class AIWorkspaceTaskPreparation: ObservableObject {
             copyFeedback = "上下文已更新，请核对当前预览后再次复制。"
             return
         }
-        copyFeedback = copyText(current) ? "已复制当前任务提示词" : "复制失败，请重试。"
+        if copyText(current) {
+            lastCopiedPrompt = current
+            copyFeedback = "已复制当前任务提示词"
+        } else { copyFeedback = "复制失败，请重试。" }
     }
+
+    var recordingNotice: String {
+        if let lastCopiedPrompt, let preview, Data(lastCopiedPrompt.utf8) != Data(preview.utf8) {
+            return "当前预览与最近复制的文本不同；记录将保存当前预览，不是之前复制的版本。"
+        }
+        return "记录只保存当前预览快照；复制不会自动记录，也不确认已发送、执行或完成。"
+    }
+
+    func snapshotForRecording(id: UUID, at date: Date) throws -> AIWorkspaceHandoffRecord {
+        guard let displayed = preview, let campaign, let workflow, let step else {
+            throw RecordingError.message(validation ?? "没有有效预览。")
+        }
+        let fresh = try read()
+        guard let currentCampaign = fresh.campaigns.first(where: { $0.id == campaign.id }),
+              let currentWorkflow = fresh.workflows.first(where: { $0.campaignID == campaign.id && $0.id == workflow.id }),
+              let currentStep = currentWorkflow.steps.first(where: { $0.id == step.id }) else {
+            throw RecordingError.message("活动或步骤关联已失效，未记录；草稿保留，请刷新核对。")
+        }
+        let current = AIWorkspaceTaskPrompt.render(context: fresh, campaign: currentCampaign,
+            workflow: currentWorkflow, step: currentStep, tool: tool, goal: goal, requirements: requirements)
+        guard Data(current.utf8) == Data(displayed.utf8) else {
+            context = fresh
+            throw RecordingError.message("上下文已更新，未记录；请核对当前预览后再次记录。")
+        }
+        return AIWorkspaceHandoffRecord(id: id, recordedAt: date, campaignID: campaign.id,
+            campaignName: campaign.name, workflowID: workflow.id, workflowName: workflow.name,
+            stepID: step.id, stepName: step.title, toolIdentifier: tool.id, toolName: tool.rawValue,
+            goal: goal, requirements: requirements, prompt: displayed)
+    }
+
+    func associationStatus(for record: AIWorkspaceHandoffRecord) -> String {
+        do {
+            let fresh = try read()
+            guard fresh.campaigns.contains(where: { $0.id == record.campaignID }) else {
+                return "关联活动已不存在；仍可查看和复制保存的快照。"
+            }
+            guard let workflow = fresh.workflows.first(where: { $0.id == record.workflowID && $0.campaignID == record.campaignID }),
+                  workflow.steps.contains(where: { $0.id == record.stepID }) else {
+                return "关联流程或步骤已不存在；仍可查看和复制保存的快照。"
+            }
+            return "关联仍可用；以下名称和提示词均为保存时的快照，不读取当前资料替换历史。"
+        } catch { return "当前关联无法核对：\(error.localizedDescription)；历史快照仍可复制。" }
+    }
+
+    enum RecordingError: LocalizedError {
+        case message(String)
+        var errorDescription: String? { if case .message(let text) = self { return text }; return nil }
+    }
+
 }
 
 struct AIWorkspaceTaskPrompt {

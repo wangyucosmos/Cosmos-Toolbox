@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** AI 工作台 Phase 2（任务准备与提示词交接）已由用户接受本轮验收范围并关闭，授权本次提交及正常推送（2026-10-10；开发基线 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`；见 §23）。选择真实活动 → 选择已有步骤 → 填写要求 → 实时预览 → 复制；仅内存草稿、只读业务上下文。
+**Current stage:** AI 工作台 Phase 3（任务交接记录）已由用户接受验收范围并关闭，授权本次提交与正常推送（2026-10-10；开发基线 `e66dd21fe228828ba05753ff78cebf97efdd6806`；见 §24）。准备/复制与手动记录分开；独立本机历史、不可变全文快照、活动筛选、原生详情和原文再次复制。
+**Previous stage (任务准备):** Phase 2 已由用户接受验收并关闭，正式提交与正常推送已完成（见 §23）；有效收尾基线 main = origin/main = 远端 main、ahead/behind 0/0、工作区干净沿用，不重复 fetch 或历史验证。
 **Previous stage (AI 工作台):** Phase 1 已由用户接受并关闭，正式提交 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，消息 `feat: 新增 AI 工作台本机工具检测`。正常推送、main = origin/main、ahead/behind 0/0、工作区干净为用户提供的有效收尾基线，本轮未重复 fetch。Phase 1 历史测试与验收证据沿用；工具检测能力保留，详见 §22。
 **Previous stage:** Dashboard 真实数据整合 Phase 1 is **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 首页接入真实工作与学习数据` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §21). Implementation baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c`. The Home now summarizes real data from the finished modules and no longer shows fabricated tasks, projects or health numbers.
 
@@ -606,7 +607,9 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** AI 工作台 Phase 1 is implemented and awaits the product owner's closure / Git authorization (§22); do not start another module automatically. **Previous:** Dashboard 真实数据整合 Phase 1 is closed (§21). The next module is to be determined by product coordination and must not start automatically. **Previous:** 全国月度会员促活 Phase 1 is closed (§20). The next stage is to be determined by product coordination and must not start automatically. **Previous:** 省份可维护配置 Phase 1 is closed (§19); it fulfils the previously recorded candidate (provinces maintainable, history preserved, every province reuses the standard Workflow, no hard-coded roster). The next candidate is a read-only **investigation of the national monthly member-activation (全国月度会员促活) integration**; it awaits a coordination instruction and must not start automatically. **Previous:** 学习中心 Phase 1 is closed (§18). The next module awaits product coordination and must not start automatically. Follow-up product requirement recorded as a later candidate task, not started: provinces must be maintainable, historical data must be preserved, and every province reuses the standard Workflow; no responsible-person roster is hard-coded. **Previous:** Prompt Vault Phase 1 is closed. The next major module awaits product coordination and must not start automatically. Non-blocking todos (parser warning position text, conservative save lock after pre-rename write failure, list refresh after re-entering the module with an editor open, new-draft favorite dirty check, and the declared UI / concurrency / filesystem-race coverage gaps) are recorded in §17 and are not being handled now. Word WIP stays local and paused.
+**Current:** AI 工作台 Phase 3 已接受验收并授权正常 Git 收尾（§24）；收尾成功后按用户明确授权直接开发“任务上下文资料选择 Phase 1”，范围仅当前活动已管理的纯文本/Markdown 产物选择、安全读取/预览、复制及记录前再校验。新阶段只授权开发与必要验证，完成后等待 Git 收尾授权。
+
+AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
 **Previous milestone:** 知识与资产中心 Phase 1 is closed after Claude’s one concentrated read-only review (A; no discovered blockers). The owner authorized its single feat commit and normal origin/main push. The next major module awaits product coordination; do not automatically start it, repair deferred F1–F5, restore Word WIP, run Harness or expand deferred work. Previous checkpoint: Campaign 项目推进工作台 Phase 1 is closed. No further tests or manual click-through were requested for this phase. Do not open Campaign detail windows with sample / fixture Campaigns in the DEBUG isolated mode: detail windows can write into the formal Workspace path (todo 4). Development policy from 2026-09-30: advance whole features; per phase at most one focused test / review round and one focused fix round, then verify only affected parts; record non-blocking issues as todos until the whole project runs; no repeated full-suite runs and no step-by-step clicking requests. Data safety, content integrity and broken core functions are still fixed within the phase.
 
@@ -1101,4 +1104,37 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 - 原生 UI 操作工具初始化超时，未重复尝试；真实 App 未点击活动/步骤选择、输入、复制/失败反馈、刷新及检测按钮，未滚动检查所有检测行。功能逻辑、离屏视图及私有剪贴板证据不等于完整端到端 UI 验收。月度提示词扩展本轮只做编译与静态检查，没有专项运行测试；真实文件路径存在性不在本期实现范围。
 - 非阻塞：大规模 Workflow 元数据读取当前同步进行，后续真实规模出现卡顿时再考虑优化；离开工作台不保证保留草稿。本期无任务历史、导出、自动发送或 CLI 启动。
-- **结论：用户已接受上述验收范围，本阶段关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务准备与提示词交接` 提交并正常推送 main；提交前实测远端 main 与本地 HEAD 均为开发基线 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，范围恰为报告中的 7 个文件。沿用本轮验证，不追加测试、构建或复审；实际 Git 交付结果以仓库 refs 和最终收尾报告为准。下一模块范围待用户确定，不自动开始。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他仓库/知识库均未处理。
+- **结论：用户已接受上述验收范围，本阶段关闭，无已知阻塞。** 用户授权的 `feat: 新增 AI 工作台任务准备与提示词交接` 已正常推送 main，正式提交 `e66dd21fe228828ba05753ff78cebf97efdd6806`，parent `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，仅包含报告的 7 个文件；收尾实际远端 SHA 与 main/origin/main 一致、ahead/behind 0/0、工作区干净。收尾 fetch 曾遇到瞬时 SSL 错误，随后 ls-remote 成功核对实际远端；不重复测试、构建或复审。后续 Phase 3 由用户明确授权实施，记录见 §24。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他仓库/知识库均未处理。
+
+
+## 24. AI 工作台 Phase 3 — 任务交接记录 — 2026-10-10
+
+### 当前流程与语义
+
+- 准备任务 → 复制提示词 → 手动“记录本次交接” → 交接记录入口 → 按活动筛选 / 时间倒序查看 → 原生详情窗口 → 再次复制保存原文。复制与记录为两个动作，不自动检测发送，不代表 AI 已执行或任务完成。
+- 新的不可变值类型保存 UUID、首次记录点击时间、Campaign/Workflow/Step 稳定 ID 与当时名称、工具标识与显示名、完整目标/补充要求以及完整提示词。历史不引用当前资料重新生成、不改写旧名称、不提供编辑、删除或完成标记。
+- 保存前重新读取 Phase 2 只读上下文，核对原有活动/流程/步骤身份并逐 UTF-8 字节比较当前预览；上下文变化时不保存，先更新预览提示核对。关联失效时拒绝记录且保留草稿。最近复制后文字变化时，明确告知记录的是当前预览而非之前复制版本。
+- 保存过程中停用按钮；成功后相同预览不能连续记录，需明确“准备再次交接相同任务”重新开启下一次登记。允许有意重复交接相同任务。失败保留草稿与预览；重试未确认写入时复用记录 ID / 时间，磁盘已有同 ID 且内容逐字一致则返回已有记录，不重复追加。
+- 历史按记录快照中的活动 ID 筛选，显示保存时名称、步骤、工具、时间和目标。读失败显示错误，不能伪装为空；详情在打开及用户点击“核对当前关联”时只读核对当前关联。关联已删除或无法读取不影响查看/复制历史；历史复制逐字使用保存文本，并有成功/失败反馈。
+- Phase 1 检测与 Phase 2 准备能力保留；本期不启动任务、不改 Campaign/Workflow/Run/Approval/Artifact、不调用服务、不改 Prompt Vault / Home、不同步其他知识库，暂缓事项仍不处理。
+
+### 独立存储与数据保护
+
+- 正式位置遵循现有 Application Support 约定：`~/Library/Application Support/Cosmos OS/AIWorkspace/handoffs.json`，备份 `handoffs.backup.json`，协作写锁 `.handoffs.lock`；当前工程关闭 App Sandbox。文件内 schemaVersion = 1；库大小超过 16 MiB 时拒绝而非截断。仅手动记录时创建目录/主文件，首次读取不存在目录不写入默认数据。
+- 使用模块独立的串行 I/O 队列与 flock；安全读路径/拒绝符号链接、读取最新已验证文件、保留既有记录、原子写备份并读回、同目录临时文件 fsync + rename 原子替换主文件、逐字读回确认后发布。沿用 LearningFileStorage 已有安全原语但不修改 Learning 模块，不引入通用框架。
+- 写前失败保留已有主文件；写后校验失败明确标为结果不确定，不冒充未保存或自动回滚，重试同 ID 幂等。解析错误、未知 schema、危险路径及主文件缺失但备份存在时拒绝保存，不自动恢复、清空或重建。历史加载错误保留内存记录但显示错误并阻止记录，用户可刷新核对。
+- DEBUG 隔离必须同时有隔离 Bundle、隔离 suite 和获准 UUID 临时根（`--cosmos-ai-handoff-fixture-root /private/tmp/CosmosAIHandoffPhase3-<UUID>`）；缺根或错误配置不会回退正式目录。隔离可用 `--cosmos-ai-workspace-history` 打开历史页。测试宿主不传根时历史失败关闭，不创建正式历史数据。
+
+### 本轮实测
+
+- 新增 `AIWorkspaceHandoffTests` 15 项：首轮 **14 通过 / 1 失败**；唯一失败为测试比较 directory URL 尾部斜杠而非路径，不是产品缺陷。一次集中修复仅改该断言，随后只重跑受影响项并通过；最终 **15 项通过（14 项首轮有效结果 + 1 项修复后通过）**，未重跑全套或 Phase 1/2 历史测试。
+- 覆盖保存/重载全文及 Unicode/CRLF/空白字节一致；改名历史不变；关联删除仍可读/复制；复制不记录；复制后改要求提示当前版；当前可见预览与保存一致；上下文变更/失效阻断；连续点击及有意再次登记；写失败保留已有文件与草稿；读错误不覆盖、不恢复备份；各写前阶段失败；写后不确定重试同 ID；两个存储实例并发追加不丢记录；符号链接与未知 schema 拒绝；私有剪贴板全文/失败反馈；业务数据源零写入；隔离失败关闭；缺目录读取不创建；实际历史/详情 SwiftUI 视图离屏布局。
+- **Universal Debug BUILD SUCCEEDED**，`lipo` 确认 `x86_64 arm64`；新增文件无编译警告。既有省份规则两条 actor 警告与 AppIntents 提示不扩大修复。`git diff --check` 通过。Xcode 自动重排 project.pbxproj 已在解析内容相等后恢复，不纳入变更。
+- 一次隔离真实 App 后台 LaunchServices 启动，只截该 App 窗口，不移动用户窗口。历史页显示入口、筛选、合成记录、保存时活动/步骤/工具/目标/时间和明确临时存储路径；Phase 1 自动检测完成（截图可见 Claude 可运行）。交接主文件 SHA-256 和一条记录数量均未变化，无备份/锁/写入临时文件被创建；Campaign/Workflow/Workspace 三份 payload 逐字节不变，无新增业务键。进程结束，UUID suite 删除，正式历史及正式数据未读写。
+- 证据：首轮 `/private/tmp/CosmosAIPhase3-Focused.xcresult`；修复项 `/private/tmp/CosmosAIPhase3-IsolationFixed.xcresult`；构建 `/private/tmp/CosmosAIPhase3-build.log`；窗口及完整性 `/private/tmp/CosmosAIHandoffPhase3-51da0eeb-ee32-4553-a936-ed76e0ca074f/`。
+
+### 覆盖缺口、待办与收尾
+
+- 本会话原生 UI 操作工具先前已超时，不重复尝试。真实 App 未点击记录、筛选、详情、再次复制、再次交接或准备/历史切换；这些由状态/存储测试或离屏视图覆盖，不宣称完整端到端 UI 验收。未测真实正式目录写入（按要求隔离验证）、Release、全量/历史测试或独立复审。
+- 非阻塞：历史本期全部加载，无分页；超过 16 MiB 明确拒绝追加；关联提示不是持续实时监听，可手动核对；跨进程只承诺遵守协作锁的追加及现有文件变化检查，不宣称覆盖全部非协作文件系统竞争；无自动备份恢复 UI。首次创建记录目录也会创建协作锁文件，失败时可能保留空目录/锁，但不破坏旧主文件。
+- **结论：用户已接受上述验收范围，Phase 3 关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务交接记录` 提交并正常推送 main。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；逐项核对范围为 10 个文件，不纳入个人记录、锁、备份或临时数据。沿用已通过验证，不追加测试/构建；实际交付以 Git refs 及收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 及其他知识库不动。后续资料选择 Phase 1 已明确授权，待本次 Git 收尾成功后实施。

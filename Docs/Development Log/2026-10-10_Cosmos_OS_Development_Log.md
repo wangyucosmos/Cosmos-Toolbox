@@ -29,3 +29,26 @@ Git（实施检查点）：未 commit/push/merge，当时等待明确授权。Xc
 ## 用户接受与 Git 收尾授权
 
 用户已接受本阶段验收范围，授权按 `feat: 新增 AI 工作台任务准备与提示词交接` 提交并正常推送 main。提交前实测远端 main 与本地 HEAD 均为 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`；工作区范围仅上述 7 个文件。逐项暂存，不纳入临时载荷、截图、隔离数据或其他改动。沿用本轮验证，不追加测试、构建或复审；实际提交与推送结果以仓库 refs 和最终收尾报告为准。所有暂缓事项保持不动。
+
+
+## AI 工作台 Phase 3：任务交接记录
+
+目标：准备与复制之后手动登记不可变全文快照，在 AI 工作台查看历史、按活动筛选、原生详情并再次复制原文。用户授权主开发与必要验证，不授权 Git 收尾、不安排独立复审。
+
+开工：只检查 git status / HEAD，实际基线 `e66dd21fe228828ba05753ff78cebf97efdd6806`、工作区干净；Phase 2 有效推送/测试基线沿用，无 fetch、全量测试或重复调查阶段。
+
+本期新增：`AIWorkspaceHandoffModels.swift`、`AIWorkspaceHandoffFileStorage.swift`、`AIWorkspaceHandoffStore.swift`、`AIWorkspaceHandoffHistoryView.swift`、`AIWorkspaceHandoffTests.swift`。修改：`AIWorkspaceTaskPreparation.swift`、`AIWorkspaceTaskPreparationView.swift`、`AIWorkspaceView.swift`、Current Status、本日志。共 10 个文件。
+
+决策：复制与记录分开；保存点击时可见的完整文本和现有稳定 ID / 当时名称。重新校验发生变化时停止，不静默换版。记录与业务 Store 独立，文件原子替换及验证沿用既有 Learning 安全原语而不改 Learning。重复点击停用，明确重新开启才允许同任务的新登记；未确认写入重试使用同 ID 幂等。历史永不重新生成提示词，关联失效只是提示。
+
+本轮一次集中验证：15 项首轮 14 通过 / 1 失败；失败源于测试 directory URL 尾斜杠比较，唯一集中修复改为路径比较，仅重跑该项并通过。产品代码未因此修复或循环验证。Universal Debug 成功（x86_64 arm64），diff check 通过。详细保护证据、实际存储位置和覆盖缺口以 Current Status §24 为当前检查点。
+
+一次安全隔离真实 App 验证显示历史页与合成记录，并完成保留的 Phase 1 自动检测；只抓目标窗口、不移动用户窗口。记录文件哈希、记录数量和三个业务载荷未变，无新增业务键；结束进程并清理临时 suite。完整按钮交互未操作，不宣称完整端到端验收。实际历史/详情离屏视图及私有剪贴板由本轮测试覆盖。
+
+Git：未提交/推送/合并，等待授权。Xcode 对工程文件的自动重排经 plutil 解析内容相等核对后恢复，不纳入成果。不写其他知识库、不处理暂缓事项。
+
+结论：按声明验证范围可收尾，无已知阻塞。下一步仅为用户决定收尾授权，不自动扩大开发范围。
+
+## Phase 3 验收与 Git 收尾授权
+
+用户接受既有验证范围，授权提交 `feat: 新增 AI 工作台任务交接记录` 并正常推送 main，不追加测试/构建。实际 origin `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；提交前 HEAD 与远端 main 同为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`。核对并逐项暂存报告中的 10 个文件，不纳入个人 handoffs.json / 备份 / 写锁 / 临时数据或截图。Current Status §13 的 Phase 1 等待收尾及过期调查候选矛盾在本次正常收尾中消除。实际提交和推送以 Git refs 及收尾报告为准。收尾成功后直接进入用户已授权的“任务上下文资料选择 Phase 1”；新阶段仅开发与验证，不自动提交/推送。
