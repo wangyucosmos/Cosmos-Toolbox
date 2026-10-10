@@ -11,10 +11,10 @@
 ## 1. 当前检查点
 
 - **日期：** 2026-10-11。**项目：** Cosmos OS / Cosmos-Toolbox（原生 macOS SwiftUI 个人工作操作系统）。
-- **代码基线：** `main` = `origin/main`，提交 `ebf42802e3c499820f2ade8bb9aafc0e5e772e9f`（`feat: 新增个人内容导出模块`，parent `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`）；其后只有文档提交。
-- **当前阶段：** 体验升级第一步（设计系统 / 应用外壳 / 设置窗口 / 仪表盘 2.0）已完成实现、隔离验证与 Universal Release 部署，可交给用户体验验收；未提交。正式 HEAD 为 `93e25a86017040c07dbc648fe90c300ed37f396b`。Debug build-for-testing 成功，95 个唯一测试通过（新增 16），36 张离屏截图已查看。玻璃 / Settings 标签栏离屏绘制有缺口，真实交互、跨窗口主题传播仍待体验验收。仪表盘跳工作台通过既有卓望页面与同一组 Store；业务层未变。
-- **已部署版本：** `~/Applications/Cosmos Toolbox.app` 为本模块 Universal Release，Info.plist 记录 commit `93e25a86017040c07dbc648fe90c300ed37f396b`、`CosmosBuildDirty=true`（含本模块未提交源码）。2026-10-11 已确认正式安装位置启动，PID 32087。版本显示 1.0（构建 1），不代表达到 PRD 的 V1.0 标准。
-- **代码规模：** `Apps/CosmosOS/Cosmos Toolbox/` 下 121 个平铺 Swift 文件（文件名前缀分模块）；测试方法静态计数 547 个（grep 计数，**不是执行结果**；没有一次覆盖当前全部代码的全量运行证据，各模块验证证据见归档与开发日志）。
+- **主线：** `main` = `origin/main` = `b57d5aa1eaf3c3a424cb57f9b69bf7d08b00f1d5`（第一步已由用户体验接受、提交并推送）。本轮只在 `integration/ui-step2` 集成，未推送、未移动 main；两个 feature worktree 保留。
+- **当前阶段：** 体验升级第二步 A / B 已集成并部署；隔离 Debug / Universal Release 构建与 250 个唯一测试通过。在 `integration/ui-step2` 等待用户体验验收，main 未变；真实交互与真实知识库 GitHub 拉取未替代为 XCTest 验收。
+- **集成验证：** 本轮唯一测试数量与离屏截图证据见当日开发日志；截图覆盖知识库三个分段、空来源、合成来源浏览 / 阅读、统一检索知识库文档，以及仪表盘 / 项目 / AI 工作台抽查。业务存储格式、交付 / 路径服务未改；新增来源登记不进核心备份。
+- **安装位置：** `~/Applications/Cosmos Toolbox.app`；版本 1.0（构建 1）不代表 PRD V1.0。最新部署为已提交源码（dirty=false）；部署时 HEAD 与启动证据见当日日志。
 
 ---
 
@@ -24,6 +24,7 @@
 - **统筹（claude.ai 中的 Claude 会话）：** 产品方向、模块范围、给开发工具写完整模块提示词、阶段收尾判断；可只读用户 Mac 上的本仓库并查看 GitHub 远端分支状态。
 - **开发工具：** Claude Code 与 Codex 按额度择一主开发；必要时另一个只做一次集中只读复审；确有两个独立模块时，才在同一仓库的独立分支 + 独立 worktree 并行，共享文件只由明确负责人修改，整合与部署串行、只有一个部署负责人。参与修改的工具的自查不是独立第三方复审。
 - ChatGPT web 不再是架构顾问角色（历史记录保留）。
+- **用户确认的产品决定（2026-10-10）：** Cosmos OS 属于用户本人，卓望是第一个公司工作区。将来换公司时新增与“卓望工作”平级的工作区（如“A 工作”），旧工作区归档不删除；真实出现第二个公司前不做通用多工作区框架，但新导航、仪表盘统计与后续迁移不得把卓望写死为唯一工作区；旧公司内部资料默认不迁移到新工作区。
 - 推进、验证、收尾、Git 授权规则见 **AGENTS §23**（本文件不复制；该规则由提交 `765b33b` 引入，Codex 开发规范由 `df90894` 建立）；AGENTS §1 的必读文档在 §23 优先级前提下按需读取。
 
 ---
@@ -34,7 +35,9 @@
 
 | 模块 | 入口位置 | 状态 | 关闭提交 | 归档 | 一句话主要限制 |
 |---|---|---|---|---|---|
-| 体验升级第一步 | 仪表盘 / 工作台指标 / 统一检索 / 设置窗口 / 侧栏 | 可体验验收，已部署 | 未提交（HEAD 93e25a8） | 2026-10-11 开发日志 | Debug / Universal Release 成功；95 唯一测试通过；36 张离屏截图已查看 |
+| 体验升级第一步 | 仪表盘 / 工作台指标 / 统一检索 / 设置窗口 / 侧栏 | 用户已体验接受、已提交推送 | b57d5aa | 2026-10-11 开发日志 | 本轮继续保留业务边界；交付计数沿用工作台检查 |
+| 页面改版与全局动效（第二步 A） | 项目 / AI 工作台 / 提示词库 / 学习 / Mac / 笔记列表与侧栏切换 | 已集成部署，待体验验收 | 7d783bb | 2026-10-11 开发日志 | 模板仅预填草稿；动态手感与玻璃合成需真实体验 |
+| 我的知识库（外部知识库只读接入，第二步 B） | 知识库 → 我的知识库；统一检索 | 已集成部署，待体验验收 | c8d3349；接线 02b7a09 | 2026-10-11 开发日志 | 只读，仅文本类读正文、附件只列名称；无 FSEvents，不进核心备份 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
 | AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
@@ -53,7 +56,7 @@
 | 学习中心 | AI 学习中心 | 在用 | 82cc7ba | §18 | 三态手动，不显示百分比；条目不可删 |
 | 省份可维护配置 | 卓望工作 → 管理工作区 | 在用 | 863fc83 | §19 | 全新安装无省份；活动改名仍改变推导目录 |
 | 全国月度会员促活清单 | 卓望（全国）→ 活动详情「月度清单」 | 在用 | 68f080f | §20 | 登记不是采用，不进交付包 |
-| 首页真实数据 | 仪表盘 | 在用 | 4c45dbb | §21 | 已结束活动只计数不列出；AI 工作台/Mac 未接入 |
+| 首页真实数据 | 仪表盘 | 在用 | 4c45dbb | §21 | 已结束活动只计数不列出；AI 检测状态仅使用已有缓存 |
 | AI 工作台 Phase 1 本机工具检测 | AI 工作台 | 在用 | 6639e43 | §22 | 只证明 `--version` 可运行 |
 | AI 工作台 Phase 2 任务准备与提示词交接 | AI 工作台 | 在用 | e66dd21 | §23 | 草稿仅页面内存 |
 | AI 工作台 Phase 3 任务交接记录 | AI 工作台 → 交接记录 | 在用 | bc9cb33 | §24 | 历史全量加载、无分页 |
@@ -84,7 +87,7 @@
 
 ### 4.1.1 UI 偏好（本模块新增，隔离测试通过，已部署）
 
-仅新增 `cosmos.ui.appearance`（system / light / dark）、`cosmos.ui.textSize`（standard / large / extraLarge）、`cosmos.ui.startup`（dashboard / lastPage）、`cosmos.ui.sidebarEnglish`（Bool，默认 false）、`cosmos.ui.motion`（system / reduced）、`cosmos.ui.lastPage`（侧栏模块白名单）。非法值只读回退默认值，不修复原键；不修改业务键，不进入核心备份。外观使用 NSApp.appearance；近期检索词与导航筛选只在内存。待随机 suite 测试和实际体验验证。
+仅新增 `cosmos.ui.appearance`（system / light / dark）、`cosmos.ui.textSize`（standard / large / extraLarge）、`cosmos.ui.startup`（dashboard / lastPage）、`cosmos.ui.sidebarEnglish`（Bool，默认 false）、`cosmos.ui.motion`（system / reduced）、`cosmos.ui.lastPage`（侧栏模块白名单）。非法值只读回退默认值，不修复原键；不修改业务键，不进入核心备份。外观使用 NSApp.appearance；近期检索词与导航筛选只在内存。随机 suite 自动测试通过；第一步已接受体验范围，第二步动效待体验验收。
 
 ### 4.2 独立 JSON 文件存储（`~/Library/Application Support/Cosmos OS/…`）
 
@@ -97,10 +100,12 @@
 | AI 工作台交接 | `AIWorkspace/handoffs.json` | `handoffs.backup.json`、`.handoffs.lock` | 1 | 16 MiB；同 ID 幂等重试 | `--cosmos-ai-handoff-fixture-root …/CosmosAIHandoffPhase3-<UUID>`；`--cosmos-ai-workspace-history` |
 | Projects | `Projects/projects.json` | `projects.backup.json`、`.projects.lock` | 1 | 16 MiB；单段 ≤1 MiB | `--cosmos-projects-fixture-root …/CosmosProjectsPhase1-<UUID>` |
 | 个人笔记 | `PersonalNotes/notes.json` | `notes.backup.json`、`.notes.lock` | 1 | 16 MiB；正文 ≤1 MiB；≤500 版本、≤200 引用 | `--cosmos-notes-fixture-root …/CosmosPersonalNotesPhase1-<UUID>` |
+| 我的知识库来源 | `KnowledgeSources/sources.json` | `sources.backup.json`、`.sources.lock` | 1 | 1 MiB、最多 32 个来源；索引仅内存 | `--cosmos-knowledge-sources-fixture-root /private/tmp/CosmosKnowledgeSources-<UUID>`；隔离下仅可登记 /private/tmp 文件夹 |
 | 核心恢复控制 | `CoreRestore/state.json`、`payload-<sourceID>.json` | `.restore.lock`（非阻塞 flock） | — | journal fsync + 原子 rename | `--cosmos-core-restore-fixture-root …/CosmosCoreRestorePhase1-<UUID>` |
 | 资产中心 / 资料读取 | （只读，不是存储） | — | — | 单份文本 2 MiB；32 MiB LRU | `--cosmos-asset-fixture-root /private/tmp/CosmosAssetPhase1-*` |
 
 - 内容导出**没有持久化存储**（无导出记录）。
+- 知识库来源只登记规范化路径，不新增业务 UserDefaults 键；索引仅在内存，核心备份仍为 V3。来源登记与外部知识库内容均不随核心备份。
 - 隔离启动同时要求：隔离 Bundle ID 前缀 `com.wangyucosmos.cosmostoolbox.persistenceui.`、`--cosmos-store-phase1-suite`（UUID suite）与上述 UUID 根；缺失或无效一律失败关闭，不回退正式位置。Release 不含这些参数（历次 Release 二进制扫描为 0 命中）。
 - 本地工作文件：`~/Documents/Cosmos OS/Workspaces/卓望/<省份>/<活动>/`（`01_需求整理`…`06_客服文档`、`Assets`；历史目录名保持可读）。实际路径使用 `ZhuowangProvince.pathName = directoryName ?? name`，省份改名不改路径；活动名仍参与路径。
 
@@ -123,6 +128,7 @@
 6. 恢复是“带持久化收据、启动门控和协作锁的协议”，不是文件与 UserDefaults 的跨进程原子事务；同卷 hardlink 是文件发布前提（跨卷 EXDEV 安全失败）。
 7. 所有独立存储的协作 flock 只协调本 App 的写者，不防非协作外部进程在检查后写入，也不承诺断电耐久。
 8. 版本显示 1.0（构建 1）不代表 PRD V1.0（需连续使用 30 天等使用类标准）。
+9. 本轮只新增知识库来源登记 schema 1；回退到第一步 App 会忽略 `KnowledgeSources/sources.json`，无害。来源登记与知识库内容不随核心备份，换机后重新添加来源；`UnifiedSearchSource.knowledgeDocument` 是新枚举 case，旧代码不识别，但不改变已有业务数据格式。
 
 ---
 
@@ -131,7 +137,7 @@
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261011-005043-613eac70.app`；历史副本不自动清理。本模块不改变业务数据格式，副本可回到部署前的旧界面；历史 schema 降级风险仍按 §5。
+- **最近一次回退副本：** `Cosmos Toolbox-20261011-024243-b63b66a3.app`；历史副本不自动清理。第二步不改变已有业务数据格式，副本可回到部署前的第一步界面；新增来源登记文件会被旧 App 忽略，无害。历史 schema 降级风险仍按 §5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -143,6 +149,8 @@
 - **DEBUG 隔离模式下打开 Campaign 详情窗口可能写入正式 Workspace**（`onAppear` 的恢复 / 迁移调用不受隔离；归档 §13 todo 4）；因此隔离验收不打开合成活动详情，统一检索也拒绝隔离下的 Campaign 详情。
 - 测试数量按**唯一测试**去重，不把“首轮 + 修复后重跑”重复计数；报告区分**本轮实测**、**沿用证据**、**未覆盖**。真实窗口点击 / 保存面板 / Finder 的交互在多数模块仍为未覆盖缺口，工具无法安全完成时记录缺口，不要求用户逐步点击。
 - 每阶段最多一轮集中测试 + 一轮集中修复（AGENTS §23）。
+- 知识库文件夹：除用户点击触发的 `git fetch origin`、`git pull --ff-only` 外一律不写；Git 只走固定命令枚举与参数数组，`GIT_TERMINAL_PROMPT=0`、60 秒超时，读状态加 `--no-optional-locks`。敏感排除是硬规则。
+- Documents 目录在 XCTest 宿主中可能触发权限弹窗；真实库冒烟不得放入测试宿主。隔离接线显式禁用默认 Documents 建议目录，失败关闭时也不探测该目录；测试只用 /private/tmp 合成来源，无真实 fetch / pull。
 - 隔离测试遗留的空 suite plist 可能残留于 `~/Library/Preferences`，清理需单独授权。
 
 ---
@@ -165,12 +173,14 @@
 - Artifact 持久化模型仍偏 HTML；二进制 / 外部文档的采用、恢复、持久化引用（安全书签）未做。
 - 多处同步或 UI actor 上的读取 / 解码 / 线性搜索（资产中心、统一检索缓存）在大数据量下的性能未测；仪表盘 2.0 除交付计数外的读取 / 解码 / 聚合在后台，合成数据测试已通过。
 - 真实 UI 交互验收普遍缺口（点击、保存面板、关闭 / 退出提醒、重启）；Swift 6 迁移 actor / Sendable warning 保留。
+- 知识库扫描：文件名含 token / secret 等可能误伤正常文档（偏安全）；.gitignore 只支持子集且只读来源根目录；Git 仓库判定只看来源根。索引全量驻内存，超大库扫描 / 列表性能仍需实际数据验证。
 
 ---
 
 ## 9. 非阻塞待办（按模块，去重）
 
-- **体验升级第一步：** 95 唯一测试通过、36 组合离屏截图已查看；原生玻璃与 Settings 标签栏离屏绘制仍有缺口。真实点击 / hover / 动效、⌘, / ⌘F、独立窗口主题传播、保存面板及重启行为未覆盖，交用户体验验收。
+- **体验升级第二步 A：** 统一过渡采用稳定外层容器，模板预填不落盘；自动测试与浅深色离屏图已验证。实时侧栏切换手感、玻璃按钮形变 / 暗色合成、帧率、跨窗口主题与面板交互待用户体验；长内容按设计滚动。
+- **我的知识库（第二步 B）：** 真实添加来源 / 阅读 / 点击与真实 GitHub fetch、pull 待验收；后续另定 FSEvents、独立阅读窗口、大列表分页；token / secret 误伤、.gitignore 子集与来源根仓库判定限制见 §8。
 - 仪表盘“可以交付”在主线程计算，复用工作台交付检查；活动数量大时可能卡顿，后续需要把交付候选检查改为可后台执行（涉及业务层，需单独确定范围）。
 
 - **卓望 / 推进工作台：** 指标卡把列表挤出首屏；摘要每次渲染重算；省份概览与首页残留占位；活动列表行不标省份停用；路由请求在编辑中到达不重放。
@@ -178,7 +188,7 @@
 - **Prompt Vault / 提示词版本：** 解析警告位置文案未插值；任何替换阶段失败都按 `uncertainWrite` 保守锁定；窗口持有旧 Store 列表可能过期；无历史差异比较 / 导入 / 历史删除 / 历史变量填充。
 - **学习中心：** 条目不可删 / 归档；链接仅复制；窗口标题不随改名；侧栏名仍是“AI 学习中心”。
 - **省份 / 月度会员促活：** 普通活动与月度活动不可互转；登记只追加；10 槽掌厅文案无结构化编辑；把 Word / Figma / 链接成品登记为受管 Artifact 是后续阶段。
-- **首页：** 导航只开模块不保留选择；大 Workflow 解码成本未测；AI 工作台 / Mac 优化未接入。
+- **首页：** 大 Workflow 解码成本未测；AI 检测状态使用已有内存缓存，不在首页自动触发检测。
 - **AI 工作台：** Codex / Claude 内置路径随应用升级可能变；多安装只取第一个可运行者；交接历史无分页；资料正文大段直接 Text 呈现。
 - **核心备份 / 恢复：** 内存中处理接近上限时有内存成本；配置自由字典全部排除（需扩展白名单才可保留）。
 - **Mac 概览：** 无内存压力、电池循环 / 健康容量。
@@ -189,7 +199,7 @@
 
 ## 10. 暂缓事项（未明确恢复者不得自行恢复）
 
-- **全局 UI / Motion 美化：** 2026-10-10 用户恢复，分步进行：第一步本模块；第二步 A 页面逐页改版、第二步 B 知识库外部文件夹接入；第三步卓望大页面。当前只授权第一步，其余步骤不自动开始。
+- **全局 UI / Motion 美化：** 第一步已接受；第二步 A / B 已完成集成，待用户体验验收；第三步卓望大页面待定，不自动开始。
 
 - **Word WIP：** 本地分支 `wip/markdown-word-export-phase1-20260930`（提交 `2d26b2a`，未合并、未推送、部分 UI 验收、未接受）。
 - **Step 06 Harness：** 不运行；不重复采用；不再触发真实 Harness。
@@ -211,9 +221,10 @@
 - 首页不显示编造的任务 / 健康数；任何位置不显示学习百分比进度（三态手动）。
 - 引用（Campaign / Projects / 笔记）只登记，不读取、复制、移动、删除实体；登记不等于 Artifact 采用或交付资格。
 - 测试与验收不触碰正式数据；不按同名 App 做 UI 自动化（§7）。
+- 知识库内容只读，除用户点击触发固定 fetch / 快进 pull 外不写来源；敏感排除不可由 UI 绕过。来源不进核心备份，Documents 真库冒烟不进 XCTest 宿主。
 
 ---
 
 ## 12. 下一优先级
 
-**先由用户体验验收本模块，再单独授权 Git 收尾及第二步范围。** 第二步 A 优先考虑 Projects、提示词库、AI 工作台逐页套用组件；第二步 B 的外部知识库接入另定范围。共享设计 token / 偏好 / 导航 / 外壳需指定单一负责人，集成与部署串行。
+**先由用户体验验收集成的第二步 A / B。** 接受后用户单独授权 main 快进、推送与清理两个 worktree / feature 分支；当前不推送、不移动 main、不清理。第三步卓望大页面范围待定，暂不自动开发。
