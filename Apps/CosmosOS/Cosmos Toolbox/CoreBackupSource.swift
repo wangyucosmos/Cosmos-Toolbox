@@ -7,7 +7,7 @@ nonisolated struct CoreBackupSource {
     static let ids = legacyIDs + ["projects"]
     static let keys = ["cosmos.zhuowang.campaigns.v1", "cosmos.zhuowang.workspace.v1", "cosmos.zhuowang.workflows.v1",
         "cosmos.zhuowang.ai.providers.v1", "cosmos.zhuowang.ai.connections.v1", "cosmos.zhuowang.ai.toolIntegrations.v1", "cosmos.zhuowang.ai.agentToolRoutes.v1"]
-    static let exclusions = ["产物实体文件、外部知识库、源码仓库、Evidence/Quarantine、Word WIP、系统/工具环境不包含；登记路径仍依赖原文件。",
+    static let exclusions = ["活动引用仅备份登记记录，不含原文件或网页；产物实体文件、外部知识库、源码仓库、Evidence/Quarantine、Word WIP、系统/工具环境不包含；登记路径仍依赖原文件。",
         "不读取 Keychain、认证文件或凭据；不整域导出 UserDefaults。",
         "Provider 排除 configurationIdentifier 和未知字段；Connection/Tool/Route 排除 configuration、endpointOrPath、adapterIdentifier、notes 和未知字段（不判断自由配置是否含凭据）。"]
     let readPreference: (String) throws -> Data?
@@ -65,7 +65,23 @@ nonisolated struct CoreBackupSource {
         }
         do {
             switch id {
-            case "campaigns": try unique(decoder.decode([ZhuowangCampaign].self, from: data))
+            case "campaigns":
+                let campaigns = try decoder.decode([ZhuowangCampaign].self, from: data)
+                try unique(campaigns)
+                for campaign in campaigns {
+                    let records = campaign.referenceRecords
+                    try unique(records)
+                    guard records.allSatisfy({ $0.campaignID == campaign.id && $0.isValid }) else {
+                        throw CoreBackupError.invalid("活动引用结构无效。")
+                    }
+                    var preceding = Set<UUID>()
+                    for record in records {
+                        if let corrected = record.correctsReferenceID, !preceding.contains(corrected) {
+                            throw CoreBackupError.invalid("更正引用的历史目标无效。")
+                        }
+                        preceding.insert(record.id)
+                    }
+                }
             case "workspace":
                 let value = try decoder.decode(ZhuowangWorkspaceSnapshot.self, from: data)
                 try unique(value.provinces); try unique(value.modules); try unique(value.categories)

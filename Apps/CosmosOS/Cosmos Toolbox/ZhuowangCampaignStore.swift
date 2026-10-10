@@ -181,6 +181,7 @@ final class ZhuowangCampaignStore: ObservableObject {
             // The monthly plan is only changed through `updateMonthlyPlan`
             // (revision-checked). A stale Campaign copy must never overwrite it.
             updatedCampaign.monthly = campaigns[index].monthly
+            updatedCampaign.externalReferences = campaigns[index].externalReferences
             campaigns[index] = updatedCampaign
             Self.sortCampaigns(&campaigns)
             return true
@@ -257,6 +258,33 @@ final class ZhuowangCampaignStore: ObservableObject {
         return result.succeeded
             ? .succeeded
             : .store(result)
+    }
+
+    // MARK: - External References
+
+    @discardableResult
+    func appendReference(
+        _ reference: CampaignExternalReference,
+        expectedCount: Int
+    ) -> ZhuowangStoreMutationResult {
+        var conflict = false
+        let result = transact(rejectedMutationFailure: .itemNotFound) { campaigns in
+            guard let index = campaigns.firstIndex(where: { $0.id == reference.campaignID }) else {
+                return false
+            }
+            let existing = campaigns[index].referenceRecords
+            guard existing.count == expectedCount else {
+                conflict = true
+                return false
+            }
+            guard reference.isValid,
+                  !existing.contains(where: { $0.id == reference.id }),
+                  reference.correctsReferenceID.map({ id in existing.contains { $0.id == id } }) ?? true
+            else { return false }
+            campaigns[index].externalReferences = existing + [reference]
+            return true
+        }
+        return conflict ? .rejected(.staleConflict) : result
     }
 
     // MARK: - Delete

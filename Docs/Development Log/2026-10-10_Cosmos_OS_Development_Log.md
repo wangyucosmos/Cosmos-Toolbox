@@ -234,3 +234,34 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 - 提交前 status 只有本阶段 6 文件，分支 main，HEAD 与 git ls-remote 实际远端 main 均为预期 parent a5294c9a0b2843b33d93a6c30e456af250f5f0fa；origin https://github.com/wangyucosmos/Cosmos-Toolbox.git。按 §32 清单逐项暂存，不使用 git add .，不纳入正式业务数据或无关成果。
 - 实际 commit/parent、文件数量、refs、ahead/behind 与工作区状态以本次正常提交推送后的收尾报告为准；遇意外变化即停止，不重置、不覆盖、不强推。
 - 不自动开始下一模块；全部暂缓事项、其他仓库及知识库保持不动。
+
+
+## 活动资料与外部成果引用 Phase 1
+
+- 有效干净基线 5eb45f68d0f091b5c3645a8f5c62550564210c3e；快速 status/HEAD 及相关规则/依赖读取，既有关闭阶段不重复验收，未 fetch、未子代理，不写其他仓库/知识库。
+- 活动概览新增引用区域；文件明确选择、http/https 校验、UUID/活动 ID/名称/可选版本标签/原文备注/登记时间；只追加，不编辑删除。更正作为新记录关联历史 ID。显式打开前核验文件元数据，失效记录保留、不修复路径；不读正文或抓网页、不托管源文件。
+- Campaign 可选字段兼容旧活动无键；复用受保护事务及主数据 baseline，草稿追加计数拒绝旧窗口修订，活动编辑保留最新引用历史。失败保留输入与内存，沿用前一有效备份/锁定机制，不承诺故障主数据字节必然不变。没有改 Workflow/Artifact/Approval/ZIP/Step06；月度七项成品仍由已有清单管理。
+- 核心备份 campaigns 源原字节包含引用，无新源/包版本；新增身份/活动关联/更正顺序校验与仅引用元数据说明。空恢复保留原文、更正关系及失效路径，不创建文件实体。
+- 首次沙箱构建受宏服务阻断，测试未执行。获准沙箱外集中 **46 项，45 通过、1 详情测试窗口释放崩溃**；诊断 XCTest 内存检查 EXC_BAD_ACCESS。唯一修复轮设测试窗口 isReleasedWhenClosed=false、引用模型/投影 nonisolated；仅受影响 **3/3 通过**。最终有效 **46/46 = 本轮 3 + 首轮沿用 43**；Debug arm64 编译成功。
+- 详情安全路径源码核对后使用已有 Workflow Store 文件根注入，合成活动/空 Workflow/空 Provider 及随机临时根，真实详情挂载成功，业务源原字节不变、writeCount=0、无 Workflow/文件创建。未走默认 DEBUG App 详情或旧 Workspace 按钮，旧隔离风险仍暂缓；没有正式数据测试。
+- 证据 /private/tmp/CosmosReferences-Validation.xcresult、validation.log、CosmosReferences-Fixed.xcresult、fixed.log；首宏服务失败 focused.log。覆盖旧兼容/重载/范围/原文/追加更正/失败保护/旧修订与 baseline/失效引用/引用备份恢复及既有受影响保护。
+- 未验证真实文件选择/保存/更正/取消/系统打开按钮、权限失败和真实 App 重启；服务与新 Store 重载已覆盖。挂载不算视觉或完整端到端验收。临时根业务数据与随机测试 suite 仅隔离验证，源文件操作只用于测试失效，产品不修改源文件。
+- 共 11 文件：新增 CampaignExternalReference.swift、CampaignReferencesView.swift、CampaignReferencesTests.swift；修改 ZhuowangCampaignModels.swift、ZhuowangCampaignStore.swift、ZhuowangCampaignDetailView.swift、CoreBackupSource.swift、CoreBackupSettingsView.swift、CoreRestoreTests.swift、Current Status §33、本日志。脚本未改。
+- 声明范围内可收尾；正在执行授权的日常部署，实际证据随后附；未 commit/push/merge，不自动扩展模块。
+
+### 引用 Phase 1 — 部署完成
+
+- 既有脚本完成必要 Universal Release BUILD SUCCEEDED、签名及正式身份核验，lipo 读回 x86_64 arm64。正常退出旧 App（或原本未运行，脚本统一措辞），新版正式路径启动 PID 14244；未强杀、绕过未保存保护或实测回退。
+- 安装 Info.plist 读回版本 1.0/构建 1、Release、正式 Bundle com.wangyucosmos.Cosmos-Toolbox、commit 5eb45f68d0f091b5c3645a8f5c62550564210c3e、dirty=true。
+- 实际回退副本 /Users/rainiesmac-15/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-210923-b0fc3f00.app；日志 /private/tmp/CosmosReferences-deploy.log；构建 /var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-xfcyca0g/build.log。正式正常启动可能写窗口偏好，不宣称全域零写入。
+- 受影响 diff 检查通过，工程无修改，diff check 通过。HEAD 保持基线，工作区仅本阶段 11 文件；未 commit/push/merge。
+- 结论：声明验收范围内可收尾，无已知阻塞；保留真实按钮/系统打开/重启交互缺口，等待用户接受。复用既有 Campaign 受保护事务、Workflow Store 临时根注入及部署脚本；不要把登记等同采用或实体备份。本轮停止，不追加修复或验收，不启动下一模块。
+
+
+## 活动资料与外部成果引用 Phase 1 — 验收接受与正式 Git 收尾
+
+- 用户已接受声明验收范围，阶段正式关闭；仅授权逐项提交指定 11 文件并正常推送 main，提交信息 `feat: 新增活动资料与外部成果引用`，预期 parent 5eb45f68d0f091b5c3645a8f5c62550564210c3e。Current Status §33 与顶部已标明关闭，历史过程保留。
+- 沿用已接受有效 46/46、Debug arm64、Universal Release 与可回退日常部署证据；不追加修复、测试、构建、UI 验收或部署。保留真实文件选择/保存/系统打开/完整重启限制，以及备份只含引用记录、不包含文件实体或网页的说明。
+- 提交前 status 仅本阶段 11 文件、暂存区无已有变更；分支 main，本地 HEAD 与 git ls-remote 实际远端 refs/heads/main 均为预期 parent，origin https://github.com/wangyucosmos/Cosmos-Toolbox.git。逐项按已报告清单暂存，不使用 git add .，不纳入业务数据/临时证据/无关成果。
+- 实际 commit/parent、文件数量、refs、ahead/behind 与工作区状态以本次提交推送后的收尾报告为准；遇到意外变化或冲突即停止，不重置、不覆盖、不强推。
+- 不自动开始下一模块，全部暂缓事项保持不动；不写其他仓库或知识库。

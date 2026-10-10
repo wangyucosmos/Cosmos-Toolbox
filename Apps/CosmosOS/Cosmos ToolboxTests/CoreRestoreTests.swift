@@ -42,7 +42,9 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         .init(preferences:memory,roots:["prompts","learning","handoffs","projects"].map { root.appendingPathComponent($0) },transactionRoot:root.appendingPathComponent("transaction"))
     }
     private func backup(_ root:URL) throws -> (URL,[String:Data]) {
-        let encoder = JSONEncoder(), campaign = ZhuowangCampaign(name:"恢复活动",scopeType:.national,startDate:Date(),endDate:Date())
+        let encoder = JSONEncoder(); var campaign = ZhuowangCampaign(name:"恢复活动",scopeType:.national,startDate:Date(),endDate:Date())
+        let reference = CampaignExternalReference(campaignID: campaign.id, kind: .file, name: "  外部成果  ", versionLabel: " V1 ", location: root.appendingPathComponent("absent-source.docx").path, notes: "  原文 e\u{301}\r\n尾部  \n")
+        campaign.externalReferences = [reference, .init(campaignID: campaign.id, kind: .correction, name: "更正", notes: "  文件已移动\r\n", correctsReferenceID: reference.id)]
         let step = ZhuowangWorkflowStep(title:"步骤",sortOrder:10), provider = ZhuowangAIProvider(name:"历史 Provider",kind:.custom,isEnabled:true)
         let connection = ZhuowangAIConnection(providerID:provider.id,name:"历史 Connection",mode:.api,status:.available,supportsDirectExecution:true,supportsAutomaticResultReturn:true,isEnabled:true)
         let tool = ZhuowangExternalToolIntegration(kind:.custom,name:"历史 Tool",status:.available)
@@ -76,6 +78,14 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         let (url,source) = try backup(root),plan = try CoreRestoreService.prepare(url),service = CoreRestoreService(target:target)
         try service.restore(plan);XCTAssertEqual(try service.startup(),"readyToLoad")
         for id in ["campaigns","workspace","workflows","prompts","learning","handoffs"] { XCTAssertEqual(try target.read(id:id)?.0,source[id]) }
+        let campaigns = try JSONDecoder().decode([ZhuowangCampaign].self, from: try XCTUnwrap(target.read(id: "campaigns")?.0))
+        let references = campaigns[0].referenceRecords
+        XCTAssertEqual(references.count, 2)
+        XCTAssertEqual(references[0].campaignID, campaigns[0].id)
+        XCTAssertEqual(references[1].correctsReferenceID, references[0].id)
+        XCTAssertEqual(Array(references[0].notes.utf8), Array("  原文 e\u{301}\r\n尾部  \n".utf8))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: references[0].location))
+        XCTAssertThrowsError(try references[0].openURL())
         let workflows = try JSONDecoder().decode([ZhuowangCampaignWorkflow].self,from:try XCTUnwrap(target.read(id:"workflows")?.0))
         XCTAssertEqual(workflows[0].artifacts.map(\.version),[1,3]);XCTAssertEqual(workflows[0].artifacts.map(\.isApprovedVersion),[true,false])
         XCTAssertEqual(workflows[0].approvals[0].runID,workflows[0].aiRuns[0].id)

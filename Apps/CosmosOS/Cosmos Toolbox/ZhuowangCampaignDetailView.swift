@@ -87,6 +87,7 @@ struct ZhuowangCampaignDetailView: View {
                                     editContent
                                 } else {
                                     readOnlyContent(campaign)
+                                    CampaignReferencesView(store: store, campaignID: campaignID)
                                 }
 
                             case .workflow:

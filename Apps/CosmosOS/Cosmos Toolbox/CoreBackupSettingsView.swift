@@ -42,7 +42,7 @@ struct CoreBackupSettingsView: View {
                 Text("核心数据备份").font(.title2)
                 Text("手动导出核心元数据，或校验已有备份。校验只读备份包，不导入、不恢复业务数据。")
                 GroupBox("包含范围") {
-                    Text("Campaign、Workspace / 省份配置；Workflow（含 Artifact 元数据、Run、Approval）；AI Provider / Connection / Tool / Route 非敏感配置；Prompt Vault；学习主题和记录；AI 工作台交接记录；个人项目（含进展及文件/链接引用元数据）。")
+                    Text("Campaign（含资料与外部成果引用记录，不含原文件或网页）、Workspace / 省份配置；Workflow（含 Artifact 元数据、Run、Approval）；AI Provider / Connection / Tool / Route 非敏感配置；Prompt Vault；学习主题和记录；AI 工作台交接记录；个人项目（含进展及文件/链接引用元数据）。")
                         .frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 }
                 GroupBox("不包含与安全排除") {

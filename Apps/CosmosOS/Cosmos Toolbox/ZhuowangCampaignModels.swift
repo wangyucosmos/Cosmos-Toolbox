@@ -113,6 +113,11 @@ struct ZhuowangCampaign:
     var monthly: ZhuowangMonthlyPlan?
 
 
+    /// Missing in older Campaign payloads; no migration or rewrite on read.
+    var externalReferences: [CampaignExternalReference]?
+
+    nonisolated var referenceRecords: [CampaignExternalReference] { externalReferences ?? [] }
+
     // MARK: - Initializer
 
     init(
@@ -128,7 +133,8 @@ struct ZhuowangCampaign:
         notes: String = "",
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        monthly: ZhuowangMonthlyPlan? = nil
+        monthly: ZhuowangMonthlyPlan? = nil,
+        externalReferences: [CampaignExternalReference]? = nil
     ) {
         self.id = id
         self.name = name
@@ -143,6 +149,7 @@ struct ZhuowangCampaign:
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.monthly = monthly
+        self.externalReferences = externalReferences
     }
 }
 

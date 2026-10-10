@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 卓望分类页接通 Phase 1 用户已接受声明验收范围，阶段正式关闭（§32），授权逐项提交 6 文件并正常推送，提交信息 `feat: 接通卓望工作区分类资产检索`。沿用 4/4 测试、Debug arm64、Universal Release 与可回退部署证据；真实点击及离屏视觉限制保留，不追加验收。实际 Git 结果以本次收尾报告为准。
+**Current stage:** 活动资料与外部成果引用 Phase 1 用户已接受声明验收范围，阶段正式关闭（§33）；授权仅逐项提交 11 文件并正常推送 main，提交信息 `feat: 新增活动资料与外部成果引用`，预期 parent `5eb45f68d0f091b5c3645a8f5c62550564210c3e`。沿用已接受的有效 46/46、Debug arm64、Universal Release 与日常部署证据，不追加验收。真实点击限制及备份不含文件实体说明保留，实际 Git 结果以本次收尾报告为准。
+**Previous stage (分类页):** 已接受并关闭，有效基线 `5eb45f68d0f091b5c3645a8f5c62550564210c3e`；本轮 HEAD/status 已核对一致、干净，远端 0/0 沿用交接，不重复 fetch 或历史验收。
 **Previous stage (工作区入口):** 卓望工作区入口接通 Phase 1 已接受并关闭（§31），有效收尾提交 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，沿用既有声明验收范围，不重新验收。
 **Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
 **Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
@@ -1428,3 +1429,43 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 共 **6 文件**：修改 ZhuowangWorkspaceView.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangCategoryContentView.swift、ZhuowangCategoryPageTests.swift；文档只更新本文件及当日 Development Log。部署脚本、持久化模型/Store、Dashboard、Workspace 用户配置均未修改，临时证据与 App 不入库。
 - **结论：用户已接受声明验收范围，阶段正式关闭，无已知阻塞；上述视觉与真实点击缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
 - Git 收尾授权：仅逐项提交上述 6 文件并正常推送 main，提交信息 `feat: 接通卓望工作区分类资产检索`，不强推。提交前 main/HEAD 与实际远端 main 均为预期 parent `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，origin `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，工作区只有本阶段 6 文件。实际 commit、parent、refs、ahead/behind 及工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 全部继续暂缓，不写其他仓库或知识库。
+
+
+## 33. 活动资料与外部成果引用 Phase 1 — 2026-10-10
+
+### 实现与持久化边界
+
+- 活动概览新增「资料与外部成果」区域。用户明确选择本地文件或填写 http/https 链接；登记具有稳定 UUID、活动 UUID、名称、可选版本标签、原文备注及登记时间。可查看、显式打开和追加引用；不可编辑/删除已保存记录。错误通过追加更正说明并关联历史引用 ID 记录，不改写原记录。
+- Campaign 增加可选 externalReferences，旧载荷缺键读为 nil，投影为空数组；读取不迁移、不重新编码旧数据。复用 Campaign 受保护事务，草稿捕获追加前记录数，旧窗口修订拒绝；不同 Store 实例仍受原始主数据 baseline 保护。普通活动编辑保留实时引用数组，不能从旧副本覆写历史。保存失败保留表单输入及旧内存值。
+- 复用既有失败保护：备份写失败不写主数据；主写入校验失败不发布候选，原数据仍在前一有效备份，Store 锁定并提示不确定状态。并非保证底层写失败时主/备份均原字节不变，也不新增通用存储重构或自动修复。
+- 只保存位置，不读取正文、抓网页、扫描引用目录或自动打开；不复制/移动/删除源文件。打开前只检查路径元数据及普通文件/可读性；失效、目录或符号链接保留记录并说明原因，不自动修复路径。文件为路径引用，无安全书签；再次打开重新核验，系统打开失败提示。
+- 引用登记不创建 Artifact/Run/Approval、采用版本或落盘成果，不改变 Workflow/ZIP 资格。月度七项成品登记沿用月度清单，界面明确用途；不复制一套月度成品管理。没有 Step06、AI、分类归属、云同步或正文预览变化。
+- 核心备份沿用 campaigns 固定源，无新源或包版本；严格校验引用身份、活动关联及更正历史顺序。导出、独立包校验与空环境恢复自动携带原始 Campaign 引用字节，说明仅备份登记元数据，不包含原文件/网页。旧包无记录兼容，不恢复实体或重写路径。
+
+### 集中验证与隔离安全
+
+- 首次沙箱内 xcodebuild 被 Swift 宏服务 malformed response 阻断，未执行测试；在获准沙箱外运行同一组隔离 XCTest 后实际 **46 项：45 通过、1 测试窗口释放崩溃**。诊断为 XCTest 对象释放检查 EXC_BAD_ACCESS，未出现引用业务断言失败。
+- 一次集中修复：新测试窗口设 isReleasedWhenClosed=false，引用值模型/只读投影明确 nonisolated，消除新增 actor 警告；没有修改既有窗口管理器。仅受影响详情挂载、引用结构校验、引用备份恢复 **3/3 TEST SUCCEEDED**。最终有效 **46/46 = 本轮 3 + 首轮沿用 43**，不是修复后重跑全套。
+- 覆盖旧活动零重编码、登记与新 Store 重载、活动隔离、名称/版本/备注原文字节、历史追加与更正、缺目标/重复身份拒绝、普通编辑不覆写引用、共享 Store 旧窗口修订及第二 Store baseline 冲突、失败输入/内存与可恢复原数据保护、URL 限制、临时文件移动后失效/目录/符号链接拒绝、引用校验、备份到空环境恢复的原字节/关联/更正/无实体，以及受影响既有备份恢复保护。
+- 活动详情自动恢复/迁移链已检查：使用 Workflow Store 已有 workspaceFileManager 注入；测试把内存 Campaign/Workflow/Provider 配置和明确随机临时文件根注入真实 ZhuowangCampaignDetailView，根包含检查后挂载。有效测试确认业务载荷原字节不变、writeCount=0、无 Workflow 新建、临时根空。未用默认 shared 文件根，未调用旧 Workspace 创建/Finder/交付按钮，未用正式业务数据。既有 DEBUG App 默认详情未完整隔离问题仍暂缓，本轮没有修复或走这条启动路径。
+- Debug arm64 App 与 XCTest 宿主成功编译链接；未重新运行历史全套。证据 `/private/tmp/CosmosReferences-Validation.xcresult` / validation.log；修复证据 `/private/tmp/CosmosReferences-Fixed.xcresult` / fixed.log；首个宏服务失败 focused.log 保留。全部业务夹具为内存数据/临时文件，既有 Campaign 持久化测试使用随机隔离 suite，非正式域。
+- 未覆盖真实文件选择/保存/取消/更正按钮、系统打开/权限拒绝及真实 App 重启交互；新 Store 重载与服务层恢复已自动覆盖。挂载测试不等于视觉或完整端到端 UI 验收。未测实际跨进程非协作写入或元数据检查后文件被替换的竞争；沿用已有协作持久化保护。既有 actor/Sendable/AppIntents 警告不扩大修复。
+
+### 文件与阶段判断
+
+- 共 11 文件：新增 CampaignExternalReference.swift、CampaignReferencesView.swift、CampaignReferencesTests.swift；修改 ZhuowangCampaignModels.swift、ZhuowangCampaignStore.swift、ZhuowangCampaignDetailView.swift、CoreBackupSource.swift、CoreBackupSettingsView.swift、CoreRestoreTests.swift；正式文档只本文件和当日开发日志。
+- **用户已接受声明验收范围，阶段正式关闭，无已知阻塞；真实点击缺口保留。** 已完成授权部署，结果如下；本次仅授权提交推送指定 11 文件，不追加测试、构建、UI 验收或部署。没有子代理、独立复审、其他仓库或知识库写入，所有暂缓事项保持不动。
+
+### 已完成的日常部署
+
+- 复用未修改的 `/usr/bin/python3 scripts/deploy-macos.py`，必要 Universal Release **BUILD SUCCEEDED**，签名/正式 Bundle 校验通过；安装 lipo 读回为 x86_64 arm64。旧 App 正常退出（或原本未运行，脚本统一日志），正式安装路径启动 PID **14244**，没有强杀、绕过未保存保护或执行回退。
+- 安装 Info.plist 读回：版本 1.0（构建 1）、Release、`com.wangyucosmos.Cosmos-Toolbox`、commit `5eb45f68d0f091b5c3645a8f5c62550564210c3e`、dirty=true，准确反映基于交接提交包含本阶段未提交源码。
+- 实际回退副本 `/Users/rainiesmac-15/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-210923-b0fc3f00.app`；部署日志 `/private/tmp/CosmosReferences-deploy.log`，Release 构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-xfcyca0g/build.log`。正常正式启动可能写窗口偏好，不宣称全域正式数据零写入或正式业务端到端验收。
+- 受影响 diff 与 diff check 通过，工程无修改；用户已接受上述验收与部署范围，阶段正式关闭。仅执行下述授权 Git 收尾，不追加修复、测试、构建、UI 验收、部署或下一模块。
+
+### 验收接受与正式 Git 收尾
+
+- 用户授权仅逐项提交本阶段 11 文件并正常推送 main，提交信息 `feat: 新增活动资料与外部成果引用`，预期 parent `5eb45f68d0f091b5c3645a8f5c62550564210c3e`。
+- 提交前快速核对 main/HEAD 与实际远端 refs/heads/main 均为预期 parent，工作区仅上述 11 文件，暂存区无既有变更；origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`。按清单逐项暂存，不使用 git add .，不包含业务数据、临时证据或无关成果。
+- 沿用已接受验证、构建与部署证据，保留历史与验收限制；核心备份仅含引用登记记录，不包含文件实体或网页。实际 commit/parent、文件数量、refs、ahead/behind 与工作区状态以本次正常提交推送后的收尾报告为准。
+- 意外变化或冲突即停止集中报告，不重置、不覆盖、不强推；不自动开始下一模块，全部暂缓事项保持不动。
