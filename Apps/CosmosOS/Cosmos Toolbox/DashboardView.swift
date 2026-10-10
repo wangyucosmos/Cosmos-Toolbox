@@ -238,12 +238,13 @@ struct DashboardView: View {
                     KnowledgeHubView(
                         configuration: storePersistenceConfiguration,
                         isolatedRoot: isolatedAssetRoot,
-                        notesLocation: personalNotesLocation
+                        notesLocation: personalNotesLocation,
+                        promptLocation: promptVaultLocation
                     )
                     .id(SidebarItem.knowledgeBase)
 
                 } else if selection == .promptVault {
-                    PromptVaultView(location: promptVaultLocation)
+                    PromptVaultView(location: promptVaultLocation, notesLocation: personalNotesLocation)
                         .id(SidebarItem.promptVault)
 
                 } else if selection == .learningCenter {

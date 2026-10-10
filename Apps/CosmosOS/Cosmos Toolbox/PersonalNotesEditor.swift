@@ -213,6 +213,12 @@ struct PersonalNoteEditorView: View {
                 case .references: referencesTab
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            if let saved = session.baseline, tab != .history {
+                ContentExportSingleButton(title: "导出已保存正文（.md）…",
+                    request: ContentExportSingleRequest(source: .personalNote, id: saved.id,
+                        version: .current(expectedVersionID: saved.currentVersionID)),
+                    libraries: store.exportLibraries, hasUnsavedDraft: session.isDirty, identifier: "note-export-current")
+            }
             Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
                 .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
                 .accessibilityIdentifier("note-editor-message")
@@ -286,6 +292,9 @@ struct PersonalNoteEditorView: View {
                                 .disabled(!store.canSave).accessibilityIdentifier("note-version-restore")
                         }
                     }
+                    ContentExportSingleButton(title: "导出此版本（v\(viewed.number)）为 .md…",
+                        request: ContentExportSingleRequest(source: .personalNote, id: note.id, version: .specific(viewed.id)),
+                        libraries: store.exportLibraries, hasUnsavedDraft: session.isDirty, identifier: "note-export-version")
                 } else {
                     Text("笔记保存后建立首个内容版本 v1。").foregroundStyle(.secondary)
                 }

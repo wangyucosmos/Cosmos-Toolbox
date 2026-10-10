@@ -9,6 +9,7 @@ struct KnowledgeHubView: View {
     let configuration: ZhuowangStorePersistenceConfiguration
     let isolatedRoot: URL?
     let notesLocation: PersonalNotesLocation
+    var promptLocation: PromptVaultLocation? = nil
     @State private var section: Section = .notes
     var body: some View {
         VStack(spacing: 0) {
@@ -21,7 +22,7 @@ struct KnowledgeHubView: View {
             }.padding(.horizontal, CosmosDesign.pagePadding).padding(.vertical, 10)
             Divider()
             switch section {
-            case .notes: PersonalNotesView(location: notesLocation).id("notes")
+            case .notes: PersonalNotesView(location: notesLocation, promptLocation: promptLocation).id("notes")
             case .assets: ZhuowangAssetCenterView(configuration: configuration, isolatedRoot: isolatedRoot).id("assets")
             }
         }
@@ -34,9 +35,14 @@ struct PersonalNotesView: View {
     @State private var category: NoteCategoryFilter = .all
     @State private var favoritesOnly = false
     @State private var archived = false
+    @State private var showExport = false
+    private let promptLocation: PromptVaultLocation?
 
-    init(location: PersonalNotesLocation) { _store = StateObject(wrappedValue: PersonalNotesStore(location: location)) }
-    init(store: PersonalNotesStore) { _store = StateObject(wrappedValue: store) }
+    init(location: PersonalNotesLocation, promptLocation: PromptVaultLocation? = nil) {
+        self.promptLocation = promptLocation
+        _store = StateObject(wrappedValue: PersonalNotesStore(location: location))
+    }
+    init(store: PersonalNotesStore) { promptLocation = nil; _store = StateObject(wrappedValue: store) }
 
     var body: some View {
         ScrollView {
@@ -49,6 +55,8 @@ struct PersonalNotesView: View {
                     Spacer()
                     Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }
                         .disabled(!store.canSave).accessibilityIdentifier("notes-new")
+                    Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }
+                        .accessibilityIdentifier("notes-export-batch")
                     Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }
                         .disabled(store.loading || store.saving)
                 }
@@ -79,6 +87,10 @@ struct PersonalNotesView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .task { await store.reload() }
+        .sheet(isPresented: $showExport) {
+            ContentExportBatchSheet(libraries: ContentExportLibraries(notesLocation: store.location, promptLocation: promptLocation),
+                initialSource: .personalNote)
+        }
     }
 
     @ViewBuilder private var list: some View {

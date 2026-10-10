@@ -4,8 +4,16 @@ struct PromptVaultView: View {
     @StateObject private var store: PromptVaultStore
     @StateObject private var model = PromptVaultViewModel()
     @State private var pendingRestore: PromptVersionEntry?
-    init(location: PromptVaultLocation) {
+    @State private var showExport = false
+    private let location: PromptVaultLocation
+    private let notesLocation: PersonalNotesLocation?
+    init(location: PromptVaultLocation, notesLocation: PersonalNotesLocation? = nil) {
+        self.location = location; self.notesLocation = notesLocation
         _store = StateObject(wrappedValue: PromptVaultStore(root: location.root, startupError: location.error))
+    }
+    private var singleExportLibraries: ContentExportLibraries {
+        ContentExportLibraries(notes: nil, prompts: store.storageRoot.map { PromptVaultFileStorage(root: $0) },
+            promptsUnavailable: store.error?.localizedDescription ?? "存储位置不可用")
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -14,6 +22,8 @@ struct PromptVaultView: View {
                 Spacer()
                 Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }
                     .disabled(!store.canSave).accessibilityIdentifier("prompt-new")
+                Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }
+                    .accessibilityIdentifier("prompt-export-batch")
                 Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
             }
             Text("个人模板 · 填写变量不会修改原始模板，也不会保存变量值。")
@@ -45,6 +55,10 @@ struct PromptVaultView: View {
         .task { await store.reload() }
         .onChange(of: store.templates) { _, templates in model.reconcile(templates) }
         .onDisappear { model.clearSession() }
+        .sheet(isPresented: $showExport) {
+            ContentExportBatchSheet(libraries: ContentExportLibraries(notesLocation: notesLocation, promptLocation: location),
+                initialSource: .promptTemplate)
+        }
     }
     private var categoryNames: [String] {
         Array(Set(store.templates.map { $0.category ?? "未分类" })).sorted()
@@ -125,6 +139,12 @@ struct PromptVaultView: View {
                         .disabled(!result.canCopy).accessibilityIdentifier("prompt-copy-result")
                     Button("复制原始模板") { model.copyOriginal(template) }
                 }
+                ContentExportSingleButton(title: "导出已保存正文（.md）…",
+                    request: ContentExportSingleRequest(source: .promptTemplate, id: template.id,
+                        version: .current(expectedVersionID: template.versions.last?.id)),
+                    libraries: singleExportLibraries,
+                    hasUnsavedDraft: PromptTemplateWindowManager.shared.hasUnsavedDraft(store: store, templateID: template.id),
+                    identifier: "prompt-export-current")
                 Text(model.copyMessage).font(.caption).foregroundStyle(.secondary)
                 Divider()
                 history(template)
@@ -176,6 +196,12 @@ struct PromptVaultView: View {
                             .disabled(!store.canSave).accessibilityIdentifier("prompt-version-restore")
                     }
                 }
+                ContentExportSingleButton(title: "导出此版本（\(viewed.label)）为 .md…",
+                    request: ContentExportSingleRequest(source: .promptTemplate, id: template.id,
+                        version: viewed.kind == .legacyCurrent ? .current(expectedVersionID: nil) : .specific(viewed.id)),
+                    libraries: singleExportLibraries,
+                    hasUnsavedDraft: PromptTemplateWindowManager.shared.hasUnsavedDraft(store: store, templateID: template.id),
+                    identifier: "prompt-export-version")
             }
             Text(model.historyMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
         }

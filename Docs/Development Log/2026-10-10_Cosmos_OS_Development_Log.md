@@ -313,3 +313,12 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 - 测试数量更正（仅依据 xcresult/日志，未重跑）：首轮 74 项（72 通过/2 失败）；受影响复验 UnifiedSearchTests 10/10；UI 微调后 PersonalNotesTests 24/24；“75 项”表述无证据，以 74 为准。
 - 窗口事件更正：System Events 按同名进程名操作实际作用于正式 App 窗口，位置/大小曾被改为（40,60，1280×900）并被切到前台；位置和大小已恢复为（275,138，1378×803），前台状态无法还原。未发点击/输入，但未做全面业务数据审计，不声称业务数据绝对不变。后续不得按同名应用执行 System Events 操作。
 - 阶段关闭：用户接受声明验收范围（含真实点击缺口、V3 备份兼容边界），授权逐项提交并正常推送 25 个文件，`feat: 新增个人知识笔记模块`，预期 parent `0eca18f7…`；不追加测试/构建/UI 验收/部署/复审；不开始下一模块，暂缓事项不动。实际 Git 结果见收尾报告。
+
+## 个人内容导出 完整模块 — 实现、验证与部署
+
+- 基线 `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`，使用 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`（未操作会话默认的另一检出）。读取 AGENTS §23、Current Status §35/36 及个人笔记 / Prompt Vault 的模型、存储、详情与窗口代码、交付包发布做法、核心备份 ZIP；详情见 Current Status §37。
+- 实现：只读来源读取 → 准备并冻结（指纹按 UTF-8 字节）→ 预览 → 保存面板 → 两次重读核对 → 临时目录生成并严格读回校验 → `.part` + `renamex_np(RENAME_EXCL)` 不覆盖发布；单条 .md（字节精确）与批量内容 ZIP（manifest + 说明 + 稳定 UUID 目录 + 可选历史）；两来源选择面板与四处单条入口；自带最小 ZIP 编解码，不改核心备份 / 交付包。
+- 决策：内容导出与核心备份格式互不识别；单条不带元数据；批量引用只写登记信息；收藏 / 无关记录变化不阻止导出，而名称 / 归档 / 版本 / 引用变化会阻止；保存位置不得在源库目录；取消只在发布前生效；退出不额外加终止参与者（原子发布保证不出现半成品）。
+- 验证：一轮集中 55 项（ContentExportTests 17 新增 + PersonalNotesTests + PromptVersionHistoryTests）54 通过 / 1 失败（新夹具大小假设，非产品缺陷）；集中修复仅调大夹具，受影响项 1/1 通过。ditto 与 Python zipfile 独立解包核对。离屏位图目视检查选择面板。证据 `/private/tmp/CosmosContentExport-Focused.xcresult`、`-Fixed.xcresult`。
+- 部署：Universal Release，lipo x86_64 arm64，签名校验通过，旧 App 正常退出，回退副本 `Cosmos Toolbox-20261010-231413-e78e7eea.app`，新版 PID 25559；日志 `/private/tmp/CosmosContentExport-deploy.log`。
+- 缺口：真实点击、保存面板交互、Finder 实际显示未覆盖（无法安全驱动，不用 System Events）。主开发自查，非独立第三方复审。未提交 / 推送 / 合并，等待 Git 收尾授权。

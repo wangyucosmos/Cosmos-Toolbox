@@ -9,6 +9,8 @@ final class PromptVaultStore: ObservableObject {
     @Published private(set) var loaded = false
     private let storage: PromptVaultFileStorage?
     let storageIdentity: String
+    /// 只读来源位置（个人内容导出使用）；位置不可用时为 nil。
+    var storageRoot: URL? { storage?.root }
     var canSave: Bool { loaded && !loading && !saving && error?.locksSaving != true }
 
     init(root: URL?, startupError: PromptVaultError? = nil) {
