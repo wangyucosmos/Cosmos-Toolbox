@@ -116,3 +116,21 @@ V1 为不压缩 ZIP，固定源清单及 SHA-256；仅本格式可直接读取�
 ## 核心数据恢复 Phase 1 验收与 Git 收尾
 
 用户接受既有声明验收范围，阶段关闭，授权提交 `feat: 新增核心数据空环境恢复` 并正常推送 main。沿用已有验证，不追加测试/构建/复审；只逐项提交报告中 15 个文件，不纳入收据、备份包、正式或临时业务数据。origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git，提交前实际远端 main 与预期 parent `16dd38682e8c17ef15dc97cae2718a261db441dc` 一致。实际交付以 Git refs / 收尾报告为准。收尾成功后直接实施用户授权的 Mac 环境概览，新阶段仅开发与验证。
+
+
+## 恢复正式关闭与 Mac 环境概览 Phase 1
+
+恢复阶段正常收尾：commit `72f020b628d4ee7be3e720f1e67055686f4f55ea`，parent `16dd38682e8c17ef15dc97cae2718a261db441dc`，消息 `feat: 新增核心数据空环境恢复`。origin https://github.com/wangyucosmos/Cosmos-Toolbox.git；恰好逐项提交报告中 15 个文件，正常推送后 main/origin/main/实际远端 main 一致、ahead/behind 0/0，收尾时工作区干净。沿用已接受验证，未追加测试/构建/复审。
+
+随后按授权直接实现 Mac 环境概览，原有 Mac 优化导航身份保留，只读系统/内存/主目录所在卷/内置电池。使用 Apple 系统 API，无进程命令、轮询或持久化，主线程状态代次校验防重复与迟到覆盖。系统压力和循环/健康容量没有本期采用的可靠读数，明确未读取，不推算健康或垃圾。实际来源与口径统一以 Current Status §28 为当前检查点。
+
+新增 MacEnvironmentModels.swift、MacEnvironmentService.swift、MacEnvironmentViewModel.swift、MacEnvironmentView.swift、MacEnvironmentTests.swift；修改 DashboardView.swift、Current Status、本日志，共 8 个文件。工程序列化差异解析等价后恢复，不纳入成果。
+
+一轮集中检查首轮编译停止（新类型默认 MainActor 隔离，另有沙箱宏限制）；一次集中补齐 nonisolated 后，在沙箱外执行未运行的新测试 11/11 通过，无第二轮修复。一次 Universal Debug 构建成功（x86_64 arm64），diff check 通过。本机系统/内存/电池与同口径系统来源一致，卷容量与 URL API 对照通过。后台隔离 App 展示真实概览；业务偏好字节不变，业务与控制目录未建立，进程和随机 suite 已清理，不接触正式数据。
+
+真实刷新按钮/滚动后的电池区域未操作，无电池、取消及迟到由自动化覆盖；未在 Intel/台式 Mac/Release 实测。不宣称完整端到端 UI 验收。结论：按声明证据范围可收尾，无已知阻塞。当前成果未暂存/提交/推送，等待授权；只读 API 和代次校验可复用，未知不能作正常、卷容量不能作目录大小。所有暂缓事项及其他知识库保持不动，停止开发。
+
+
+## Mac 环境概览 Phase 1 验收与 Git 收尾
+
+用户接受声明验收范围，阶段关闭，授权提交 `feat: 新增 Mac 环境只读概览` 并正常推送 main。仅逐项纳入报告中 8 个文件，不含业务或临时数据；保留未覆盖项，沿用 11/11 测试、Universal Debug 与本机对照证据，无新增测试/构建/复审。提交前 origin https://github.com/wangyucosmos/Cosmos-Toolbox.git，HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`。正常推送后复用最新双架构产物制作正式 Bundle ID 日常启动副本，不重新编译、不注入测试参数或样例，不自动创建活动/执行 AI/恢复备份。实际 Git 与启动结果以收尾报告为准。所有暂缓事项保持不动。

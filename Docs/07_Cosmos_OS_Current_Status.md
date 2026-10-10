@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 核心数据恢复 Phase 1｜空环境恢复已由用户接受声明验收范围并关闭，授权正常提交推送（§27）。只恢复固定业务元数据，先校验/预览、明确确认，成功后必须重启；不覆盖或合并已有数据。
+**Current stage:** Mac 环境概览 Phase 1 已由用户接受声明验收范围并关闭，授权正常提交推送（§28）。原有 Mac 优化导航现展示只读系统、内存、主目录卷容量和内置电池信息，首次读取及手动刷新，无持久化或轮询。
+**Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
 **Previous stage (备份):** 核心数据备份 Phase 1 已接受并正式关闭，提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`、正常推送与同步核对完成（§26）。导出与独立校验语义保持。
 **Previous stage (任务资料):** 任务上下文资料选择 Phase 1 已接受并正式关闭，正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`（§25）；其历史验证及已声明限制沿用。
 **Previous stage (交接记录):** AI 工作台 Phase 3 已正式关闭并正常推送，实际 Git 收尾见 §24；独立历史、手动记录及历史原文复制能力保留。
@@ -610,7 +611,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** 核心数据恢复 Phase 1 已接受并关闭（§27）；正常 Git 收尾成功后，直接实施用户明确授权的 Mac 环境概览 Phase 1。核心数据备份 Phase 1 已正式关闭（§26）。Mac 环境概览仅开发与必要验证，未授权提交推送；未操作正式数据。已关闭 AI 工作台各阶段保持现有能力；暂缓事项不动。
+**Current:** Mac 环境概览 Phase 1 已接受并关闭（§28），本次按授权正常 Git 收尾；成功后用已有产物启动正常 App 供日常使用。下一模块等待用户确定，不自动开发。恢复与备份均已正式关闭（§27 / §26）；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1262,4 +1263,32 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 - 新增：CoreRestoreModels.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreRestoreView.swift、CoreRestoreStartupView.swift、CoreRestoreTests.swift。
 - 修改：CoreBackupService.swift、CoreBackupSettingsView.swift、Cosmos_ToolboxApp.swift、DashboardView.swift、ZhuowangAIConnectionStore.swift、ZhuowangProtectedPersistence.swift、ZhuowangWorkflowStore.swift、本文件、当日开发日志。共 **15 个文件**，无工程语义修改或业务数据纳入。
-- **结论：用户已接受上述声明验证范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增核心数据空环境恢复` 正常提交推送，仅逐项纳入上述 15 个文件，沿用已有验证，不追加测试、构建或复审。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，实际远端 main 与预期 parent 一致。当前基线 `16dd38682e8c17ef15dc97cae2718a261db441dc`；实际交付以本次 Git refs 和收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。不自动开发下一模块。
+- **结论：用户已接受上述声明验证范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增核心数据空环境恢复` 正常提交推送，仅逐项纳入上述 15 个文件，沿用已有验证，不追加测试、构建或复审。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，实际远端 main 与预期 parent 一致。当前基线 `16dd38682e8c17ef15dc97cae2718a261db441dc`；实际提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，parent `16dd38682e8c17ef15dc97cae2718a261db441dc`，消息 `feat: 新增核心数据空环境恢复`，恰好逐项提交上述 15 个文件。正常推送后 main = origin/main = 实际远端 main，ahead/behind 0/0，恢复收尾时工作区干净。随后实施已授权 Mac 概览，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。不自动开发下一模块。
+
+
+## 28. Mac 环境概览 Phase 1 — 2026-10-10
+
+### 用户流程与来源口径
+
+- 原有“Mac 优化 / macOptimizer”导航身份保留，占位页替换为原生只读概览。首次进入后台读取一次，显示完成读取时间，可手动刷新；不持续轮询。当前进程再次进入沿用内存快照，未完成读取离开时取消，再进入可重新读取；重启无历史。
+- 系统版本使用 ProcessInfo.operatingSystemVersion；硬件型号 sysctl `hw.model`、芯片/处理器名称 `machdep.cpu.brand_string`；硬件架构先读取 `hw.optional.arm64`，支持 ARM 时显示 arm64，否则用 `hw.machine`。不读取序列号、设备 UUID、网络地址或认证信息。
+- 物理内存使用 ProcessInfo.physicalMemory，二进制格式并显示原始字节（1 GiB = 2³⁰ 字节；系统 ByteCountFormatter 可能仍将单位显示为 GB，页面明确说明口径）。没有“总量减空闲”或应用内存估计。当前系统压力没有采用可靠的同步读数，明确显示未知/本期未读取，不推算健康评分。
+- 磁盘使用用户主目录 URL 的 volumeTotalCapacity / volumeAvailableCapacity。展示该卷总量与可用容量，十进制单位（1 GB = 10⁹ 字节）；不是主目录大小，不包含可清除空间估算、不扫描目录或垃圾。
+- 电池使用 IOPSCopyPowerSourcesInfo/List 与 IOPSGetPowerSourceDescription，只处理 InternalBattery，不把 UPS 当内置电池。电量是 IOPS 当前容量 / 满充容量百分比（两者同单位）；供电用 Power Source State，充电用 Is Charging。容量字段不是电池健康最大容量，不展示循环次数/健康容量。无内置电池或系统明确未安装时为不适用；电源描述/类型/存在状态读取失败与不适用区分。电量、供电、充电各自保留未知或错误。
+- 每项独立读取或表达未知/失败，不用未知代替正常，一项失败不隐藏其他结果。没有业务 Store、设备历史、外部命令、网络、上传、系统修改或额外权限申请；不接入首页、不重复 CLI 检测。
+
+### 内存状态与验证
+
+- 服务是 nonisolated Sendable，只读调用在 detached 后台任务执行；模型主线程发布、重复刷新忽略、代次核对并检查取消，迟到结果不能覆盖较新快照。取消停止接收结果，不宣称可中断正在执行的系统同步 API；这些固定查询不执行子进程或遍历文件。
+- 首轮集中检查在编译阶段停止，测试未执行：项目默认 MainActor 令后台模型 Equatable/Sendable 隔离不兼容，沙箱另阻止既有宏工具。一次集中修复补齐新模型/服务 nonisolated 声明；在沙箱外仅执行尚未运行的新 MacEnvironmentTests，**11/11 通过**，无第二轮修复，无历史/全量测试或独立复审。
+- 覆盖容量与二进制/十进制单位、无电池/UPS、不明类型和非法容量、独立供电/充电未知、单项失败不影响其他字段、无效内存；首次读取/重入不自动刷新、重复刷新、取消保留既有快照、迟到结果不覆盖；页面离屏渲染及 UserDefaults 前后不变。
+- 本机一次对照：macOS 26.6.2、MacBookPro18,2、Apple M1 Max、arm64、34359738368 字节（32 GiB）；sysctl / sw_vers 返回相同。IOKit 与 pmset 同为 80%、外接供电、未充电。卷总量 994662584320 字节、采样可用 535377547264 字节，与同口径 URL 卷 API 一致；可用容量实时变化，自动对照允许 64 MiB 短时变化，不当作固定值。
+- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 x86_64 arm64，临时 DerivedData/隔离 Bundle/关闭签名；git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，无工程语义改动。新模块无编译 warning；既有恢复 Sendable、WorkspaceSnapshot/省份 actor 等 warning 保留，不扩大修复。
+- 一次后台隔离 App 直接打开原有 macOptimizer：窗口显示系统/内存/磁盘口径、时间和刷新入口；只截目标窗口，不激活或移动窗口。随机偏好域 Campaign 空载荷原字节不变，无新增业务键，Prompt/Learning/Handoff/CoreRestore 四个临时根均未创建；进程及随机 suite 已清理，正式数据未触碰。
+- 证据：首轮 `/private/tmp/CosmosMacEnvironment-Focused.xcresult`（编译停止）；修复后 `/private/tmp/CosmosMacEnvironment-Fixed.xcresult`、fixed.log；构建 `/private/tmp/CosmosMacEnvironment-build.log`；同口径读数 `/private/tmp/CosmosMacEnvironment-live.json`；窗口和完整性 `/private/tmp/CosmosMacEnvironmentUI-ad34ab22-15d0-4e1e-bad5-eab67d7400b8/`。
+
+### 限制、修改与结论
+
+- 真实 UI 未点击刷新或操作滚动后的电池区域，取消/迟到由自动化覆盖，不宣称完整端到端 UI 验收。无电池通过合成电源数据覆盖，未在台式 Mac 实测；未在 Intel/Rosetta 实机或 Release 验证。本期内存压力、循环次数与健康最大容量未读取；不为此增加命令或私有字段。部分 SDK/API 在受限进程中可能失败，页面按字段报告原因。
+- 新增：MacEnvironmentModels.swift、MacEnvironmentService.swift、MacEnvironmentViewModel.swift、MacEnvironmentView.swift、MacEnvironmentTests.swift。修改：DashboardView.swift、本文件、当日开发日志，共 **8 个文件**；未纳入正式数据、截图或临时证据。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增 Mac 环境只读概览` 正常提交推送 main，仅逐项纳入上述 8 个文件；沿用 11/11 测试、Universal Debug 及本机对照证据，不追加测试、构建或复审。提交前 HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；实际交付以 Git refs / 收尾报告为准。推送后复用最新双架构构建产物，制作正式 Bundle ID 的独立日常启动副本，不重新编译、不传入隔离/样例参数、不自动执行业务操作。所有暂缓事项不动，不写其他知识库、不自动开发下一模块。

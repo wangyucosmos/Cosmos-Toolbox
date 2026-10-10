@@ -9,6 +9,8 @@ struct DashboardView: View {
     /// Last finished AI 工作台 detection; memory only, never persisted.
     @State private var aiWorkspaceCache = AIWorkspaceResultCache()
 
+    @StateObject private var macEnvironment = MacEnvironmentViewModel()
+
     let storePersistenceConfiguration:
         ZhuowangStorePersistenceConfiguration
 
@@ -26,7 +28,7 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings"].contains(arguments[index + 1]) {
+           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings", "macOptimizer"].contains(arguments[index + 1]) {
             _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
@@ -223,6 +225,10 @@ struct DashboardView: View {
                 } else if selection == .aiWorkspace {
                     AIWorkspaceView(cache: aiWorkspaceCache, configuration: storePersistenceConfiguration, referenceRoot: isolatedAssetRoot, autoDetect: aiWorkspaceAutoDetect)
                         .id(SidebarItem.aiWorkspace)
+
+                } else if selection == .macOptimizer {
+                    MacEnvironmentView(model: macEnvironment)
+                        .id(SidebarItem.macOptimizer)
 
                 } else if selection == .settings {
                     CoreBackupSettingsView(source: coreBackupSource, restoreTarget: try? CoreRestoreTarget.resolve(configuration: storePersistenceConfiguration))
