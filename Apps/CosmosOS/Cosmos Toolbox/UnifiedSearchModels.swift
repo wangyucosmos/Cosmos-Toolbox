@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum UnifiedSearchSource: String, CaseIterable, Identifiable, Sendable {
-    case campaign, artifact, reference, project, prompt, learning
+    case campaign, artifact, reference, project, prompt, learning, note
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -11,6 +11,7 @@ nonisolated enum UnifiedSearchSource: String, CaseIterable, Identifiable, Sendab
         case .project: return "个人项目"
         case .prompt: return "Prompt Vault"
         case .learning: return "学习主题"
+        case .note: return "个人笔记"
         }
     }
 }
@@ -25,6 +26,7 @@ nonisolated struct UnifiedSearchRow: Identifiable, Equatable, Sendable {
     let ownership: String
     let fields: [UnifiedSearchField]
     var archived = false
+    var favorite = false
     var historical = false
     var adoptionConflict = false
     var campaignID: UUID?

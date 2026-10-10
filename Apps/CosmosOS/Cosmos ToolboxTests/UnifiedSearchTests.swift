@@ -56,28 +56,44 @@ final class UnifiedSearchTests: XCTestCase {
         // Bodies/histories deliberately use incompatible types: field-only decoders must skip them.
         let files = ["projects.json": try json(["schemaVersion": 1, "projects": [project, archived]]),
             "templates.json": try json(["schemaVersion": 1, "templates": [["id": shared.uuidString, "name": "统一 同名", "category": "分类定位", "body": ["ignored": "禁止正文命中"], "isArchived": false]]]),
-            "learning.json": try json(["schemaVersion": 1, "topics": [["id": shared.uuidString, "name": "统一 同名", "goal": "学习目标定位", "nextStep": "学习下一步定位", "isArchived": false]], "entries": ["ignored": "禁止历史命中"]])]
+            "learning.json": try json(["schemaVersion": 1, "topics": [["id": shared.uuidString, "name": "统一 同名", "goal": "学习目标定位", "nextStep": "学习下一步定位", "isArchived": false]], "entries": ["ignored": "禁止历史命中"]]),
+            // Note body/history/references use incompatible types: the title/category-only projection must skip them.
+            "notes.json": try json(["schemaVersion": 1, "notes": [
+                ["id": shared.uuidString, "title": "统一 同名", "category": "笔记归类甲", "isArchived": false, "isFavorite": true, "body": ["ignored": "禁止笔记正文命中"], "versions": ["ignored": "禁止笔记历史命中"], "references": ["ignored": "禁止笔记引用命中"]],
+                ["id": UUID().uuidString, "title": "统一 归档笔记", "isArchived": true, "isFavorite": false, "body": "归档正文"]]])]
         for (name, bytes) in files { try bytes.write(to: root.appendingPathComponent(name)) }
         try Data("禁止文件正文命中".utf8).write(to: root.appendingPathComponent("never-read.txt"))
         let protocolSource: any ZhuowangPersistenceDataSource = source
-        let reader = UnifiedSearchReader(readPreference: { protocolSource.data(forKey: $0) }, roots: [.project: root, .prompt: root, .learning: root])
+        let reader = UnifiedSearchReader(readPreference: { protocolSource.data(forKey: $0) }, roots: [.project: root, .prompt: root, .learning: root, .note: root])
         return Fixture(reader: reader, source: source, root: root, sharedID: shared, secondCampaignID: other, artifactID: artifact, historicalID: history, referenceID: refID, fileBytes: files)
     }
-    func testSixSourcesIdentityFieldsNoBodiesAndNoBusinessChanges() throws {
+    func testSevenSourcesIdentityFieldsNoBodiesAndNoBusinessChanges() throws {
         let f = try fixture(), before = f.source.storage, snapshot = f.reader.read()
-        XCTAssertEqual(snapshot.states.count, 6)
+        XCTAssertEqual(snapshot.states.count, 7)
         XCTAssertTrue(snapshot.states.values.allSatisfy { $0 == .ready })
         let shared = snapshot.rows.filter { $0.id.objectID == f.sharedID }
-        XCTAssertEqual(Set(shared.map(\.id)).count, 4) // Campaign, Project, Prompt, Learning with the same UUID.
+        XCTAssertEqual(Set(shared.map(\.id)).count, 5) // Campaign, Project, Prompt, Learning, Note with the same UUID.
         XCTAssertEqual(Set(snapshot.rows.map(\.id)).count, snapshot.rows.count)
         let query = UnifiedSearchQuery(text: "统一")
-        XCTAssertEqual(Set(snapshot.rows.filter(query.matches).map(\.id.source)).count, 6)
+        XCTAssertEqual(Set(snapshot.rows.filter(query.matches).map(\.id.source)).count, 7)
         XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: "禁止正文命中", includeHistory: true).matches))
+        for forbidden in ["禁止笔记正文命中", "禁止笔记历史命中", "禁止笔记引用命中", "归档正文"] {
+            XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: forbidden, includeArchived: true, includeHistory: true).matches), forbidden)
+        }
+        let note = try XCTUnwrap(snapshot.rows.first { $0.id.source == .note && $0.id.objectID == f.sharedID })
+        XCTAssertEqual(note.fields.map(\.label), ["标题", "分类"]); XCTAssertTrue(note.favorite); XCTAssertFalse(note.archived)
+        XCTAssertEqual(UnifiedSearchSource.note.title, "个人笔记")
+        XCTAssertTrue(UnifiedSearchQuery(text: "笔记归类甲").matches(note))
+        // Archived notes are hidden by default and revealed by the same toggle as other archivable sources.
+        let archivedNote = try XCTUnwrap(snapshot.rows.first { $0.id.source == .note && $0.archived })
+        XCTAssertFalse(UnifiedSearchQuery(text: "归档笔记").matches(archivedNote))
+        XCTAssertTrue(UnifiedSearchQuery(text: "归档笔记", includeArchived: true).matches(archivedNote))
+        XCTAssertFalse(UnifiedSearchQuery(text: "统一", source: .project).matches(note))
         XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: "禁止历史命中", includeArchived: true).matches))
         XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: "禁止文件正文命中").matches))
         XCTAssertEqual(f.source.storage, before); XCTAssertEqual(f.source.writeCount, 0)
         for (name, bytes) in f.fileBytes { XCTAssertEqual(try Data(contentsOf: f.root.appendingPathComponent(name)), bytes) }
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: f.root.path).sorted(), ["learning.json","never-read.txt","projects.json","templates.json"])
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: f.root.path).sorted(), ["learning.json","never-read.txt","notes.json","projects.json","templates.json"])
         XCTAssertEqual(snapshot.rows.first { $0.id.objectID == f.artifactID }?.ownership.contains("浙江"), true)
         XCTAssertEqual(snapshot.rows.first { $0.id.objectID == f.secondCampaignID }?.ownership, "全国模块")
         let ref = try XCTUnwrap(snapshot.rows.first { $0.id.objectID == f.referenceID })
@@ -133,9 +149,9 @@ final class UnifiedSearchTests: XCTestCase {
     }
     func testMissingLibrariesAndIsolationDependenciesFailClosedWithoutInitialization() throws {
         let root = try root(), missing = root.appendingPathComponent("missing")
-        let reader = UnifiedSearchReader(readPreference: { _ in nil }, roots: [.project: missing, .prompt: missing, .learning: missing])
+        let reader = UnifiedSearchReader(readPreference: { _ in nil }, roots: [.project: missing, .prompt: missing, .learning: missing, .note: missing])
         let s = reader.read()
-        XCTAssertEqual(s.states.count, 6); XCTAssertTrue(s.states.values.allSatisfy { $0 == .missing })
+        XCTAssertEqual(s.states.count, 7); XCTAssertTrue(s.states.values.allSatisfy { $0 == .missing })
         XCTAssertTrue(s.rows.isEmpty); XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
         let blocked = UnifiedSearchReader(readPreference: { _ in nil }, roots: [:], blocked: [.project: "隔离位置不可用"])
         if case .failed = blocked.read().states[.project] {} else { XCTFail("blocked must not look missing") }
@@ -153,9 +169,9 @@ final class UnifiedSearchTests: XCTestCase {
         XCTAssertThrowsError(try UnifiedSearchDestination.resolve(a, in: s, isolated: true))
         let artifact = try XCTUnwrap(s.rows.first { $0.id.objectID == f.historicalID })
         XCTAssertEqual(try UnifiedSearchDestination.resolve(artifact, in: s, isolated: true), .artifact(f.historicalID, campaignID: f.sharedID))
-        for source in [UnifiedSearchSource.project, .prompt, .learning] {
+        for source in [UnifiedSearchSource.project, .prompt, .learning, .note] {
             let row = try XCTUnwrap(s.rows.first { $0.id.source == source && $0.id.objectID == f.sharedID })
-            let target: UnifiedSearchDestination = source == .project ? .project(f.sharedID) : source == .prompt ? .prompt(f.sharedID) : .learning(f.sharedID)
+            let target: UnifiedSearchDestination = source == .project ? .project(f.sharedID) : source == .prompt ? .prompt(f.sharedID) : source == .note ? .note(f.sharedID) : .learning(f.sharedID)
             XCTAssertEqual(try UnifiedSearchDestination.resolve(row, in: s, isolated: true), target)
         }
         var removed = s; removed.rows.removeAll { $0.id == a.id }

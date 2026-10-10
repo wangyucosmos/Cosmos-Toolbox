@@ -205,7 +205,7 @@ extension PromptTemplateWindowManager: CosmosTerminationParticipant {
 final class CosmosPromptTerminationDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         CosmosTerminationCoordinator.shared.request(
-            participants: [PromptTemplateWindowManager.shared, LearningEditorWindowManager.shared, ProjectsWindowManager.shared]
+            participants: [PromptTemplateWindowManager.shared, LearningEditorWindowManager.shared, ProjectsWindowManager.shared, PersonalNoteWindowManager.shared]
         ) { allow in sender.reply(toApplicationShouldTerminate: allow) }
     }
 }

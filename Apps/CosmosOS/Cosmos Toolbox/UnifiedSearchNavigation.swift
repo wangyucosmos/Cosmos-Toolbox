@@ -2,7 +2,7 @@ import AppKit
 import Combine
 
 nonisolated enum UnifiedSearchDestination: Equatable {
-    case campaign(UUID), artifact(UUID, campaignID: UUID), project(UUID), prompt(UUID), learning(UUID)
+    case campaign(UUID), artifact(UUID, campaignID: UUID), project(UUID), prompt(UUID), learning(UUID), note(UUID)
     case reference(CampaignExternalReference)
 
     static func resolve(_ requested: UnifiedSearchRow, in snapshot: UnifiedSearchSnapshot,
@@ -21,6 +21,7 @@ nonisolated enum UnifiedSearchDestination: Equatable {
         case .project: return .project(current.id.objectID)
         case .prompt: return .prompt(current.id.objectID)
         case .learning: return .learning(current.id.objectID)
+        case .note: return .note(current.id.objectID)
         case .reference:
             guard let ref = current.reference, ref == requested.reference else {
                 throw NavigationError.message("引用记录已变化，请刷新后核对；没有自动打开。")
@@ -43,6 +44,7 @@ final class UnifiedSearchNavigator: ObservableObject {
     private let projects: ProjectsLocation
     private let prompts: PromptVaultLocation
     private let learning: LearningLocation
+    private let notes: PersonalNotesLocation
     private let assetRoot: URL?
     private let systemOpen: (URL) -> Bool
     private var generation = 0
@@ -55,9 +57,10 @@ final class UnifiedSearchNavigator: ObservableObject {
     }
     init(reader: UnifiedSearchReader, configuration: ZhuowangStorePersistenceConfiguration,
          projects: ProjectsLocation, prompts: PromptVaultLocation, learning: LearningLocation,
+         notes: PersonalNotesLocation = PersonalNotesLocation(root: nil, error: .unsafePath),
          assetRoot: URL?, systemOpen: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) }) {
         self.reader = reader; self.configuration = configuration
-        self.projects = projects; self.prompts = prompts; self.learning = learning
+        self.projects = projects; self.prompts = prompts; self.learning = learning; self.notes = notes
         self.assetRoot = assetRoot; self.systemOpen = systemOpen
     }
     func open(_ row: UnifiedSearchRow) async {
@@ -104,6 +107,12 @@ final class UnifiedSearchNavigator: ObservableObject {
                 guard serial == generation, !Task.isCancelled else { return }
                 guard store.loaded, let topic = store.topics.first(where: { $0.id == id }) else { throw unavailable(store.error?.localizedDescription) }
                 LearningEditorWindowManager.shared.openTopic(store: store, topic: topic)
+            case .note(let id):
+                // 重新读取最新元数据后按 UUID 打开既有原生笔记窗口；不跳同名对象。
+                let store = PersonalNotesStore(location: notes); await store.reload()
+                guard serial == generation, !Task.isCancelled else { return }
+                guard store.loaded, let note = store.notes.first(where: { $0.id == id }) else { throw unavailable(store.error?.localizedDescription) }
+                PersonalNoteWindowManager.shared.open(store: store, note: note)
             }
         } catch { message = error.localizedDescription }
     }

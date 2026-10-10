@@ -94,10 +94,11 @@ nonisolated struct CoreBackupService {
         let manifest: CoreBackupManifest
         do { manifest = try decoder.decode(CoreBackupManifest.self, from: bytes) }
         catch { throw CoreBackupError.invalid("清单无法解析。") }
-        guard manifest.format == "CosmosCoreMetadata", [1, 2].contains(manifest.version),
+        guard manifest.format == "CosmosCoreMetadata", [1, 2, 3].contains(manifest.version),
               manifest.exportedAt.timeIntervalSinceReferenceDate.isFinite,
-              manifest.sources.count == (manifest.version == 1 ? CoreBackupSource.legacyIDs.count : CoreBackupSource.ids.count),
-              Set(manifest.sources.map(\.id)) == Set(manifest.version == 1 ? CoreBackupSource.legacyIDs : CoreBackupSource.ids), manifest.exclusions == CoreBackupSource.exclusions else {
+              manifest.sources.count == CoreBackupSource.ids(forVersion: manifest.version).count,
+              Set(manifest.sources.map(\.id)) == Set(CoreBackupSource.ids(forVersion: manifest.version)),
+              manifest.exclusions == CoreBackupSource.exclusions(forVersion: manifest.version) else {
             throw CoreBackupError.invalid("格式版本、范围或排除说明无效。")
         }
         var expected: Set<String> = ["manifest.json"]

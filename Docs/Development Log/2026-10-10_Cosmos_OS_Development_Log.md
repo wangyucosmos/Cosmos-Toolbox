@@ -301,3 +301,15 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 - 缺口：真实窗口点击/剪贴板实复制/原生退出提醒联动/视觉未覆盖（离屏挂载零写入除外）。
 - 结论：可收尾；主开发自查，非独立第三方复审。**阶段关闭**：用户接受声明验收范围，授权逐项提交并正常推送 11 个文件（`feat: 新增提示词版本历史与恢复`，预期 parent `16b94630…`），沿用已接受证据，不追加测试/构建/UI 验收/部署/复审；不开始下一模块；暂缓事项不动。
 - 数据降级边界更正：`templates.backup.json` 是滚动备份，每次成功保存前会被“该次写入前的主文件字节”替换，首次升级之后的后续保存可能把它覆盖成 schema 2 内容，不能当作永久降级副本；App 回退副本也不保障数据降级。只有用户确实另行保留的 schema 1 数据副本才能供旧程序使用。本期未新增备份功能。
+
+## 个人知识笔记 完整模块 — 实现、验证与部署
+
+- 基线 `0eca18f707d5089ccc6bbe4ccec3834df997ee29`，使用 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`（未操作会话默认的另一检出）。读取 AGENTS §23、Current Status §26/27/33–35 及 Prompt Vault、Projects、CampaignExternalReference、统一检索、核心备份/恢复相关代码。完整模块一次连续完成，详情见 Current Status §36。
+- 实现：独立 `PersonalNotes` 存储（`Application Support/Cosmos OS/PersonalNotes/notes.json`，schema 1；事务/备份/读回/协作锁/容量/失败关闭）；内容快照历史与恢复；只追加引用（文件/链接/更正）复用 `CampaignExternalReference` 受控打开；原生独立编辑窗口（草稿三选保护、退出参与者、乐观锁、干净窗口跟随）；知识库入口 `KnowledgeHubView`（个人笔记｜卓望知识与资产）；统一检索新增「个人笔记」来源（标题/分类，UUID 精确打开）；核心备份升级 V3（12 源，V1/V2 按原清单兼容）与恢复目标新增笔记根。
+- 决策：笔记不伪装成 Artifact、不接 Workflow；历史与引用由锁内最新磁盘记录重建；引用登记时间取提交时刻；V3 才有 notes 源与新增排除说明，旧包校验口径不变；旧包恢复明确提示且不建空笔记库；容量超限拒绝但不锁定模块。
+- 验证：首轮集中 74 项（PersonalNotesTests 新增 24 + CoreBackup/CoreRestore/UnifiedSearch/PromptVersionHistory 既有）72 通过 / 2 失败（均为新增夹具预期问题）；一次集中修复仅改夹具，受影响 UnifiedSearchTests 10/10；UI 微调后 PersonalNotesTests 24/24。证据 `/private/tmp/CosmosPersonalNotes/Focused.xcresult`、`Fixed.xcresult`、`Final.xcresult` 及对应 log。编辑器各分段离屏位图目视检查；隔离真实 App 截图确认入口与列表渲染。真实点击缺口见 §36。
+- 部署：`scripts/deploy-macos.py` Universal Release 成功、签名/双架构/身份校验通过，旧 App 正常退出，回退副本 `Cosmos Toolbox-20261010-224435-906c235e.app`，新版 PID 22555 启动；日志 `/private/tmp/CosmosPersonalNotes-deploy.log`。正式笔记目录未创建，未用正式数据测试。
+- 过程记录：UI 自动化尝试期间用 System Events 误改并已原值恢复正式 App 窗口几何（275,138，1378×803），未触碰业务数据；之后改用唯一进程名隔离拷贝，并因无法安全驱动点击而停止 UI 驱动。
+- 测试数量更正（仅依据 xcresult/日志，未重跑）：首轮 74 项（72 通过/2 失败）；受影响复验 UnifiedSearchTests 10/10；UI 微调后 PersonalNotesTests 24/24；“75 项”表述无证据，以 74 为准。
+- 窗口事件更正：System Events 按同名进程名操作实际作用于正式 App 窗口，位置/大小曾被改为（40,60，1280×900）并被切到前台；位置和大小已恢复为（275,138，1378×803），前台状态无法还原。未发点击/输入，但未做全面业务数据审计，不声称业务数据绝对不变。后续不得按同名应用执行 System Events 操作。
+- 阶段关闭：用户接受声明验收范围（含真实点击缺口、V3 备份兼容边界），授权逐项提交并正常推送 25 个文件，`feat: 新增个人知识笔记模块`，预期 parent `0eca18f7…`；不追加测试/构建/UI 验收/部署/复审；不开始下一模块，暂缓事项不动。实际 Git 结果见收尾报告。

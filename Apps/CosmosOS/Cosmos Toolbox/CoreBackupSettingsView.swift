@@ -42,16 +42,16 @@ struct CoreBackupSettingsView: View {
                 Text("核心数据备份").font(.title2)
                 Text("手动导出核心元数据，或校验已有备份。校验只读备份包，不导入、不恢复业务数据。")
                 GroupBox("包含范围") {
-                    Text("Campaign（含资料与外部成果引用记录，不含原文件或网页）、Workspace / 省份配置；Workflow（含 Artifact 元数据、Run、Approval）；AI Provider / Connection / Tool / Route 非敏感配置；Prompt Vault；学习主题和记录；AI 工作台交接记录；个人项目（含进展及文件/链接引用元数据）。")
+                    Text("Campaign（含资料与外部成果引用记录，不含原文件或网页）、Workspace / 省份配置；Workflow（含 Artifact 元数据、Run、Approval）；AI Provider / Connection / Tool / Route 非敏感配置；Prompt Vault；学习主题和记录；AI 工作台交接记录；个人项目（含进展及文件/链接引用元数据）；个人笔记（完整正文、内容版本历史，以及文件/链接引用登记记录）。")
                         .frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 }
                 GroupBox("不包含与安全排除") {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(CoreBackupSource.exclusions, id: \.self) { Text($0) }
+                        ForEach(CoreBackupSource.currentExclusions, id: \.self) { Text($0) }
                         Text("不是完整换机恢复：产物实体、项目引用文件和外部资料不打包，登记路径仍依赖原文件。已保存的业务正文保留原文，请妥善保管备份。")
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 }
-                Text("格式：Cosmos 核心元数据 ZIP V2（不压缩，兼容读取 V1；V1 未包含 Projects）。单源最多 16 MiB，包最多 128 MiB，清单最多 256 KiB。缺失主数据记为尚未建立，真实空库仍作为已建立数据保存。源错误或变化时中止，不以空数据替代。")
+                Text("格式：Cosmos 核心元数据 ZIP V3（不压缩，兼容读取 V1/V2；V1 未包含 Projects 与个人笔记，V2 未包含个人笔记）。单源最多 16 MiB，包最多 128 MiB，清单最多 256 KiB。缺失主数据记为尚未建立，真实空库仍作为已建立数据保存。源错误或变化时中止，不以空数据替代。")
                     .font(.callout).foregroundStyle(.secondary)
                 Text("一致性：读取前后检查文件修订，发布前逐源复读字节和修订；不是跨进程事务，不能保证外部进程在最终检查后不再写入。SHA-256 用于完整性检查，不是签名或加密。")
                     .font(.callout).foregroundStyle(.secondary)

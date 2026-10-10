@@ -18,7 +18,7 @@ nonisolated struct CoreBackupArchive {
         for index in 0..<bytes { data.append(UInt8(truncatingIfNeeded: number >> (8 * index))) }
     }
     static func encode(_ entries: [String: Data]) throws -> Data {
-        guard Set(entries.keys).isSubset(of: allowedPaths), entries.count <= 12 else { throw CoreBackupError.invalid("非法包条目。") }
+        guard Set(entries.keys).isSubset(of: allowedPaths), entries.count <= 13 else { throw CoreBackupError.invalid("非法包条目。") }
         var archive = Data(), central = Data()
         for name in entries.keys.sorted() {
             let body = entries[name]!, text = Data(name.utf8), offset = UInt32(archive.count), checksum = crc(body)
@@ -50,7 +50,7 @@ nonisolated struct CoreBackupArchive {
         let end = data.count - 22
         try reject(try number(end,4) == 0x06054b50 && number(end+4,2) == 0 && number(end+6,2) == 0 && number(end+20,2) == 0)
         let count = try number(end+10,2), centralStart = try number(end+16,4)
-        try reject(try count > 0 && count <= 12 && number(end+8,2) == count && centralStart + number(end+12,4) == end)
+        try reject(try count > 0 && count <= 13 && number(end+8,2) == count && centralStart + number(end+12,4) == end)
         var cursor = centralStart, localCursor = 0, result = [String: Data]()
         for _ in 0..<count {
             try reject(try number(cursor,4) == 0x02014b50 && number(cursor+4,2) == 0x0314 && number(cursor+6,2) == 20

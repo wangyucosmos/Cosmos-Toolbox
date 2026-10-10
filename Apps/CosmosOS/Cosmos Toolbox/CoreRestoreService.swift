@@ -14,6 +14,7 @@ nonisolated struct CoreRestoreService {
         var warnings = ["仅恢复元数据。产物实体、外部资料及认证信息未包含；原文件路径只作历史引用，未检查或移动实体。",
             "Provider、Connection、Tool、Route 恢复为禁用/待配置；排除的端点、适配器及自由配置需重新设置，未进行联网或 CLI 验证。"]
         if checked.manifest.version == 1 { warnings.append("旧备份版本未包含 Projects，不恢复或生成个人项目数据。") }
+        if checked.manifest.version < 3 { warnings.append("旧备份版本未包含个人笔记，不恢复也不会建立空的个人笔记库。") }
         for item in checked.manifest.sources where item.status == "present" {
             let raw = entries[item.path!]!
             var safe = raw

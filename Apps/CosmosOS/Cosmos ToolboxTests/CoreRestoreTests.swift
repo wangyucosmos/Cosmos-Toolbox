@@ -39,7 +39,7 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true);roots.append(root);return root
     }
     private func target(_ root:URL,_ memory:RestoreMemory) -> CoreRestoreTarget {
-        .init(preferences:memory,roots:["prompts","learning","handoffs","projects"].map { root.appendingPathComponent($0) },transactionRoot:root.appendingPathComponent("transaction"))
+        .init(preferences:memory,roots:["prompts","learning","handoffs","projects","notes"].map { root.appendingPathComponent($0) },transactionRoot:root.appendingPathComponent("transaction"))
     }
     private func backup(_ root:URL) throws -> (URL,[String:Data]) {
         let encoder = JSONEncoder(); var campaign = ZhuowangCampaign(name:"恢复活动",scopeType:.national,startDate:Date(),endDate:Date())
@@ -61,8 +61,12 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         data["learning"] = try learningEncoder.encode(LearningDocument(topics:[topic],entries:[.init(topicID:topic.id,studyDay:day,body:"  笔记 e\u{301}\r\n尾部  \n")]))
         data["handoffs"] = try encoder.encode(AIWorkspaceHandoffDocument(records:[.init(id:UUID(),recordedAt:Date(),campaignID:UUID(),campaignName:"已删除活动",workflowID:UUID(),workflowName:"历史流程",stepID:UUID(),stepName:"已删除步骤",toolIdentifier:"Codex",toolName:"Codex",goal:"目标",requirements:"  要求\r\n",prompt:"  完整原文 e\u{301}\r\n尾部  \n")]))
         data["projects"] = try ProjectsCoding.encoder().encode(ProjectsDocument())
-        let sourceRoots = ["sourcePrompt","sourceLearning","sourceHandoff","sourceProjects"].map { root.appendingPathComponent($0) }
-        for (index,id) in ["prompts","learning","handoffs","projects"].enumerated() {
+        let noteBody = "  笔记正文 e\u{301}\r\n尾部  \n", firstReference = NoteReference(kind: .link, name: "  资料  ", location: "https://example.test/a")
+        data["notes"] = try PersonalNotesCoding.encoder().encode(PersonalNotesDocument(notes: [PersonalNote(title: "恢复笔记", body: noteBody, category: "分类",
+            versions: [NoteVersion(number: 1, title: "恢复笔记", body: "旧 \r\n", category: nil, recordedAt: Date(timeIntervalSince1970: 100)), NoteVersion(number: 2, title: "恢复笔记", body: noteBody, category: "分类", recordedAt: Date(timeIntervalSince1970: 200))],
+            references: [firstReference, NoteReference(kind: .correction, name: "更正说明", notes: "  链接已更换\r\n", correctsReferenceID: firstReference.id)])]))
+        let sourceRoots = ["sourcePrompt","sourceLearning","sourceHandoff","sourceProjects","sourceNotes"].map { root.appendingPathComponent($0) }
+        for (index,id) in ["prompts","learning","handoffs","projects","notes"].enumerated() {
             try FileManager.default.createDirectory(at:sourceRoots[index],withIntermediateDirectories:true)
             try data[id]!.write(to:sourceRoots[index].appendingPathComponent(CoreRestoreTarget.fileNames[index]+".json"))
         }
@@ -77,7 +81,7 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         let root = try root(),memory = RestoreMemory(),target = target(root,memory)
         let (url,source) = try backup(root),plan = try CoreRestoreService.prepare(url),service = CoreRestoreService(target:target)
         try service.restore(plan);XCTAssertEqual(try service.startup(),"readyToLoad")
-        for id in ["campaigns","workspace","workflows","prompts","learning","handoffs"] { XCTAssertEqual(try target.read(id:id)?.0,source[id]) }
+        for id in ["campaigns","workspace","workflows","prompts","learning","handoffs","notes"] { XCTAssertEqual(try target.read(id:id)?.0,source[id]) }
         let campaigns = try JSONDecoder().decode([ZhuowangCampaign].self, from: try XCTUnwrap(target.read(id: "campaigns")?.0))
         let references = campaigns[0].referenceRecords
         XCTAssertEqual(references.count, 2)
@@ -137,7 +141,7 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         for name in ["templates.json","templates.backup.json",".prompt.lock"] {
             let folder = root.appendingPathComponent("fileTarget-"+name);try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
             try Data("{}".utf8).write(to:folder.appendingPathComponent(name))
-            let fileTarget = CoreRestoreTarget(preferences:RestoreMemory(),roots:[folder,target.roots[1],target.roots[2],target.roots[3]],transactionRoot:target.transactionRoot)
+            let fileTarget = CoreRestoreTarget(preferences:RestoreMemory(),roots:[folder,target.roots[1],target.roots[2],target.roots[3],target.roots[4]],transactionRoot:target.transactionRoot)
             XCTAssertThrowsError(try CoreRestoreService(target:fileTarget).restore(plan))
         }
     }
@@ -228,7 +232,7 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
         let root = try root(),suite = "com.wangyucosmos.CosmosRestore.Test."+UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName:suite));defer { defaults.removePersistentDomain(forName:suite) }
         let source = ZhuowangUserDefaultsDataSource(defaults:defaults,domainIdentifier:suite)
-        let target = CoreRestoreTarget(preferences:source,roots:["p","l","h","j"].map { root.appendingPathComponent($0) },transactionRoot:root.appendingPathComponent("transaction"))
+        let target = CoreRestoreTarget(preferences:source,roots:["p","l","h","j","n"].map { root.appendingPathComponent($0) },transactionRoot:root.appendingPathComponent("transaction"))
         let (url,_) = try backup(root),plan = try CoreRestoreService.prepare(url),service = CoreRestoreService(target:target)
         try service.restore(plan)
         let fresh = ZhuowangUserDefaultsDataSource(defaults:try XCTUnwrap(UserDefaults(suiteName:suite)),domainIdentifier:suite)
@@ -242,7 +246,7 @@ nonisolated private final class RestoreMemory:CoreRestorePreferences,@unchecked 
 
     func testMissingSourcesRemainAbsentAndSafePreviewRenders() throws {
         let root = try root(),memory = RestoreMemory(),target = target(root,memory)
-        let source = CoreBackupSource(readPreference:{ key in key == CoreBackupSource.keys[0] ? Data("[]".utf8) : nil },fileRoots:[root.appendingPathComponent("a"),root.appendingPathComponent("b"),root.appendingPathComponent("c"),root.appendingPathComponent("d")])
+        let source = CoreBackupSource(readPreference:{ key in key == CoreBackupSource.keys[0] ? Data("[]".utf8) : nil },fileRoots:[root.appendingPathComponent("a"),root.appendingPathComponent("b"),root.appendingPathComponent("c"),root.appendingPathComponent("d"),root.appendingPathComponent("e")])
         let url = root.appendingPathComponent("minimal.zip");_ = try CoreBackupService(source:source).export(to:url)
         let plan = try CoreRestoreService.prepare(url);XCTAssertEqual(plan.payloads.count,1)
         try CoreRestoreService(target:target).restore(plan);XCTAssertEqual(memory.all().count,1)

@@ -86,6 +86,15 @@ struct DashboardView: View {
 #endif
     }
 
+    private var personalNotesLocation: PersonalNotesLocation {
+#if DEBUG
+        PersonalNotesLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated, bundleIdentifier: Bundle.main.bundleIdentifier,
+            arguments: ProcessInfo.processInfo.arguments, referenceRoot: isolatedAssetRoot)
+#else
+        PersonalNotesLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+    }
+
     private var coreBackupSource: CoreBackupSource {
 #if DEBUG
         let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
@@ -94,7 +103,8 @@ struct DashboardView: View {
         let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
 #endif
         return CoreBackupSource(configuration: storePersistenceConfiguration,
-            promptRoot: promptVaultLocation.root, learningRoot: learningLocation.root, handoffRoot: handoff.root, projectsRoot: projectsLocation.root)
+            promptRoot: promptVaultLocation.root, learningRoot: learningLocation.root, handoffRoot: handoff.root, projectsRoot: projectsLocation.root,
+            notesRoot: personalNotesLocation.root)
     }
 
     /// Isolated UI acceptance only: run the AI 工作台 detection on arrival.
@@ -221,13 +231,14 @@ struct DashboardView: View {
                 } else if selection == .unifiedSearch {
                     UnifiedSearchView(configuration: storePersistenceConfiguration,
                         projects: projectsLocation, prompts: promptVaultLocation,
-                        learning: learningLocation, assetRoot: isolatedAssetRoot)
+                        learning: learningLocation, notes: personalNotesLocation, assetRoot: isolatedAssetRoot)
                         .id(SidebarItem.unifiedSearch)
 
                 } else if selection == .knowledgeBase {
-                    ZhuowangAssetCenterView(
+                    KnowledgeHubView(
                         configuration: storePersistenceConfiguration,
-                        isolatedRoot: isolatedAssetRoot
+                        isolatedRoot: isolatedAssetRoot,
+                        notesLocation: personalNotesLocation
                     )
                     .id(SidebarItem.knowledgeBase)
 

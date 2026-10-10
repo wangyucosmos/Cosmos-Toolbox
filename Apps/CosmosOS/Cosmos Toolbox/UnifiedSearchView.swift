@@ -6,11 +6,13 @@ struct UnifiedSearchView: View {
     @State private var query = UnifiedSearchQuery()
 
     init(configuration: ZhuowangStorePersistenceConfiguration, projects: ProjectsLocation,
-         prompts: PromptVaultLocation, learning: LearningLocation, assetRoot: URL?) {
+         prompts: PromptVaultLocation, learning: LearningLocation,
+         notes: PersonalNotesLocation, assetRoot: URL?) {
         var roots: [UnifiedSearchSource: URL] = [:], blocked: [UnifiedSearchSource: String] = [:]
         if let root = projects.root { roots[.project] = root } else { blocked[.project] = projects.error?.localizedDescription ?? "位置不可用" }
         if let root = prompts.root { roots[.prompt] = root } else { blocked[.prompt] = prompts.error?.localizedDescription ?? "位置不可用" }
         if let root = learning.root { roots[.learning] = root } else { blocked[.learning] = learning.error?.localizedDescription ?? "位置不可用" }
+        if let root = notes.root { roots[.note] = root } else { blocked[.note] = notes.error?.localizedDescription ?? "位置不可用" }
         let dataSource = configuration.dataSource
         let reader = UnifiedSearchReader(readPreference: { key in
             if let source = dataSource as? ZhuowangUserDefaultsDataSource { return try source.coreBackupData(forKey: key) }
@@ -18,7 +20,7 @@ struct UnifiedSearchView: View {
         }, roots: roots, blocked: blocked)
         _model = StateObject(wrappedValue: UnifiedSearchViewModel(load: { await Task.detached { reader.read() }.value }))
         _navigator = StateObject(wrappedValue: UnifiedSearchNavigator(reader: reader, configuration: configuration,
-            projects: projects, prompts: prompts, learning: learning, assetRoot: assetRoot))
+            projects: projects, prompts: prompts, learning: learning, notes: notes, assetRoot: assetRoot))
     }
     init(model: UnifiedSearchViewModel, navigator: UnifiedSearchNavigator) {
         _model = StateObject(wrappedValue: model); _navigator = StateObject(wrappedValue: navigator)
@@ -31,9 +33,9 @@ struct UnifiedSearchView: View {
                 Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }
                     .disabled(query.keyword.isEmpty)
             }
-            Text("仅检索已保存的元数据：活动名称/说明；Artifact 名称/类型/活动/省份或模块；引用名称/版本/备注/位置；项目与学习主题的名称/目标/下一步；Prompt 名称/分类。")
+            Text("仅检索已保存的元数据：活动名称/说明；Artifact 名称/类型/活动/省份或模块；引用名称/版本/备注/位置；项目与学习主题的名称/目标/下一步；Prompt 名称/分类；个人笔记标题/分类。")
                 .font(.callout).foregroundStyle(.secondary)
-            Text("不检索文件或 Prompt 正文、项目进展或学习历史。不保存搜索记录与索引。点击结果复用原模块详情；引用不会自动打开。")
+            Text("不检索文件、Prompt 或个人笔记的正文与历史、项目进展或学习历史（笔记正文仅可在个人笔记列表内搜索）。不保存搜索记录与索引。点击结果复用原模块详情；引用不会自动打开。")
                 .font(.caption).foregroundStyle(.secondary)
             TextField("输入关键词跨模块搜索", text: $query.text).textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("unified-search-query")
@@ -42,7 +44,7 @@ struct UnifiedSearchView: View {
                     Text("全部来源").tag(Optional<UnifiedSearchSource>.none)
                     ForEach(UnifiedSearchSource.allCases) { Text($0.title).tag(Optional($0)) }
                 }.frame(maxWidth: 220)
-                Toggle("包含归档（项目/Prompt/学习）", isOn: $query.includeArchived)
+                Toggle("包含归档（项目/Prompt/学习/笔记）", isOn: $query.includeArchived)
                 Toggle("Artifact 历史版本", isOn: $query.includeHistory)
             }
             if !model.states.isEmpty {
@@ -78,6 +80,7 @@ struct UnifiedSearchView: View {
                                 Text(row.name).font(.headline)
                                 Text(row.id.source.title).font(.caption).foregroundStyle(.secondary)
                                 if row.archived { Text("已归档").font(.caption).foregroundStyle(.orange) }
+                                if row.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow) }
                                 if row.id.source == .artifact {
                                     Text(row.adoptionConflict ? "采用冲突" : (row.historical ? "历史/未采用" : "当前采用"))
                                         .font(.caption).foregroundStyle(row.adoptionConflict ? Color.orange : Color.secondary)

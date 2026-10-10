@@ -37,6 +37,11 @@ nonisolated struct UnifiedSearchReader {
         let id: UUID; let name: String; let goal: String?; let nextStep: String?; let isArchived: Bool?
     }
     private struct LearningDocument: Decodable { let schemaVersion: Int; let topics: [Topic] }
+    /// 个人笔记只解码标题/分类/状态；正文、内容历史与引用不解码、不保留、不搜索。
+    private struct Note: Decodable {
+        let id: UUID; let title: String; let category: String?; let isArchived: Bool; let isFavorite: Bool
+    }
+    private struct NoteDocument: Decodable { let schemaVersion: Int; let notes: [Note] }
     private enum ReadError: LocalizedError {
         case invalid(String)
         var errorDescription: String? { if case .invalid(let text) = self { return text }; return nil }
@@ -170,6 +175,15 @@ nonisolated struct UnifiedSearchReader {
         } ?? []
         result.rows += topics.map { .init(id: .init(source: .learning, objectID: $0.id), name: $0.name,
             ownership: "学习主题", fields: [field("名称", $0.name), field("目标", $0.goal ?? ""), field("下一步", $0.nextStep ?? "")], archived: $0.isArchived ?? false) }
+        let notes: [Note] = load([.note]) {
+            guard let data = try file(.note, name: "notes") else { return nil }
+            let doc = try decode(NoteDocument.self, data)
+            guard doc.schemaVersion == 1 else { throw ReadError.invalid("个人笔记库版本不受支持。") }
+            try unique(doc.notes.map(\.id)); return doc.notes
+        } ?? []
+        result.rows += notes.map { .init(id: .init(source: .note, objectID: $0.id), name: $0.title,
+            ownership: "个人笔记 · " + ($0.category ?? "未分类"), fields: [field("标题", $0.title), field("分类", $0.category ?? "")],
+            archived: $0.isArchived, favorite: $0.isFavorite) }
         result.rows.sort { $0.id.source.rawValue == $1.id.source.rawValue ? $0.id.objectID.uuidString < $1.id.objectID.uuidString : $0.id.source.rawValue < $1.id.source.rawValue }
         return result
     }

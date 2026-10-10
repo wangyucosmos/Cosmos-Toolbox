@@ -4,29 +4,39 @@ import Darwin
 /// Explicit source list: never initializes a Store or scans a preference domain.
 nonisolated struct CoreBackupSource {
     static let legacyIDs = ["campaigns", "workspace", "workflows", "providers", "connections", "tools", "routes", "prompts", "learning", "handoffs"]
-    static let ids = legacyIDs + ["projects"]
+    /// V2 增加 projects；V3 增加 notes。旧包按其版本的固定源清单校验，不把新源硬套到旧包。
+    static let idsV2 = legacyIDs + ["projects"]
+    static let ids = idsV2 + ["notes"]
+    static func ids(forVersion version: Int) -> [String] {
+        switch version { case 1: return legacyIDs; case 2: return idsV2; default: return ids }
+    }
     static let keys = ["cosmos.zhuowang.campaigns.v1", "cosmos.zhuowang.workspace.v1", "cosmos.zhuowang.workflows.v1",
         "cosmos.zhuowang.ai.providers.v1", "cosmos.zhuowang.ai.connections.v1", "cosmos.zhuowang.ai.toolIntegrations.v1", "cosmos.zhuowang.ai.agentToolRoutes.v1"]
     static let exclusions = ["活动引用仅备份登记记录，不含原文件或网页；产物实体文件、外部知识库、源码仓库、Evidence/Quarantine、Word WIP、系统/工具环境不包含；登记路径仍依赖原文件。",
         "不读取 Keychain、认证文件或凭据；不整域导出 UserDefaults。",
         "Provider 排除 configurationIdentifier 和未知字段；Connection/Tool/Route 排除 configuration、endpointOrPath、adapterIdentifier、notes 和未知字段（不判断自由配置是否含凭据）。"]
+    /// V3 新增：个人笔记引用只备份登记记录。V1/V2 的排除说明保持原文，旧包校验不变。
+    static let notesExclusion = "个人笔记的文件/链接引用只备份登记记录（名称、位置、更正说明），不含文件实体或网页内容；笔记正文与全部内容历史随包保存。"
+    static let currentExclusions = exclusions + [notesExclusion]
+    static func exclusions(forVersion version: Int) -> [String] { version >= 3 ? currentExclusions : exclusions }
+    static let fileRootCount = 5
     let readPreference: (String) throws -> Data?
     let fileRoots: [URL]
     let isolationError: String?
 
-    @MainActor init(configuration: ZhuowangStorePersistenceConfiguration, promptRoot: URL?, learningRoot: URL?, handoffRoot: URL?, projectsRoot: URL?) {
+    @MainActor init(configuration: ZhuowangStorePersistenceConfiguration, promptRoot: URL?, learningRoot: URL?, handoffRoot: URL?, projectsRoot: URL?, notesRoot: URL?) {
         let dataSource = configuration.dataSource
         readPreference = { key in
             if let source = dataSource as? ZhuowangUserDefaultsDataSource { return try source.coreBackupData(forKey: key) }
             return dataSource.data(forKey: key)
         }
-        fileRoots = [promptRoot, learningRoot, handoffRoot, projectsRoot].compactMap { $0 }
-        isolationError = fileRoots.count == 4 ? nil : "文件存储位置或隔离配置不可用；导出已停止，不回退正式目录。"
+        fileRoots = [promptRoot, learningRoot, handoffRoot, projectsRoot, notesRoot].compactMap { $0 }
+        isolationError = fileRoots.count == Self.fileRootCount ? nil : "文件存储位置或隔离配置不可用；导出已停止，不回退正式目录。"
     }
 
     init(readPreference: @escaping (String) throws -> Data?, fileRoots: [URL]) {
         self.readPreference = readPreference; self.fileRoots = fileRoots
-        isolationError = fileRoots.count == 4 ? nil : "缺少明确存储根。"
+        isolationError = fileRoots.count == Self.fileRootCount ? nil : "缺少明确存储根。"
     }
 
     struct Snapshot: Equatable {
@@ -45,7 +55,7 @@ nonisolated struct CoreBackupSource {
             if let raw, raw.count > CoreBackupService.sourceLimit { throw CoreBackupError.invalid("数据源超过 16 MiB。") }
             data.append(raw); revisions.append(nil)
         }
-        let names = ["templates", "learning", "handoffs", "projects"]
+        let names = ["templates", "learning", "handoffs", "projects", "notes"]
         for (index, root) in fileRoots.enumerated() {
             let file = root.appendingPathComponent(names[index] + ".json")
             let value = try CoreBackupService.readFile(file, limit: CoreBackupService.sourceLimit)
@@ -106,6 +116,7 @@ nonisolated struct CoreBackupSource {
                 }
                 try decoder.decode(LearningDocument.self, from: data).validate()
             case "projects": try ProjectsCoding.decoder().decode(ProjectsDocument.self, from: data).validate()
+            case "notes": try PersonalNotesCoding.decoder().decode(PersonalNotesDocument.self, from: data).validate()
             case "handoffs": try decoder.decode(AIWorkspaceHandoffDocument.self, from: data).validate()
             default: throw CoreBackupError.invalid("未知数据源。")
             }

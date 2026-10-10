@@ -370,7 +370,7 @@ final class PromptVersionHistoryTests: XCTestCase {
             try FileManager.default.createDirectory(at: prompts, withIntermediateDirectories: true)
             try raw.write(to: prompts.appendingPathComponent("templates.json"))
             let backupSource = CoreBackupSource(readPreference: { _ in nil },
-                fileRoots: [prompts, source.appendingPathComponent("l"), source.appendingPathComponent("h"), source.appendingPathComponent("j")])
+                fileRoots: [prompts, source.appendingPathComponent("l"), source.appendingPathComponent("h"), source.appendingPathComponent("j"), source.appendingPathComponent("n")])
             let url = source.appendingPathComponent("backup.zip")
             _ = try CoreBackupService(source: backupSource).export(to: url)
             XCTAssertEqual(try CoreBackupArchive.decode(Data(contentsOf: url))["data/prompts.json"], raw, label)

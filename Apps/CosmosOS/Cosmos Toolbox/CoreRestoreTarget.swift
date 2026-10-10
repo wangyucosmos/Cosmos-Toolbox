@@ -30,8 +30,8 @@ nonisolated struct CoreRestoreTarget {
     let roots: [URL]
     let transactionRoot: URL
     var stateURL: URL { transactionRoot.appendingPathComponent("state.json") }
-    static let fileNames = ["templates", "learning", "handoffs", "projects"]
-    static let lockNames = [".prompt.lock", ".learning.lock", ".handoffs.lock", ".projects.lock"]
+    static let fileNames = ["templates", "learning", "handoffs", "projects", "notes"]
+    static let lockNames = [".prompt.lock", ".learning.lock", ".handoffs.lock", ".projects.lock", ".notes.lock"]
 
     @MainActor static func resolve(configuration: ZhuowangStorePersistenceConfiguration) throws -> Self {
         guard let preferences = configuration.dataSource as? ZhuowangUserDefaultsDataSource else { throw CoreRestoreError.invalid("当前数据源不支持受控空环境恢复。") }
@@ -45,7 +45,8 @@ nonisolated struct CoreRestoreTarget {
         let learning = LearningLocation.resolve(isIsolated: isolated, bundleIdentifier: bundle, arguments: arguments)
         let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: isolated, bundleIdentifier: bundle, arguments: arguments)
         let projects = ProjectsLocation.resolve(isIsolated: isolated, bundleIdentifier: bundle, arguments: arguments)
-        guard let p = prompt.root, let l = learning.root, let h = handoff.root, let j = projects.root else { throw CoreRestoreError.invalid("恢复存储位置或隔离配置缺失，未回退正式数据。") }
+        let notes = PersonalNotesLocation.resolve(isIsolated: isolated, bundleIdentifier: bundle, arguments: arguments)
+        guard let p = prompt.root, let l = learning.root, let h = handoff.root, let j = projects.root, let n = notes.root else { throw CoreRestoreError.invalid("恢复存储位置或隔离配置缺失，未回退正式数据。") }
         let control: URL
 #if DEBUG
         if isolated {
@@ -62,11 +63,11 @@ nonisolated struct CoreRestoreTarget {
 #else
         control = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("Cosmos OS/CoreRestore")
 #endif
-        return Self(preferences: preferences, roots: [p,l,h,j], transactionRoot: control)
+        return Self(preferences: preferences, roots: [p,l,h,j,n], transactionRoot: control)
     }
 
     func fileURL(id: String) -> URL? {
-        guard let index = CoreBackupSource.ids.firstIndex(of: id), index >= 7, roots.count == 4 else { return nil }
+        guard let index = CoreBackupSource.ids.firstIndex(of: id), index >= 7, roots.count == CoreBackupSource.fileRootCount else { return nil }
         return roots[index-7].appendingPathComponent(Self.fileNames[index-7] + ".json")
     }
     func preferenceKey(id: String) -> String? {
@@ -82,7 +83,7 @@ nonisolated struct CoreRestoreTarget {
         for key in CoreBackupSource.keys {
             if try preferences.restoreRead(key) != nil || preferences.restoreRead(key + ".backup") != nil { return true }
         }
-        guard roots.count == 4 else { throw CoreRestoreError.invalid("恢复目标根配置无效。") }
+        guard roots.count == CoreBackupSource.fileRootCount else { throw CoreRestoreError.invalid("恢复目标根配置无效。") }
         for (index, root) in roots.enumerated() {
             try CoreBackupService.checkParents(root.appendingPathComponent("probe"))
             for name in [Self.fileNames[index] + ".json", Self.fileNames[index] + ".backup.json", Self.lockNames[index]] {
