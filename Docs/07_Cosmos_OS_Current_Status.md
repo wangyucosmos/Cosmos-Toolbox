@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 活动资料与外部成果引用 Phase 1 用户已接受声明验收范围，阶段正式关闭（§33）；授权仅逐项提交 11 文件并正常推送 main，提交信息 `feat: 新增活动资料与外部成果引用`，预期 parent `5eb45f68d0f091b5c3645a8f5c62550564210c3e`。沿用已接受的有效 46/46、Debug arm64、Universal Release 与日常部署证据，不追加验收。真实点击限制及备份不含文件实体说明保留，实际 Git 结果以本次收尾报告为准。
+**Current stage:** 统一检索 Phase 1 **已接受并关闭**（§34，用户接受声明验收范围，授权提交推送；提交 `feat: 新增跨模块统一检索`，parent `6c86c609337b98eb5bc660091fb875cd5e04791d`，有效收尾提交以 Git 实际记录为准）。阶段内容：隔离引用打开门控已修复（根与目标统一 realpath + 路径组件包含比较），`UnifiedSearchTests` 10 项实测全部通过（含 2 项新增边界用例）；Universal Release 已构建、签名校验并部署到 ~/Applications，保留回退副本，新版正常启动。主开发自查，**非独立第三方复审**；真实 UI 点击、系统实际打开、视觉未覆盖。**可收尾（范围见 §34 验收限制）**。其他暂缓事项不动。
+**Previous stage (活动引用):** 已接受并关闭，有效收尾提交 `6c86c609337b98eb5bc660091fb875cd5e04791d`；main/远端 0/0、干净为已接受交接。本模块开工 HEAD/status 已核对一致，上一阶段验证和部署证据沿用，不重复 fetch 或验收。
 **Previous stage (分类页):** 已接受并关闭，有效基线 `5eb45f68d0f091b5c3645a8f5c62550564210c3e`；本轮 HEAD/status 已核对一致、干净，远端 0/0 沿用交接，不重复 fetch 或历史验收。
 **Previous stage (工作区入口):** 卓望工作区入口接通 Phase 1 已接受并关闭（§31），有效收尾提交 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，沿用既有声明验收范围，不重新验收。
 **Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
@@ -1469,3 +1470,46 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 提交前快速核对 main/HEAD 与实际远端 refs/heads/main 均为预期 parent，工作区仅上述 11 文件，暂存区无既有变更；origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`。按清单逐项暂存，不使用 git add .，不包含业务数据、临时证据或无关成果。
 - 沿用已接受验证、构建与部署证据，保留历史与验收限制；核心备份仅含引用登记记录，不包含文件实体或网页。实际 commit/parent、文件数量、refs、ahead/behind 与工作区状态以本次正常提交推送后的收尾报告为准。
 - 意外变化或冲突即停止集中报告，不重置、不覆盖、不强推；不自动开始下一模块，全部暂缓事项保持不动。
+
+
+## 34. 统一检索 Phase 1 — 2026-10-10（已接受并关闭）
+
+> 阶段关闭：用户已接受本节声明的验收范围与限制（主开发自查、非独立第三方复审；真实 UI 点击、系统实际打开、视觉未覆盖），并授权提交推送。关闭后不追加修复、测试、构建、UI 验收、部署或复审。下一模块需先确定范围。
+
+### 实现成果与边界
+
+- 主开发独自修改本模块，另一个开发工具暂停；未启动子代理或独立复审。第二份用户交接到达时保留已写入的查询模型/字段读取器，接续完成界面与导航，不回退已接受基线，不修改其他模块或恢复旧待办。
+- 新增首页侧栏「统一检索」入口；关键词 → 六来源结果 → 来源、归属、命中字段摘要 → 显式复用原有详情。查询结果身份为来源类型 + 稳定 UUID，不按名称关联。默认隐藏归档（Projects/Prompt/学习）；Artifact 默认当前采用，历史选项与归档分开，沿用采用冲突组保留全部版本口径并提示；无采用组默认隐藏并提示历史入口。
+- 搜索字段严格限定：活动名称/说明，Artifact 名称/类型/活动与省份或模块，外部引用名称/版本标签/备注/位置，Projects 与学习主题的名称/目标/下一步，Prompt 名称/分类。读取现有 JSON 元数据容器并按字段投影解码，不提取/解码/搜索文件正文、Prompt 正文、项目进展、学习记录、Run/Approval 等长内容；不扫描目录或读取引用文件实体，不建持久化索引/搜索历史。
+- 六来源独立状态（已读取/尚未建立/无法读取）及归属源提示；来源错误保持可见，不伪装成零结果、不隐藏其他可读来源。活动与引用分开字段解码，损坏引用字段不连带隐藏活动。稳定身份重复、schema 不支持、主缺失但有备份、类型/路径/超限问题明确错误，不恢复或重建。
+- 复用已有安全固定文件读取 primitive（16 MiB、普通文件/无符号链接/读取期间修订检查），直接读取指定偏好键/文件，不构造业务 Store；缺库零初始化。读取偏好前后核对原字节，变化时错误。统一检索缓存仅内存；空查询不全量展示、不读取业务库，首次非空查询读取，后续关键词/筛选从内存投影，手动刷新重读，离开取消；代次与取消门控阻止较早结果覆盖最新查询，不持续轮询。
+- 导航先重读元数据并按具体来源 ID/活动 ID 再核验，不跳同名对象。显式打开活动复用原生 Campaign 详情；Artifact 复用具体版本的既有资产详情；Projects/Prompt/学习复用已有原生详情编辑窗口，不新增编辑器。用户明确离开搜索打开原有详情后可读取正文及执行原模块既有行为，不视为统一搜索的字段检索；本期搜索本身不初始化 Workflow、执行恢复或采用。
+- 引用先展示所属活动、活动/引用 UUID、原文、版本标签、时间及更正对象，不自动调用系统。仅「打开原文件/链接」重新核验记录后调用系统；引用不是 Artifact、采用或交付资格，备份不包含文件实体的说明保留。
+- DEBUG 沿用各模块隔离 root resolver；文件依赖缺失失败关闭，不回退正式位置。隔离 Campaign 详情明确拒绝（既有自动恢复/迁移风险仍暂缓），测试只验证准确导航目标，不进入正式 Workspace。隔离 Artifact 缺临时根拒绝；引用文件要求位于明确临时根（该门控的历史阻塞及修复见下述「集中验证、唯一修复及阻塞」与「第二轮：打开门控修复」）。
+
+### 集中验证、唯一修复及阻塞
+
+- 首轮集中 `UnifiedSearchTests` 因两处夹具具体数据源方法为 MainActor、不能在非隔离读取闭包直接调用而编译失败，**测试未执行**。证据 `/private/tmp/CosmosUnifiedSearch-Focused.xcresult`、focused.log。
+- 一次集中修复：测试改为调用既有 nonisolated 数据源协议（保留原字节与零写入断言），活动/引用解码拆开并补充引用故障不隐藏活动断言。没有削弱有效验证、修改既有持久化 schema 或业务 Store。
+- 修复后仅运行受影响的统一检索新测试：**8 项实际执行，7 通过、1 失败，0 skipped**。Debug arm64 App/XCTest 宿主编译链接成功，不是 Universal 独立构建；没有重新执行已关闭模块或历史全套。证据 `/private/tmp/CosmosUnifiedSearch-Fixed.xcresult`、fixed.log。
+- 通过的 7 项覆盖六来源/跨来源相同 UUID 与同名对象、只搜索白名单字段（正文/历史用不兼容值证明未解码及未命中）、来源筛选/命中字段摘要、归档与历史区别/采用冲突口径、活动/引用故障隔离/其他源失败/身份重复/缺主有备份、缺库/隔离依赖/符号链接失败关闭、空查询零读取/内存筛选/手动刷新/取消/故意迟到发布拒绝、精确导航目标/删除不跳同名对象/隔离 Campaign 拒绝、搜索 UI 空查询离屏布局零业务初始化。内存源原字节与 writeCount、固定源文件原字节及无新文件检查通过。
+- 失败项 `testReferenceInspectionNeverOpensAndExplicitOpenRevalidatesTemporaryBoundary`：预期临时文件 URL 传给系统调用替身，实际收集数组为空。不能据该失败项宣称引用显式打开或整条引用交互验收通过。
+- 定位：`UnifiedSearchNavigation.openReference` 的 isolated file 门控使用 ref.location 原路径，与 assetRoot.standardizedFileURL.path 比较。只读路径诊断确认：不存在目录时 /private/tmp 字符串保持；实际存在的随机临时目录 standardization 变为 /tmp，原文件路径仍 /private/tmp，因此前缀判断 false。证据是诊断输出；未更改保存路径或进行第二次源码修复，不把这个前缀探针称作完整测试验收。
+- **最小追加范围**：UnifiedSearchNavigation.swift 的根/文件路径一致比较，保持根外拒绝和不修复原记录，并更新/验证 UnifiedSearchTests.swift 的有效临时文件打开、根外/缺根拒绝项。当前唯一修复额度已用完，遵循停止条件，不继续循环修改或测试，也未申请自动追加额度。
+- 未覆盖真实侧栏/输入/筛选/已有窗口点击、所有原生详情安全挂载、实际系统打开或视觉验收。导航目标由纯模型测试覆盖；引用替身交互项未通过。旧隔离 Campaign 风险未修复、未用正式数据测试，不要求用户逐步点击。
+
+### 第二轮：打开门控修复、验证与部署（用户明确授权的一轮集中处理）
+
+- **根因**：`openReference` 隔离门控用 `assetRoot.standardizedFileURL.path`（/tmp/...）与未标准化的 `ref.location`（/private/tmp/...）做字符串前缀比较，有效临时文件被误拒。
+- **修复**（仅 `UnifiedSearchNavigation.swift`）：新增 `UnifiedSearchNavigator.isolatedContainmentFailure(location:root:)`——先拒绝非绝对路径/NUL/含 `..` 的路径；根与目标均经 `realpath()` 规范化（/tmp 与 /private/tmp 合法别名等价，符号链接逃逸解析后落在根外）；再按**路径组件**判断严格后代（不用字符串前缀，同名前缀目录 `<root>-evil`、根本身均拒绝）。解析失败（缺失/不可访问）拒绝并给出具体原因；缺根仍拒绝。之后仍走既有 `ref.openURL()`（含祖先符号链接拒绝、普通文件/可读性检查），未扩大允许根、未关闭 DEBUG 隔离、未改保存路径、不修复原记录。非隔离路径行为未变。
+- **新增测试**（`UnifiedSearchTests.swift`，无硬编码路径、未弱化断言）：①`testIsolatedContainmentAcceptsSystemAliasButRejectsOutsideSiblingTraversalAndSymlinkEscape`——别名根/别名目标接受；根外文件、同名前缀兄弟目录、根自身、缺失文件、`..` 穿越、相对路径、文件符号链接与目录符号链接逃逸均拒绝；②`testExplicitOpenAcceptsAliasedRootButStillRefusesOutsideAndSymlinkReferences`——以 /tmp 别名作 assetRoot 时有效引用被交给系统替身；换成无关根则拒绝且不再调用。
+- **本轮实测**：`UnifiedSearchTests` 整个测试类（同一次编译）**10 项实际执行，10 通过，0 失败，0 skipped**（Debug arm64，证据 `/private/tmp/CosmosUnifiedSearch-Final.xcresult`、`CosmosUnifiedSearch-final.log`）。此前失败的 `testReferenceInspectionNeverOpensAndExplicitOpenRevalidatesTemporaryBoundary` 现通过。其余 7 项未改动代码路径，本次同批重跑亦通过；未跑全套、未重复历史构建/fetch。`git diff --check` 通过。仅用隔离临时数据与临时文件，未打开正式业务文件。
+- **部署**（复用 `scripts/deploy-macos.py`，日志 `/private/tmp/CosmosUnifiedSearch-deploy.log`）：Universal Release 构建成功；`lipo -archs` = x86_64 arm64；`codesign --verify --deep --strict` 通过；Bundle ID `com.wangyucosmos.Cosmos-Toolbox`，Info.plist 记录 Release / commit `6c86c609…` / `CosmosBuildDirty=true`（含未提交改动，符合预期）；旧 App 正常退出（未强杀、无未保存阻止）；回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-214114-20b30bac.app`（身份校验为同 Bundle ID）；新版已安装于 `~/Applications/Cosmos Toolbox.app` 并正常启动（PID 16687）。部署脚本不读写业务数据，未用正式数据测试。
+- **证据来源区分**：本轮实测 = 上述 10 项测试、diff check、Universal 构建/签名/架构/安装/启动校验；沿用证据 = 首轮 8 项中未受影响的 7 项通过结论（同批重跑也通过）、既有已接受阶段基线；**未覆盖** = 真实侧栏/输入/筛选/窗口点击、各原生详情窗口安全挂载、系统实际打开文件/链接、视觉验收（工具无法安全自动完成，不安排用户逐步点击；已启动的正式 App 未做业务操作）。
+- **验收限制**：以上为主开发自查，本工具参与修改，不能称独立第三方复审。DEBUG 隔离 Campaign 详情拒绝的既有风险按用户指示不恢复待办。
+
+### 文件、部署及实际状态（第一轮记录，部署与 Git 状态以第二轮为准）
+
+- **9 文件**：新增 UnifiedSearchModels.swift、UnifiedSearchReader.swift、UnifiedSearchViewModel.swift、UnifiedSearchNavigation.swift、UnifiedSearchView.swift、UnifiedSearchTests.swift；修改 DashboardView.swift（仅侧栏与分支接线、SidebarItem 枚举、DEBUG 初始入口白名单），本文件及当日 Development Log。部署脚本、旧 Store、业务 schema 与其他正式文档未改。
+- （第一轮当时状态）存在阻塞、未部署；已被第二轮取代：阻塞已修复，Universal Release 已部署（见上）。
+- 本地分支 main，HEAD `6c86c609337b98eb5bc660091fb875cd5e04791d` 不变；本阶段 9 文件（第二轮另修改 UnifiedSearchNavigation.swift、UnifiedSearchTests.swift，仍在这 9 文件内）经用户授权于阶段关闭时提交并推送，提交信息 `feat: 新增跨模块统一检索`；实际 commit/远端状态以 Git 为准。没有 fetch/远端查询，远端同步状态沿用已接受交接而非本轮实测；不写业务数据、其他仓库或知识库。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。

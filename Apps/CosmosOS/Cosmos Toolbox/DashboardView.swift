@@ -28,7 +28,7 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings", "macOptimizer", "projects"].contains(arguments[index + 1]) {
+           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings", "macOptimizer", "projects", "unifiedSearch"].contains(arguments[index + 1]) {
             _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
@@ -128,6 +128,7 @@ struct DashboardView: View {
 
                 Section("首页 · Home") {
                     sidebarRow(.dashboard)
+                    sidebarRow(.unifiedSearch)
                 }
 
                 Section("工作 · Work") {
@@ -216,6 +217,12 @@ struct DashboardView: View {
                                     )
                             )
                         )
+
+                } else if selection == .unifiedSearch {
+                    UnifiedSearchView(configuration: storePersistenceConfiguration,
+                        projects: projectsLocation, prompts: promptVaultLocation,
+                        learning: learningLocation, assetRoot: isolatedAssetRoot)
+                        .id(SidebarItem.unifiedSearch)
 
                 } else if selection == .knowledgeBase {
                     ZhuowangAssetCenterView(
@@ -488,6 +495,7 @@ enum SidebarItem:
     Identifiable {
 
     case dashboard
+    case unifiedSearch
     case zhuowang
     case projects
     case knowledgeBase
@@ -506,6 +514,9 @@ enum SidebarItem:
     var chineseName: String {
 
         switch self {
+
+        case .unifiedSearch:
+            return "统一检索"
 
         case .dashboard:
             return "仪表盘"
@@ -541,6 +552,9 @@ enum SidebarItem:
 
         switch self {
 
+        case .unifiedSearch:
+            return "Unified Search"
+
         case .dashboard:
             return "Dashboard"
 
@@ -574,6 +588,9 @@ enum SidebarItem:
     var icon: String {
 
         switch self {
+
+        case .unifiedSearch:
+            return "magnifyingglass"
 
         case .dashboard:
             return "square.grid.2x2"
