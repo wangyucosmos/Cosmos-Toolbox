@@ -55,3 +55,5 @@
 - 第二步未改已有业务数据格式；新增只有 KnowledgeSources 来源登记 schema1，第一步回退程序会忽略该文件，无害。旧程序不会因此重置已有业务库；本轮未以真实数据执行回退冒烟，已有提示词schema2与备份V3的历史降级限制仍适用。
 - Current Status 已改为“第二步 A/B 已集成并部署，在 integration/ui-step2 等待用户体验验收；main未变”，低于40KB。文档之外未再修改文件，AGENTS及§23不动。
 - 最终结论：可交用户体验第二步集成版本；没有合并冲突、构建或核心测试阻塞。250个唯一测试通过，集中夹具复测不重复计数。main / origin/main仍为b57d5aa；A为7d783bb，B为c8d3349，正式目录在integration/ui-step2；两个feature worktree保留且干净，无推送、无清理。第三步不自动开始。
+
+- 第二步正式收尾：用户实际体验并接受声明的验收范围；main 从 b57d5aa 快进到 a0cd690 并正常推送，HEAD/main/origin/main/远端 main 一致、0/0、工作区干净；以非强制方式移除 step2a-pages、step2b-knowledge 两个 worktree，prune 后用 branch -d 删除 feature/ui-upgrade-step2a、feature/knowledge-sources-step2b、integration/ui-step2，并删除空父目录；指定 Word/PDF WIP 引用未变；本次仅更新验收文档，不重建、不测试、不部署，文档单独提交并正常推送。
