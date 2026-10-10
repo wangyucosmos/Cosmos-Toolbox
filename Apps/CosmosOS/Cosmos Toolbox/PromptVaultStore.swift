@@ -39,6 +39,23 @@ final class PromptVaultStore: ObservableObject {
             return false
         }
     }
+    enum RestoreOutcome: Equatable { case restored, unchanged, failed }
+    /// Saves the snapshot's name/body/category as a new current content version. The snapshot is resolved
+    /// from the latest disk document and the revision is re-checked there; failure publishes nothing.
+    func restore(templateID: UUID, versionID: UUID, expectedRevision: Int) async -> RestoreOutcome {
+        guard canSave, let storage else { return .failed }
+        saving = true
+        defer { saving = false }
+        do {
+            let result = try await storage.restoreVersion(templateID: templateID, versionID: versionID,
+                expectedRevision: expectedRevision)
+            templates = result.templates
+            error = nil; return result.changed ? .restored : .unchanged
+        } catch {
+            self.error = (error as? PromptVaultError) ?? .storage(error.localizedDescription)
+            return .failed
+        }
+    }
     func setFavorite(_ template: PromptTemplate) async {
         var candidate = template; candidate.isFavorite.toggle()
         _ = await save(candidate, expectedRevision: template.revision)

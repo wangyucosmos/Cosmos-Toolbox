@@ -3,6 +3,7 @@ import SwiftUI
 struct PromptVaultView: View {
     @StateObject private var store: PromptVaultStore
     @StateObject private var model = PromptVaultViewModel()
+    @State private var pendingRestore: PromptVersionEntry?
     init(location: PromptVaultLocation) {
         _store = StateObject(wrappedValue: PromptVaultStore(root: location.root, startupError: location.error))
     }
@@ -89,7 +90,7 @@ struct PromptVaultView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 Text(template.name).font(.title2)
-                Text("\(template.category ?? "未分类") · 已保存 r\(template.revision)\(template.isArchived ? " · 已归档" : "")")
+                Text("\(template.category ?? "未分类") · 已保存 r\(template.revision)\(template.contentVersion.map { " · 内容 v\($0)" } ?? "")\(template.isArchived ? " · 已归档" : "")")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("编辑", systemImage: "square.and.pencil") {
@@ -125,7 +126,73 @@ struct PromptVaultView: View {
                     Button("复制原始模板") { model.copyOriginal(template) }
                 }
                 Text(model.copyMessage).font(.caption).foregroundStyle(.secondary)
+                Divider()
+                history(template)
             }.padding(12)
         }
+    }
+    private static let timeText: Date.FormatStyle = .dateTime.year().month().day().hour().minute().second()
+    private func timeLabel(_ entry: PromptVersionEntry, _ template: PromptTemplate) -> String {
+        switch entry.kind {
+        case .legacyCurrent: return "无独立记录时间 · 模板更新于 " + template.updatedAt.formatted(Self.timeText)
+        case .upgradeBaseline: return (entry.recordedAt ?? template.updatedAt).formatted(Self.timeText) + "（沿用升级前的模板更新时间，非实际编辑时间）"
+        default: return (entry.recordedAt ?? template.updatedAt).formatted(Self.timeText)
+        }
+    }
+    private func history(_ template: PromptTemplate) -> some View {
+        let entries = template.versionEntries, viewed = model.viewedEntry(of: template)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("版本历史").font(.headline)
+            if template.versions.isEmpty {
+                Text("此模板保存于版本历史功能之前：当前内容显示为「升级前当前内容」。首次修改内容并保存时，会连同旧内容一起保留；收藏与归档不产生内容版本。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(entries) { entry in
+                Button { model.viewEntry(entry, of: template) } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(entry.label).fontWeight(entry.isCurrent ? .semibold : .regular)
+                            Text(entry.name).lineLimit(1)
+                            Spacer()
+                            if entry.id == viewed.id { Image(systemName: "eye") }
+                        }
+                        Text(timeLabel(entry, template)).font(.caption).foregroundStyle(.secondary)
+                    }.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).padding(6)
+                .background(entry.id == viewed.id ? Color.accentColor.opacity(0.12) : Color.clear)
+                .accessibilityIdentifier("prompt-version-" + entry.id.uuidString)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("正在查看：\(viewed.label) · \(viewed.name) · \(viewed.category ?? "未分类")").font(.subheadline)
+                Text(viewed.body).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(12).background(.background)
+                    .accessibilityIdentifier("prompt-version-body")
+                HStack {
+                    Button("复制此版本正文（\(viewed.label)）", systemImage: "doc.on.doc") { model.copyVersion(viewed) }
+                        .accessibilityIdentifier("prompt-version-copy")
+                    if !viewed.isCurrent {
+                        Button("恢复此版本…", systemImage: "clock.arrow.circlepath") { pendingRestore = viewed }
+                            .disabled(!store.canSave).accessibilityIdentifier("prompt-version-restore")
+                    }
+                }
+            }
+            Text(model.historyMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+        }
+        .alert("将 \(pendingRestore?.label ?? "") 恢复为新的当前版本？", isPresented: Binding(
+            get: { pendingRestore != nil }, set: { if !$0 { pendingRestore = nil } })) {
+            Button("取消", role: .cancel) { pendingRestore = nil }
+            Button("恢复") {
+                guard let entry = pendingRestore else { return }
+                pendingRestore = nil
+                Task {
+                    let dirty = PromptTemplateWindowManager.shared.hasUnsavedDraft(store: store, templateID: template.id)
+                    if await model.restore(entry, of: template, in: store, hasUnsavedDraft: dirty),
+                       let saved = store.templates.first(where: { $0.id == template.id }) {
+                        PromptTemplateWindowManager.shared.syncCleanSession(store: store, saved: saved)
+                    }
+                }
+            }
+        } message: { Text("所选版本的名称、正文、分类会保存为一个新的当前内容版本；全部历史保留，收藏与归档状态不变。") }
     }
 }

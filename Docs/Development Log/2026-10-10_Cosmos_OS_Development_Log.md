@@ -290,3 +290,14 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 - 部署：`scripts/deploy-macos.py`，Universal Release（x86_64 + arm64）、ad-hoc 签名 `--deep --strict` 通过、Bundle ID 正确；旧 App 正常退出，回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-214114-20b30bac.app`；新版装入 `~/Applications/Cosmos Toolbox.app` 并启动（PID 16687）。日志 `/private/tmp/CosmosUnifiedSearch-deploy.log`。Info.plist 标记含未提交改动。
 - 证据区分：本轮实测=10 项测试、diff check、构建/签名/架构/安装/启动；沿用=首轮其余 7 项结论与已接受历史阶段；未覆盖=真实侧栏/输入/筛选/窗口点击、原生详情窗口挂载、系统实际打开、视觉。主开发自查，非独立第三方复审。
 - 结论：可收尾（范围见 Current Status §34 验收限制）。**阶段关闭**：用户接受声明验收范围与限制，授权逐项提交并正常推送 9 个文件（提交信息 `feat: 新增跨模块统一检索`，预期 parent `6c86c609…`）；沿用已接受的测试、构建、部署证据，不追加修复/测试/构建/UI 验收/部署/复审，不另做知识库沉淀。不开始下一模块。暂缓事项（Word WIP、Step06 Harness、客服文档 V1、Evidence/Quarantine、旧 P3）不动；未写其他仓库、知识库或正式业务数据。
+
+## 提示词版本管理 Phase 1 — 实现、验证与部署
+
+- 基线 `16b94630530ad0c3984238c909b2088781dee420`；使用 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`（未操作会话默认的另一检出）。读取 Current Status Prompt Vault/备份/恢复章节及 Prompt Vault、备份源、统一检索相关代码；其他历史沿用。
+- 实现：`PromptVersion` 不可变快照（UUID、连续 number、名称/原文正文/分类、recordedAt、升级前基线标记）；存储事务重构为 mutation 闭包（save / restoreVersion 共用 flock、写前备份、读回校验），内容变化与历史在同一次原子写入；字节级内容比较；schemaVersion 1 只读兼容、写入统一 2，未知/损坏锁定；历史结构校验与 500 版本/16 MiB 容量（`capacityExceeded` 不锁定模块）；详情页版本历史（查看/复制/恢复确认）；编辑窗口草稿检查与干净会话同步；统一检索接受 schema 2（仍只搜当前元数据）。
+- 决策：不把 revision 推断成历史；旧模板首次内容编辑才写入“升级前内容”基线，日期沿用原 updatedAt；schema 2 使旧 App 明确拒绝而不是静默丢历史；历史版本只读原文，不做变量填充。
+- 验证：首轮集中 74 项（新增 14 + PromptVaultPersistence/State、Renderer、UnifiedSearch、CoreBackup、CoreRestore 既有项）73 通过 / 1 失败——失败是新测试夹具未排除空写锁文件，不是产品缺陷；集中修复只调整夹具，PromptVersionHistoryTests 14/14 通过；既有 60 项沿用首轮结果。既有夹具（PromptVaultPersistenceTests 的“未知版本”）由 schemaVersion 2 改为 3，因为 2 现为受支持版本。证据 `/private/tmp/CosmosPromptVersion-Focused.xcresult`、`-Fixed2.xcresult`。diff check 通过。
+- 部署：`scripts/deploy-macos.py` Universal Release（x86_64+arm64）、签名与身份校验通过，旧 App 正常退出，回退副本 `Cosmos Toolbox-20261010-221309-76163034.app`，新版 PID 18957 已启动；日志 `/private/tmp/CosmosPromptVersion-deploy.log`。未用正式数据测试。
+- 缺口：真实窗口点击/剪贴板实复制/原生退出提醒联动/视觉未覆盖（离屏挂载零写入除外）。
+- 结论：可收尾；主开发自查，非独立第三方复审。**阶段关闭**：用户接受声明验收范围，授权逐项提交并正常推送 11 个文件（`feat: 新增提示词版本历史与恢复`，预期 parent `16b94630…`），沿用已接受证据，不追加测试/构建/UI 验收/部署/复审；不开始下一模块；暂缓事项不动。
+- 数据降级边界更正：`templates.backup.json` 是滚动备份，每次成功保存前会被“该次写入前的主文件字节”替换，首次升级之后的后续保存可能把它覆盖成 schema 2 内容，不能当作永久降级副本；App 回退副本也不保障数据降级。只有用户确实另行保留的 schema 1 数据副本才能供旧程序使用。本期未新增备份功能。

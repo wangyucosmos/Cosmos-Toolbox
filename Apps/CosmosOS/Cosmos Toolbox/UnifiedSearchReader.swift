@@ -157,7 +157,7 @@ nonisolated struct UnifiedSearchReader {
         let prompts: [Prompt] = load([.prompt]) {
             guard let data = try file(.prompt, name: "templates") else { return nil }
             let doc = try decode(PromptDocument.self, data)
-            guard doc.schemaVersion == 1 else { throw ReadError.invalid("提示词库版本不受支持。") }
+            guard doc.schemaVersion == 1 || doc.schemaVersion == 2 else { throw ReadError.invalid("提示词库版本不受支持。") }
             try unique(doc.templates.map(\.id)); return doc.templates
         } ?? []
         result.rows += prompts.map { .init(id: .init(source: .prompt, objectID: $0.id), name: $0.name,

@@ -33,6 +33,11 @@ final class PromptTemplateEditSession: ObservableObject {
         baseline = saved; draft = saved; message = "已保存。"
         return true
     }
+    /// After a version restore: a clean editor follows the new saved content; a dirty draft is never touched.
+    func adoptSavedIfClean(_ saved: PromptTemplate) {
+        guard !saving, !isDirty, saved.id == draft.id else { return }
+        baseline = saved; draft = saved
+    }
     func reload() async {
         guard !saving else { return }
         await store.reload()
@@ -121,6 +126,13 @@ final class PromptTemplateWindowManager: NSObject, NSWindowDelegate {
     private var approved: Set<String> = []
     private var terminationPending = false
 
+    private func keyPrefix(_ store: PromptVaultStore) -> String { store.storageIdentity + "::" }
+    func hasUnsavedDraft(store: PromptVaultStore, templateID: UUID) -> Bool {
+        entries[keyPrefix(store) + templateID.uuidString]?.session.isDirty ?? false
+    }
+    func syncCleanSession(store: PromptVaultStore, saved: PromptTemplate) {
+        entries[keyPrefix(store) + saved.id.uuidString]?.session.adoptSavedIfClean(saved)
+    }
     func open(store: PromptVaultStore, template: PromptTemplate?) {
         guard !terminationPending else { return }
         let session = PromptTemplateEditSession(store: store, template: template)

@@ -68,7 +68,7 @@ final class PromptVaultPersistenceTests: XCTestCase {
     func testCorruptUnknownSchemaDuplicatesAndMissingCoreIdentityLock() async throws {
         let fixtures: [(Data, PromptVaultError)] = [
             (Data("bad".utf8), .corruptData),
-            (Data(#"{"schemaVersion":2,"templates":[]}"#.utf8), .unsupportedSchema),
+            (Data(#"{"schemaVersion":3,"templates":[]}"#.utf8), .unsupportedSchema),
             (Data(#"{"schemaVersion":1,"templates":[{"name":"n","body":"b","createdAt":0}]}"#.utf8), .corruptData)
         ]
         for (data, error) in fixtures {

@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 统一检索 Phase 1 **已接受并关闭**（§34，用户接受声明验收范围，授权提交推送；提交 `feat: 新增跨模块统一检索`，parent `6c86c609337b98eb5bc660091fb875cd5e04791d`，有效收尾提交以 Git 实际记录为准）。阶段内容：隔离引用打开门控已修复（根与目标统一 realpath + 路径组件包含比较），`UnifiedSearchTests` 10 项实测全部通过（含 2 项新增边界用例）；Universal Release 已构建、签名校验并部署到 ~/Applications，保留回退副本，新版正常启动。主开发自查，**非独立第三方复审**；真实 UI 点击、系统实际打开、视觉未覆盖。**可收尾（范围见 §34 验收限制）**。其他暂缓事项不动。
+**Current stage:** 提示词版本管理 Phase 1 **已接受并关闭**（§35，用户接受声明验收范围并授权提交推送；提交 `feat: 新增提示词版本历史与恢复`，预期 parent `16b94630530ad0c3984238c909b2088781dee420`，实际提交以 Git 记录为准；沿用已接受证据，不追加测试/构建/UI 验收/部署/复审）。阶段内容：编辑保存保留内容版本 → 查看历史原文 → 复制指定版本 → 确认后把旧内容恢复为新版本；存储格式 schemaVersion 2（读取旧 1，首次写入才升级）。聚焦验证 74 项（新增 14 + 既有 60）全部通过；Universal Release 已部署、保留回退副本。主开发自查，非独立第三方复审；真实窗口点击、系统剪贴板实复制、视觉未覆盖。**可收尾（范围见 §35 验收限制）**。Git 收尾已获授权。
+**Previous stage (统一检索):** 统一检索 Phase 1 **已接受并关闭**（§34，用户接受声明验收范围并授权提交推送；提交 `16b94630530ad0c3984238c909b2088781dee420`，parent `6c86c609337b98eb5bc660091fb875cd5e04791d`）。阶段内容：隔离引用打开门控已修复（根与目标统一 realpath + 路径组件包含比较），`UnifiedSearchTests` 10 项实测全部通过（含 2 项新增边界用例）；Universal Release 已构建、签名校验并部署到 ~/Applications，保留回退副本，新版正常启动。主开发自查，**非独立第三方复审**；真实 UI 点击、系统实际打开、视觉未覆盖。**可收尾（范围见 §34 验收限制）**。其他暂缓事项不动。
 **Previous stage (活动引用):** 已接受并关闭，有效收尾提交 `6c86c609337b98eb5bc660091fb875cd5e04791d`；main/远端 0/0、干净为已接受交接。本模块开工 HEAD/status 已核对一致，上一阶段验证和部署证据沿用，不重复 fetch 或验收。
 **Previous stage (分类页):** 已接受并关闭，有效基线 `5eb45f68d0f091b5c3645a8f5c62550564210c3e`；本轮 HEAD/status 已核对一致、干净，远端 0/0 沿用交接，不重复 fetch 或历史验收。
 **Previous stage (工作区入口):** 卓望工作区入口接通 Phase 1 已接受并关闭（§31），有效收尾提交 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，沿用既有声明验收范围，不重新验收。
@@ -1513,3 +1514,51 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - **9 文件**：新增 UnifiedSearchModels.swift、UnifiedSearchReader.swift、UnifiedSearchViewModel.swift、UnifiedSearchNavigation.swift、UnifiedSearchView.swift、UnifiedSearchTests.swift；修改 DashboardView.swift（仅侧栏与分支接线、SidebarItem 枚举、DEBUG 初始入口白名单），本文件及当日 Development Log。部署脚本、旧 Store、业务 schema 与其他正式文档未改。
 - （第一轮当时状态）存在阻塞、未部署；已被第二轮取代：阻塞已修复，Universal Release 已部署（见上）。
 - 本地分支 main，HEAD `6c86c609337b98eb5bc660091fb875cd5e04791d` 不变；本阶段 9 文件（第二轮另修改 UnifiedSearchNavigation.swift、UnifiedSearchTests.swift，仍在这 9 文件内）经用户授权于阶段关闭时提交并推送，提交信息 `feat: 新增跨模块统一检索`；实际 commit/远端状态以 Git 为准。没有 fetch/远端查询，远端同步状态沿用已接受交接而非本轮实测；不写业务数据、其他仓库或知识库。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。
+
+---
+
+## 35. 提示词版本管理 Phase 1 — 2026-10-10（已接受并关闭）
+
+基线 `16b94630530ad0c3984238c909b2088781dee420`（统一检索收尾提交），开工 HEAD/status 核对一致、工作区干净。仓库 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`。Claude 主开发，Codex 暂停；已关闭阶段沿用声明证据。
+
+### 产品流程与版本语义
+
+- 编辑并保存 → 每次名称/正文/分类**实际变化**保存一个不可变内容快照 → 详情页「版本历史」列出（当前内容 / 历史版本，显示 vN、名称、实际记录时间）→ 点选查看完整原文 → 「复制此版本正文」→ 「恢复此版本…」确认后把该版本的名称、正文、分类保存为**新的当前内容版本**（全部历史保留）。
+- 模板 UUID、createdAt 稳定；版本有独立 UUID 与连续递增的内容版本号 `number`（1…n），**与乐观锁 `revision` 分开**（revision 仍每次保存 +1，用于冲突）。快照记录名称、**完整正文原文**、分类、`recordedAt`（保存时刻）。正文及变量表达式按 UTF-8 字节保存，不规范化换行/Unicode/空白、不截断；内容是否变化按**字节**比较（`e`+U+0301 与 U+00E9 视为不同，不被 Swift `String ==` 的规范等价吞掉）。名称/分类沿用既有校验与 trim，快照记录实际保存值。
+- 收藏、归档、恢复归档只更新现有元数据（revision/updatedAt），**不产生内容版本**；内容相同的再次保存也不新增。快照不可修改、删除或自动裁剪；没有历史删除接口。
+- 新模板首次保存建立 v1。旧模板（无历史）显示单条「升级前当前内容」，**不把 revision 推断成历史版本**；其首次内容修改在**同一受保护事务**中写入 v1「升级前内容」（`isUpgradeBaseline`，`recordedAt` 沿用该模板原有 `updatedAt`，界面注明“非实际编辑时间”；元数据操作也会更新 updatedAt，因此它只代表“已有信息”，不编造历史）与 v2 新内容。
+- 恢复：快照由**磁盘最新文档**按版本 UUID 取得（不信任界面传入内容），同一事务内再次核对 `revision`；保持 UUID、createdAt、收藏、归档；所选内容与当前完全相同 → 不写盘、不新增版本（提示“完全相同”）。旧窗口/旧修订恢复 → 冲突，不覆盖。编辑窗口有**未保存草稿**时恢复被拒绝并提示（草稿不被覆盖，仍走保存/放弃/取消与退出保护）；无草稿的干净编辑窗口恢复后跟随新保存内容，脏草稿后续保存时按既有冲突流程保留。
+
+### 存储格式与兼容策略
+
+- `PromptVaultDocument.schemaVersion`：**1**（旧，无历史）与 **2**（新，模板可带 `versions`）。新版读取 1 与 2；读取**绝不写盘、不建历史、不改原文件**（测试对比目录全部字节与文件列表）；任何一次成功写入统一输出 schema 2，写前仍备份原主文件的**精确字节**（首次升级写入时，该次写入前的旧 v1 字节会进入 `templates.backup.json`，但见下条：它是滚动备份，不是永久保留）。未知 schema（如 3）、损坏、重复身份、缺主有备份：读取失败并锁定保存，不用空库覆盖。
+- 历史结构校验（读取与写入前都校验）：版本号必须为 1…n 连续、版本 UUID 全文档唯一、快照名称/正文非空白、升级前基线只能是第一条、**最新快照必须与当前内容逐字节一致**（防撕裂/手改）、`versions` 只能出现在 schema 2、每模板至多 500 个版本。
+- 当前内容与历史由同一次写入原子发布（沿用 flock、写前备份与读回校验、rename 原子替换）；失败不发布半成品。草稿传入的 `versions` 一律忽略，由存储用磁盘最新记录重建。
+- 容量：沿用整库 16 MiB 与每模板 500 版本；超限新增 `capacityExceeded`（**不锁定模块**，草稿与全部历史保留，不删除历史腾空间，仅元数据操作在上限处仍可用）。原先整库超限报 `.storage`（会锁定保存），现改为该明确错误。
+- **与旧 App 的兼容限制**：旧版（无历史）只认 schemaVersion 1，打开 schema 2 文件会得到 `unsupportedSchema` 并禁止保存，不会静默丢失历史——这是有意保护。**App 回退副本只能回退程序，不保障数据格式可降级**：一旦新版写过提示词库（schema 2），旧程序将无法编辑它。`templates.backup.json` 是**滚动备份**——每次成功保存前都会用“该次写入前的主文件字节”替换它，所以首次升级之后的任何后续保存（含收藏/归档等元数据保存）都可能把它覆盖成 schema 2 内容，**不能**视为永久的降级副本。只有用户确实另行保留的 schema 1 数据副本（例如升级前手工复制的 `templates.json`，或升级前导出且仍保存着的核心备份包——注意备份包不会被本期自动创建）才能供旧程序使用，且回退后会丢失升级后产生的全部新版本。本期未新增任何备份功能。新版备份包中的 `data/prompts.json` 同样是 schema 2，旧版校验/恢复会拒绝它；备份包清单版本未变。
+
+### 其它既有能力
+
+- 核心备份：`prompts` 载荷校验复用 `PromptVaultDocument.validate()`，新历史结构被校验，旧 v1 载荷继续接受；导出为文件原字节，校验与 `CoreRestoreService.prepare` 解析出的 prompts 载荷与源逐字节一致（含历史）。空环境恢复沿用原字节写入，无新代码路径。
+- 统一检索：`UnifiedSearchReader` 提示词 schema 门控改为接受 1 或 2（否则升级后整个提示词源会报“版本不受支持”）；字段投影未变，**仍只搜当前模板名称/分类，不搜历史**（测试：历史名称/正文不可检索）。
+- 变量使用：渲染仍只读当前已保存正文；历史版本只显示/复制原文，**本期没有历史版本变量填充**；「复制原始模板」与「复制完整结果」行为未变。收藏/归档/分类筛选/Dashboard 收藏读取兼容（`PromptTemplate` 顶层字段未变，`versions` 为新增可选字段）。
+
+### 修改文件
+
+- 代码（7）：PromptVaultModels.swift（PromptVersion/PromptVersionEntry、schema 2 校验、capacityExceeded）、PromptVaultFileStorage.swift（事务化 mutation：save/restoreVersion）、PromptVaultStore.swift（restore）、PromptVaultViewModel.swift（版本查看/复制/恢复）、PromptVaultView.swift（版本历史区与确认）、PromptTemplateEditor.swift（草稿检查与干净会话同步）、UnifiedSearchReader.swift（schema 2 接受）。
+- 测试（2）：新增 PromptVersionHistoryTests.swift（14 项）；PromptVaultPersistenceTests.swift 仅把“未知版本”夹具从 schemaVersion 2 改为 3（2 已成为受支持版本，断言目的不变）。
+- 文档：本文件、当日开发日志。部署脚本、工程文件、其它模块未改。共 11 个文件（7 代码 + 2 测试 + 2 文档）。
+
+### 验证与证据
+
+- 一轮集中验证（Debug arm64，隔离 `/private/tmp/CosmosPromptVersionTest-*` 与既有测试隔离根）：PromptVersionHistoryTests + PromptVaultPersistence/State + PromptTemplateRenderer + UnifiedSearch + CoreBackup + CoreRestore，共 **74 项执行，73 通过，1 失败**。失败项是新测试自身夹具问题（拒绝保存仍会创建空协作写锁文件，对比目录时未排除；另一处断言被批量替换误改），**非产品缺陷**；集中修复仅调整夹具（按内容文件比较，不弱化“无写入/无改动”断言），修复后 **PromptVersionHistoryTests 14/14 通过**（修复过程中还出现过一次同类夹具回归，已在同一轮修正并重跑）。其余 60 项未改动，沿用首轮通过结果。证据：`/private/tmp/CosmosPromptVersion-Focused.xcresult`（首轮）、`/private/tmp/CosmosPromptVersion-Fixed2.xcresult`（修复后）及对应 log。
+- 新测试覆盖：旧库只读加载（目录字节与文件列表不变）与旧模板“升级前当前内容”；首次编辑同事务保留旧基线（日期沿用原更新时间）与备份为旧精确字节；新模板 v1；连续修改与新存储实例重载；元数据操作/相同内容不新增版本；换行/制表/emoji/组合字符/变量表达式字节精确，Unicode 等价变化被识别，名称/分类记录实际保存值；伪造草稿历史被忽略、旧修订冲突不覆盖；复制对应界面所示版本、失败不报成功；恢复生成新版本并保持 UUID/createdAt/收藏/归档与全部历史、相同内容不写盘、旧修订与未知版本冲突、未保存草稿拒绝、干净窗口跟随/脏草稿不被替换；encode/backup/backupReadBack/replace/readBack 注入失败不留半成品；未知 schema、7 类历史损坏锁定保存且文件不变；500 版本/16 MiB 上限拒绝且不锁定、不删历史；备份导出/校验/恢复预检接受 v2 与旧 v1，篡改历史被拒；统一检索读 schema 2 且不检索历史；整页离屏挂载零写入。
+- 构建部署：复用 `scripts/deploy-macos.py`（日志 `/private/tmp/CosmosPromptVersion-deploy.log`）：Universal Release 成功，`lipo` = x86_64 arm64，`codesign --verify --deep --strict` 通过，Bundle ID `com.wangyucosmos.Cosmos-Toolbox`，Info.plist = Release / commit `16b94630…` / `CosmosBuildDirty=true`；旧 App 正常退出（无未保存阻止、未强杀）；回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-221309-76163034.app`（身份校验一致）；新版已启动（PID 18957）。未用正式业务数据测试；正式提示词库未被我读取或写入（新版启动不会改动它，首次保存才升级格式）。
+- `git diff --check` 通过。
+
+### 验收限制、缺口与结论
+
+- **本轮实测** = 上述 74 项测试（含 14 项新增）、Universal 构建/签名/部署校验；**沿用** = 已关闭阶段声明证据；**未覆盖** = 真实窗口点击（选中版本、确认弹窗、剪贴板实际写入）、原生关闭/退出提醒与恢复联动的真人操作、视觉/窄窗口检查。工具无法安全自动完成这些交互，已记录缺口，不安排用户逐步点击；离屏挂载只证明不崩溃与零写入。
+- 恢复的“草稿检查”依赖编辑窗口管理器的会话状态：它保护同一进程内的窗口，不防范外部进程并发修改（由 revision 冲突检查兜底）。恢复后若有其它已打开的**脏**编辑窗口，其后续保存会按既有冲突流程保留草稿。
+- 非阻塞待办：历史很多时详情页一次渲染全部行（上限 500）；历史差异比较、导入、历史删除、历史版本变量填充、全局历史检索均不在本期；升级前基线日期取自模板 updatedAt，可能晚于内容真实修改时间。
+- 主开发自查，参与修改，**非独立第三方复审**。结论：**可收尾，阶段已关闭**（范围如上）；用户授权提交推送，不开始下一模块。Word WIP、Step06 Harness、客服文档 V1、Evidence/Quarantine、旧 P3 保持暂缓；未写其它检出、仓库或知识库。
