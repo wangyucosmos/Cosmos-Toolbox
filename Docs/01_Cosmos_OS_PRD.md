@@ -5,6 +5,25 @@
 **项目仓库：Cosmos-Toolbox**  
 **产品名称：Cosmos OS**
 
+
+> **2026-10-10 状态说明**
+> 本文是立项基线（v0.1，写于 2026-08-17，正文保持原样不改写）；产品方向与原则仍然有效。**实际进度和实现以 `Docs/07_Cosmos_OS_Current_Status.md` 为准**；历史细节见 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（下表“归档 §N”指该归档文件的章节号）。下表只列已在代码或归档中核实过的差异，未列出的内容不代表一致或已验证。
+>
+> | 原文表述 | 当前实际 | 依据 |
+> |---|---|---|
+> | §5.2 省份写死名单（河南 / 安徽 / 浙江 / 海南 / 广东 / 贵州 / 全国促活） | 省份为可维护配置（新增 / 改名 / 排序 / 停用 / 恢复），全新安装不预置省份；全国活动走“全国及其他”范围 | 归档 §19；`ZhuowangProvinceRules.swift`、`ZhuowangProvinceManagementView.swift`；应用源码中无写死的省份名单 |
+> | §8 结构化业务数据使用 SwiftData | 未使用 SwiftData（源码无引用）。卓望业务数据在 UserDefaults 受保护事务中；Prompt / 学习 / 交接 / Projects / 笔记是 Application Support 下各自的 JSON 文件（flock + 写前备份 + 原子 rename） | 归档 §4、§17、§18、§30、§36；Current Status §4；`ZhuowangProtectedPersistence.swift`、`PromptVaultFileStorage.swift` |
+> | §5.1 Dashboard：今日工作 / 最近项目 / AI 环境状态 / 待处理事项 | 首页只读真实数据：活动 Workflow 状态、月度清单、收藏提示词、学习；AI 工作台与 Mac 优化未接入；不显示编造的任务 / 健康数 | 归档 §21；`DashboardSnapshot.swift`、`DashboardHomeView.swift` |
+> | §5.3 AI Workspace 检测 ChatGPT / Codex / Claude / VS Code / Figma / Python / Git / Homebrew / Node / uv / DeepSeek | 实际检测 5 项：Claude Code、Codex CLI、Git、Node.js、Python；手动检测，只证明 `--version` 可运行；另有任务准备、提示词交接与交接记录（不自动执行 AI） | 归档 §22–§25；`AIWorkspaceToolProbe.swift` |
+> | §5.4 学习：学习进度 / 今日学习 / 待复习 / 下一步建议 | 三态手动（计划中 / 学习中 / 已完成）+ 学习记录（学习日、笔记、可选时长）+ 用户自填下一步；无进度百分比、待复习、统计 | 归档 §18；`LearningModels.swift` |
+> | §5.5 Prompt Vault：场景标签 / 版本记录 | 单一文本分类，无标签；变量模板与内容版本历史（查看 / 复制 / 恢复）已实现 | 归档 §17、§35；`PromptVaultModels.swift` |
+> | §5.6 Knowledge Base：跨文档统一检索 | 知识库 = 个人笔记 + 卓望知识与资产；另有跨模块“统一检索”，只搜白名单元数据字段，不搜正文，无持久索引 | 归档 §16、§34、§36 |
+> | §5.7 Mac Optimizer：输入法 / 登录项 / LaunchAgent / Finder / Dock | 仅有只读环境概览（系统 / 内存 / 磁盘 / 电池）；输入法、登录项、LaunchAgents、Finder / Dock 设置未实现（源码无） | 归档 §28；`MacEnvironmentService.swift` |
+> | §5.8 Projects | 已实现：名称 / 目标 / 状态 / 下一步 / 追加进展 / 文件与链接引用；不扫描源码仓库 | 归档 §30；`ProjectsModels.swift` |
+> | §5.9 Settings：外观 / 数据目录 / 备份 / 模块开关 / 日志 | 设置页目前只有核心数据备份、校验与空环境恢复入口 | `DashboardView.swift`（`.settings` → `CoreBackupSettingsView`）；归档 §26–§27 |
+> | §9 V1.0：可在新 Mac 上重新安装和恢复核心工作环境 | 已有核心元数据备份 + 空环境恢复，但产物 / 引用文件实体不打包，不是完整换机恢复；V1.0 使用类标准（连续 30 天等）未评估 | Current Status §5；归档 §26–§27 |
+> | §11 当前阶段：v0.1 Foundation | 应用显示版本 1.0（构建 1），不代表达到本文 V1.0 标准 | 归档 §29；Current Status §1 |
+
 ---
 
 ## 1. 产品定位

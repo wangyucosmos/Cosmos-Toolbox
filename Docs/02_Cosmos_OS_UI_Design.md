@@ -3,6 +3,20 @@
 **版本：v0.1**  
 **日期：2026-08-17**
 
+
+> **2026-10-10 状态说明**
+> 本文是立项基线（v0.1，写于 2026-08-17，正文保持原样不改写）；产品方向与原则仍然有效。**实际进度和实现以 `Docs/07_Cosmos_OS_Current_Status.md` 为准**；历史细节见 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（下表“归档 §N”指该归档文件的章节号）。下表只列已在代码或归档中核实过的差异，未列出的内容不代表一致或已验证。
+>
+> | 原文表述 | 当前实际 | 依据 |
+> |---|---|---|
+> | §4 Sidebar：Home / Work / AI / Learning / System / General 六组 | 实际五组：首页·Home（仪表盘、统一检索）｜工作·Work（卓望工作、项目、知识库）｜AI（AI 工作台、提示词库）｜学习·Learning（AI 学习中心）｜系统·System（Mac 优化、设置）；多出“统一检索”，设置并入系统组 | `DashboardView.swift` 的 `navigationContent` 与 `SidebarItem` |
+> | §6 Dashboard 样例：Good morning / Today's Work 3 items / Python 28% / 8/9 Healthy / All Good | 这些样例内容均已移除；首页只显示真实数据（真实时钟问候），不显示编造的任务数 / 学习百分比 / 健康数 | 归档 §21、§18；源码中已无这些字符串 |
+> | §8 学习中心：Python 28% 进度条、Today 45 min | 已决定任何位置都不显示百分比进度；学习中心为三态手动 + 学习记录 | 归档 §18；`LearningModels.swift` |
+> | §9 Prompt Vault：三栏 Category | List | Detail，支持标签 | 三栏已按此实现（窄窗口回退为分类选择器）；无标签（单一文本分类）；版本历史已实现 | `PromptVaultView.swift`；归档 §17、§35 |
+> | §10 AI Workspace 状态样例（Python ✓ 3.14 / Homebrew / DeepSeek …） | 仅 5 个工具；行状态为 可运行 / 无法运行 / 未找到 / 未检测，并显示版本、执行路径与发现来源 | 归档 §22 |
+> | §11 Mac Optimizer 样例（Input Methods / Login Items / Developer Environment / Storage） | 页面显示系统版本 / 硬件 / 内存 / 磁盘 / 电池，只读；无输入法 / 登录项 | 归档 §28；`MacEnvironmentView.swift` |
+> | §7 Zhuowang Workspace 左侧固定省份列表 | 省份来自可维护配置；停用省份进入可折叠的“已停用省份（历史）”；没有省份时显示“还没有省份，点击添加” | 归档 §19；`ZhuowangWorkspaceView.swift` |
+
 ---
 
 ## 1. 设计目标

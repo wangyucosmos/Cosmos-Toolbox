@@ -3,6 +3,48 @@
 **版本：v0.2**  
 **日期：2026-08-17**
 
+
+> **2026-10-10 状态说明**
+> 本文是立项基线（v0.2，写于 2026-08-17，各 Phase 的方向仍有效，正文保持原样）。**实际进度和实现以 `Docs/07_Cosmos_OS_Current_Status.md` 为准**；历史细节见 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（下表“归档 §N”指该归档文件的章节号）。
+
+> **关于下方勾选框：** 原“2026-08-17 当前实际进度”与各 Phase 的 `[ ]` / `[x]` 停在 2026-08-17，**不再逐项维护**，以本表为准。V1.0 清单中的使用类标准（连续稳定使用 30 天、替代聊天历史找 Prompt、长期真实使用等）**不因功能已开发而视为完成**。
+
+### 2026-10-10 进度对照表
+
+“已实现 Phase 1”指对应模块已关闭其首期范围，不代表该 Phase 原清单全部完成。
+
+| Phase / 版本 | 对应模块 | 当前状态 | 依据 |
+|---|---|---|---|
+| Phase 0 / v0.1 App Foundation | 基础工程、Sidebar、Dashboard、`NavigationSplitView` | 已实现 | `DashboardView.swift`；归档 §1 |
+| Phase 1 / v0.2 Workspace 基础 | 卓望 Workspace / Campaign | 已实现，且远超原清单（六步 Workflow、Artifact 等） | 归档 §2–§4 |
+| Phase 1 / v0.3 Workspace Generator | 活动目录创建、Finder 显示、交付包、推进工作台 | 部分（无“最近项目”，以推进工作台承接） | 归档 §8、§13、§31 |
+| Phase 1 / v0.4 Zhuowang Templates | 六步 Workflow + Task Package | 部分：未作为独立模板库实现，由 Workflow 承接；省份标签 / 备注已有 | 归档 §2、§7；源码无独立模板库文件 |
+| Phase 2 / v0.5 AI Learning Center | 学习中心 | 已实现 Phase 1（无进度百分比） | 归档 §18 |
+| Phase 2 / v0.6 Prompt Vault | Prompt Vault + 提示词版本 | 已实现 Phase 1（无标签） | 归档 §17、§35 |
+| Phase 3 / v0.7 Environment Scanner | AI 工作台工具检测 | 部分：5 项（Claude Code / Codex / Git / Node / Python）；Homebrew / npm / uv / VS Code 未做；DeepSeek Harness 有独立运行时发现 | 归档 §10、§22 |
+| Phase 3 / v0.8 Environment Details | 同上 | 部分：版本 / 路径 / 发现来源 / 失败原因已有；更新提示、安全修复建议未做 | 归档 §22 |
+| Phase 4 / v0.9 Knowledge Base | 知识库（个人笔记 + 卓望知识与资产）、统一检索 | 部分：元数据检索；全文索引 / 标签 / 最近访问未做 | 归档 §16、§34、§36 |
+| Phase 5 / v0.10 Mac Optimizer | Mac 环境只读概览 | 部分：系统 / 内存 / 磁盘 / 电池；输入法、登录项、LaunchAgents、Finder / Dock 未开始 | 归档 §28 |
+| Phase 6 / v0.11 Dashboard 2.0 | 首页真实数据 | 部分：活动状态、月度清单、收藏提示词、学习；AI 环境状态、系统健康、快速操作未接入 | 归档 §21 |
+| Phase 7 / v0.12 Backup & Migration | 核心数据备份（V3）+ 空环境恢复 | 部分：Brewfile / VS Code 扩展 / Git / SSH 检查未开始；非完整换机恢复 | 归档 §26–§27 |
+| Phase 8 / v0.13+ AI Integration | DeepSeek Harness Workflow、AI 工作台任务交接 | 部分：Harness 端到端 01–06（Step 06 单次验收，Harness 暂缓）；任务交接只复制提示词，不自动执行 | 归档 §2、§13、§23–§25 |
+| （原 Roadmap 未列）| Artifact Review / Compare / 图片与 PDF Renderer、交付包、推进工作台、Projects、统一检索、个人笔记、个人内容导出、省份配置、月度会员促活 | 已实现 Phase 1 | Current Status §3 |
+
+**V1.0 清单对照（Phase 9）**
+
+| 原清单条目 | 当前状态 |
+|---|---|
+| Zhuowang Workspace 已真实长期使用 | 功能已落地；“真实长期使用”是使用类标准，未评估 |
+| AI Learning Center 已形成学习记录 | 功能已落地；使用类标准，未评估 |
+| Prompt Vault 已替代聊天历史找 Prompt | 功能已落地；使用类标准，未评估 |
+| AI Workspace 能稳定检测环境 | 部分（5 项，手动检测） |
+| Knowledge Base 可以检索项目 | 部分（元数据统一检索） |
+| Dashboard 有实际价值 | 已接入真实数据；“有价值”是使用判断，未评估 |
+| Mac Optimizer 基础可用 | 仅只读概览 |
+| 数据支持备份 | 部分（核心元数据备份 + 空环境恢复，非完整换机） |
+| GitHub 有完整版本记录 | 已满足（`main` 持续提交，至 `ebf4280` 共 55 个提交） |
+| 连续稳定使用 30 天 | 未评估，不因功能完成而标记 |
+
 ---
 
 ## 总原则
@@ -15,7 +57,7 @@ Roadmap 只作为方向，不用日期绑架开发。
 
 ---
 
-## 2026-08-17 当前实际进度
+## 历史进度记录（2026-08-17，已过时）
 
 > 本节记录已经完成并经过实际运行验收的能力。Roadmap 阶段顺序仍作为方向，但真实开发允许根据高价值工作流提前验证后续能力。
 

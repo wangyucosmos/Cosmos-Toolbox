@@ -322,3 +322,13 @@ Projects 日常部署补齐：既有脚本一次必要 Universal Release 构建�
 - 验证：一轮集中 55 项（ContentExportTests 17 新增 + PersonalNotesTests + PromptVersionHistoryTests）54 通过 / 1 失败（新夹具大小假设，非产品缺陷）；集中修复仅调大夹具，受影响项 1/1 通过。ditto 与 Python zipfile 独立解包核对。离屏位图目视检查选择面板。证据 `/private/tmp/CosmosContentExport-Focused.xcresult`、`-Fixed.xcresult`。
 - 部署：Universal Release，lipo x86_64 arm64，签名校验通过，旧 App 正常退出，回退副本 `Cosmos Toolbox-20261010-231413-e78e7eea.app`，新版 PID 25559；日志 `/private/tmp/CosmosContentExport-deploy.log`。
 - 缺口：真实点击、保存面板交互、Finder 实际显示未覆盖（无法安全驱动，不用 System Events）。主开发自查，非独立第三方复审。未提交 / 推送 / 合并，等待 Git 收尾授权。
+
+## 文档校正与 Current Status 精简
+
+- **目的：** `Docs/07_Cosmos_OS_Current_Status.md` 已达 283,652 字节（头部堆叠十几段 “Previous stage”），违背 AGENTS §18.1；`Docs/01–04` 停在 2026-08-17，部分内容与后来的用户决策 / 实际实现冲突；AGENTS §0 / §20 的分工仍是 “ChatGPT web + Codex”。本次只改文档，不改任何 `.swift`、工程文件、脚本或业务数据，未构建、未测试。基线：模块 `ebf42802e3c499820f2ade8bb9aafc0e5e772e9f`（`feat: 新增个人内容导出模块`，已推送）。
+- **归档：** 把上述提交中的 Current Status 原样复制为 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（无头注），两份 SHA-256 均为 `88a6edb6eaef4b2254149507d51a69d7cc374863658494cfc355689245adb5f3`，并与 `git show ebf4280:Docs/07_Cosmos_OS_Current_Status.md` 的哈希一致。
+- **新 Current Status：** 283,652 → 25,953 字节；结构 0 文件说明｜1 当前检查点｜2 协作模式｜3 模块清单（34 行，引用 40 个关闭提交，逐个核对存在于 `main`）｜4 数据存储与格式｜5 兼容与回退限制｜6 部署｜7 验证与安全基线｜8 已知风险｜9 非阻塞待办｜10 暂缓事项｜11 不得回退｜12 下一优先级。
+- **事实核对（只读脚本，放在仓库外）：** 归档中全部 22 个 40 位哈希、全部 7–12 位短哈希（仅 `765b33b` 原先缺，已补进 §2）、4 个 `~/Library`/`~/Applications` 路径、13 个存储文件名、12 个备份源 ID、暂缓事项关键词均出现在新文件中。**只留在归档的纯过程性内容：** 各阶段 xcresult / 日志 / PID / 临时目录路径、中间轮次测试数量、2026-09 的 Store 复审（P2-A 等）与 UI 验收轮次、正式 Workspace 的 raw / canonical 哈希基线与 no-op 重编码事件、Workflow 前后字节哈希（`88ab71fe…` / `b71226b1…`）、交付包真实导出 ZIP 哈希（`c634c2ae…`、`110c2231…`）、各 Renderer / Compare / Step 05 的逐项能力描述与历史验收记录。
+- **01–04：** 各插入 “2026-10-10 状态说明”与差异表（PRD 12 条、UI Design 7 条、Architecture 6 条）；Roadmap 加状态说明、勾选框不再维护的说明、14 行进度对照表和 V1.0 清单对照（使用类标准一律标“未评估”），并把 “2026-08-17 当前实际进度” 改题为 “历史进度记录（2026-08-17，已过时）”（内容不改）。每条依据均已在代码或归档核实；线索 “已决定不做目录重组” 在仓库中找不到书面决定，只写事实及 AGENTS §12 / §23 的相关规则。05、06 未改。
+- **AGENTS.md：** 标题与 §0 改为适用于所有 AI 开发工具并按当前协作模式改写；§1 加基线文档说明；§18.1 加体积纪律；§20 改为 “统筹交接”。§23 逐字节未改（与改前 `diff` 一致）。§11 不涉及分工，未动；§18 / §19 / §13 / §14 中个别 “Codex” 字样按 “其它章节不动” 保留。
+- **修改文件（8）：** 修改 AGENTS.md、Docs/01–04、Docs/07、本日志（7 个）；新增 Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md（1 个）。旧日志其余部分未改写。

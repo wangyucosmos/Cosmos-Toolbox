@@ -1,1677 +1,209 @@
 # Cosmos OS Current Status
 
-**Last updated:** 2026-10-10
-**Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 个人内容导出完整模块（§37）**已实现、验证并部署，待 Git 收尾授权**（基线 `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`，未提交）。流程：个人笔记 / 提示词 → 导出单条 .md，或选择多条 → 当前内容 / 含历史 → 预览范围 → 原生保存面板 → 不覆盖发布 → Finder 显示。导出是内容导出，**不是核心备份**，不进入恢复流程。主开发自查，非独立第三方复审；真实点击未覆盖（见 §37）。
-**Previous stage (个人笔记):** 个人知识笔记完整模块（§36）**已接受并关闭**（用户接受声明验收范围并授权逐项提交推送 25 个文件，提交 `feat: 新增个人知识笔记模块`，预期 parent `0eca18f707d5089ccc6bbe4ccec3834df997ee29`；实际 commit 以 Git 记录为准；沿用已接受的验证/构建/部署证据，不追加修复、测试、构建、UI 验收、部署或复审）。流程：知识库 →（个人笔记 | 卓望知识与资产）→ 新建 → 原生独立窗口编辑保存 → 列表内搜索/分类/收藏/归档与恢复 → 内容版本历史查看/复制/恢复 → 文件与链接引用（只追加，可追加更正）→ 统一检索找到笔记并精确打开 → 核心备份 V3 / 空环境恢复含笔记源。主开发自查，非独立第三方复审；真实点击未覆盖（见 §36）。
-**Previous stage (提示词版本):** 提示词版本管理 Phase 1 **已接受并关闭**（§35，用户接受声明验收范围并授权提交推送；提交 `feat: 新增提示词版本历史与恢复`，预期 parent `16b94630530ad0c3984238c909b2088781dee420`，实际提交以 Git 记录为准；沿用已接受证据，不追加测试/构建/UI 验收/部署/复审）。阶段内容：编辑保存保留内容版本 → 查看历史原文 → 复制指定版本 → 确认后把旧内容恢复为新版本；存储格式 schemaVersion 2（读取旧 1，首次写入才升级）。聚焦验证 74 项（新增 14 + 既有 60）全部通过；Universal Release 已部署、保留回退副本。主开发自查，非独立第三方复审；真实窗口点击、系统剪贴板实复制、视觉未覆盖。**可收尾（范围见 §35 验收限制）**。Git 收尾已获授权。
-**Previous stage (统一检索):** 统一检索 Phase 1 **已接受并关闭**（§34，用户接受声明验收范围并授权提交推送；提交 `16b94630530ad0c3984238c909b2088781dee420`，parent `6c86c609337b98eb5bc660091fb875cd5e04791d`）。阶段内容：隔离引用打开门控已修复（根与目标统一 realpath + 路径组件包含比较），`UnifiedSearchTests` 10 项实测全部通过（含 2 项新增边界用例）；Universal Release 已构建、签名校验并部署到 ~/Applications，保留回退副本，新版正常启动。主开发自查，**非独立第三方复审**；真实 UI 点击、系统实际打开、视觉未覆盖。**可收尾（范围见 §34 验收限制）**。其他暂缓事项不动。
-**Previous stage (活动引用):** 已接受并关闭，有效收尾提交 `6c86c609337b98eb5bc660091fb875cd5e04791d`；main/远端 0/0、干净为已接受交接。本模块开工 HEAD/status 已核对一致，上一阶段验证和部署证据沿用，不重复 fetch 或验收。
-**Previous stage (分类页):** 已接受并关闭，有效基线 `5eb45f68d0f091b5c3645a8f5c62550564210c3e`；本轮 HEAD/status 已核对一致、干净，远端 0/0 沿用交接，不重复 fetch 或历史验收。
-**Previous stage (工作区入口):** 卓望工作区入口接通 Phase 1 已接受并关闭（§31），有效收尾提交 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，沿用既有声明验收范围，不重新验收。
-**Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
-**Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
-**Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
-**Previous stage (备份):** 核心数据备份 Phase 1 已接受并正式关闭，提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`、正常推送与同步核对完成（§26）。导出与独立校验语义保持。
-**Previous stage (任务资料):** 任务上下文资料选择 Phase 1 已接受并正式关闭，正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`（§25）；其历史验证及已声明限制沿用。
-**Previous stage (交接记录):** AI 工作台 Phase 3 已正式关闭并正常推送，实际 Git 收尾见 §24；独立历史、手动记录及历史原文复制能力保留。
-**Previous stage (任务准备):** Phase 2 已由用户接受验收并关闭，正式提交与正常推送已完成（见 §23）；有效收尾基线 main = origin/main = 远端 main、ahead/behind 0/0、工作区干净沿用，不重复 fetch 或历史验证。
-**Previous stage (AI 工作台):** Phase 1 已由用户接受并关闭，正式提交 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，消息 `feat: 新增 AI 工作台本机工具检测`。正常推送、main = origin/main、ahead/behind 0/0、工作区干净为用户提供的有效收尾基线，本轮未重复 fetch。Phase 1 历史测试与验收证据沿用；工具检测能力保留，详见 §22。
-**Previous stage:** Dashboard 真实数据整合 Phase 1 is **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 首页接入真实工作与学习数据` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §21). Implementation baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c`. The Home now summarizes real data from the finished modules and no longer shows fabricated tasks, projects or health numbers.
+## 0. 文件说明
 
-**Earlier stage (全国月度会员促活):** 全国月度会员促活 Phase 1 was **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 接入全国月度会员促活清单` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §20). Implementation baseline `863fc83690bd02543c0ca1570a88883a4b43831c`. National Campaigns can be created as the "月度会员促活" project type with a monthly checklist (7 outputs, 7 business inputs, registered final locations with an explicit finalization confirmation) layered on the existing Campaign and six-step Workflow.
-
-**Earlier stage (省份可维护配置):** 省份可维护配置 Phase 1 was **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 支持省份配置维护与历史保留` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §19). Provinces can be added, renamed, reordered, stopped and restored; a fresh install starts with no provinces; existing data is never re-seeded. Implementation baseline `82cc7bab3d3772b296cb421fa85b8b5e43f42bf9`.
-
-**Previous stage (学习中心):** 学习中心 Phase 1 was **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 新增学习中心与学习记录` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push; see §18). Implementation baseline `693c4fc0d93544a69ff78bf03f02b02ccbbc52a6`; actual pre-commit HEAD `765b33b` (owner's docs-only rules commit). No percentage progress is shown anywhere: topic state is the manual three-state 计划中 / 学习中 / 已完成 and never changes automatically.
-
-**Earlier stage (Prompt Vault):** Prompt Vault Phase 1 is **closed** on 2026-10-09: the product owner accepted the existing verification scope and authorized one `feat: 新增提示词库与变量模板` commit and normal push to origin/main (exact Git delivery is verified from repository refs after push). The known variable-name first-character issue (leading combining mark) received its minimal fix after Claude's takeover. Claude performed a concentrated review and took part in the fix, so this is not an independent third-party re-review of the repaired code. Post-fix evidence: Renderer + state tests 16/16 passed, 0 skipped. Pre-fix Codex evidence (36/36, Universal Debug/Release builds, Release launch-argument scan) is retained as historical for that phase; unchanged-file hash checks support reusing it but do not mean the final code passed a fresh full build, and Release was not rebuilt after the Renderer change (only the test-build compile covered it). Real-App UI, restart, quit-prompt and similar acceptance was not done; no complete end-to-end acceptance is claimed.
-
-**Previous stage:** 知识与资产中心 Phase 1 closed on 2026-10-09 on existing verification evidence. Claude completed one concentrated read-only review with conclusion A and no discovered blockers; the owner authorized one `feat: 新增知识与资产中心` commit and normal push to origin/main. Exact Git delivery is checked after push; no complete end-to-end UI acceptance is claimed. Asset-focused 15/15 and affected Review 27/27 tests passed after one concentrated fix round; final Universal Debug/Release builds passed. Temporary real-App search, explicit historical-version selection, native detail, Text Review and temporary-file Finder reveal passed; no full end-to-end clipboard or all-media acceptance is claimed. Implementation baseline is `e2c615165fef4951d6dec99915949bddfbab2aa1`. Previous milestones: Campaign 项目推进工作台 Phase 1 is closed by the product owner (2026-09-30) and committed as `feat: 新增 Campaign 项目推进工作台` on top of `e15bf38`. Evidence: focused tests 8/8, Universal Debug build passed, isolated real-App run passed. Workbench navigation buttons were not actually clicked; no complete end-to-end UI acceptance is claimed (details in §13 / §15). 已采用 Markdown 导出 Word Phase 1 is paused and preserved only on local branch `wip/markdown-word-export-phase1-20260930` (commit `2d26b2a`; not merged, not pushed; partially UI-accepted, not accepted). The previous milestone follows. Campaign 工作产物交付包 Phase 1 is implemented and acceptance is explicitly confirmed by the product owner on 2026-09-30. The user reports Claude's independent static review found no P0/P1 blockers and no P2 requiring repair. The narrowly scoped filesystem-path and ZIP UTF-8 compatibility fixes passed isolated tests and a Universal Debug build. The final build completed the requested real 浙江活动测试 export, Finder reveal, independent ZIP/content/hash and business-integrity checks; real existing-target refusal also passed. Actual unpacking coverage is macOS ditto and Python 3.9.6 default zipfile, not Windows or macOS Archive Utility. The owner authorized a single `feat: 新增 Campaign 工作产物交付包` commit and normal push to origin/main; exact Git delivery state is verified from repository refs after push. Step 06 remains the accepted 2026-09-29 baseline; Evidence/Quarantine stays untouched.
+- 本文件**只记录当前状态**（AGENTS §18.1），目标不超过 40 KB。
+- 历史细节、各阶段验证过程和旧检查点见 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（下文写“归档 §N”即指该归档文件的章节号；归档只追加新归档，不修改）和 `Docs/Development Log/`（按日追加）。
+- 更新规则：模块关闭时，本文件只保留该模块的**一行清单、存储与兼容事实和待办**；过程细节、测试数量推演、PID、临时日志路径写进当日开发日志。不得在头部堆叠“Previous stage”。
 
 ---
 
-## 1. Current product checkpoint
+## 1. 当前检查点
 
-Cosmos OS is a native macOS SwiftUI personal work operating system.
-
-The current real production-like testbed is the **卓望 Workspace**.
-
-Current focus is not global UI polish.  
-Priority is to make the real workflow reliable, recoverable, and extensible.
-
-Core principle:
-
-> 可运行 → 可使用 → 可稳定 → 再扩展
+- **日期：** 2026-10-10。**项目：** Cosmos OS / Cosmos-Toolbox（原生 macOS SwiftUI 个人工作操作系统）。
+- **代码基线：** `main` = `origin/main`，提交 `ebf42802e3c499820f2ade8bb9aafc0e5e772e9f`（`feat: 新增个人内容导出模块`，parent `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`）；其后只有文档提交。
+- **当前阶段：** 个人内容导出**已关闭**（用户接受声明验收范围，一次提交并推送）。**下一模块待统筹提出范围、用户确认；不自动开始。当前无进行中的开发。**
+- **已部署版本：** `~/Applications/Cosmos Toolbox.app` 为内容导出代码的 Universal Release（Info.plist 记录 commit `6272a52b…` 且 `CosmosBuildDirty=true`，即基于该提交加上当时未提交的导出代码，等价于 `ebf4280` 的代码部分）。版本显示 1.0（构建 1），**不代表达到 PRD 的 V1.0 标准**。
+- **代码规模：** `Apps/CosmosOS/Cosmos Toolbox/` 下 121 个平铺 Swift 文件（文件名前缀分模块）；测试方法静态计数 547 个（grep 计数，**不是执行结果**；没有一次覆盖当前全部代码的全量运行证据，各模块验证证据见归档与开发日志）。
 
 ---
 
-## 2. Current Zhuowang Campaign test state
+## 2. 协作模式（用户确认，2026-10-10 起）
 
-Active test Campaign:
-
-`浙江活动测试`
-
-Current six-step Workflow state:
-
-```text
-01 需求整理       已确认
-02 策划思路       已确认
-03 完整策划案     已确认
-04 页面结构       已确认
-05 产品原型设计   已确认
-06 客服文档       已确认
-```
-
-Important version state:
-
-- 完整策划案 has multiple historical versions.
-- Current adopted version is **V1**.
-- 产品原型 current adopted version is **V3**.
-- Artifact Detail currently manages prototype **V1 / V3 / V4**; the local V2 file remains intentionally unmanaged and must not be imported, deleted, or modified.
-- Do not overwrite this choice unless the user explicitly changes it.
-- On 2026-09-24, before the P1 fix, Step 06 was `ready` with zero Run, Approval and Artifact. Harness wrote an unadopted Markdown file in `06_客服文档` and a byte-identical knowledge-base mirror before adoption. The Workflow primary changed only in Workflow/Step 06 `updatedAt` because Provider selection was persisted. On 2026-09-29 both incident originals were moved to Quarantine only after byte-identical Evidence copies were verified; all four preserved files remain outside the formal Workspace and knowledge-base paths, at 31,878 bytes and SHA-256 `a198eb7d2336c4487683360bc3f008fd94f569601d3a1850d65a412e67aaa9ec`. Do not delete, overwrite, restore or automatically import them.
-- On 2026-09-29, after the fixed real Harness run and human adoption, Step 06 is persisted as `approved` with exactly one succeeded AI Run, one approved Approval and one adopted Markdown Artifact V1 in logical group `workflow.customerService.primary`. The formal file is `~/Documents/Cosmos OS/Workspaces/卓望/浙江/浙江活动测试/06_客服文档/客服文档_V1.md`, 28,360 bytes, SHA-256 `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`; its bytes match the persisted Artifact content. Prototype V3 remains the unique adopted upstream prototype.
-
-Post-P0 runtime acceptance was completed manually on 2026-08-19:
-
-- 01-04 Workflow remain `已确认`;
-- 05 产品原型设计 remains `可开始`;
-- 完整策划案 currently adopted version remains **V1**;
-- Figma does not appear in the `执行 AI` list;
-- Figma remains available as a Tool;
-- recovered Artifacts and all historical versions remain available.
-
-The first real Step 05 HTML Prototype loop passed runtime acceptance on 2026-08-21:
-
-- Cosmos OS launched DeepSeek Harness with `DSH_HOME=$HOME/.dsh-rc8-clean`;
-- the current headless command used `@deepseek-ai/dsh@0.1.0-rc.6`;
-- Harness resolved the existing credential through its local credentials service without exposing or copying the API Key into Cosmos OS;
-- DeepSeek returned a complete runnable single-file HTML result;
-- HTML validation, WebKit preview, source review, and a basic interaction check passed;
-- human adoption created the versioned HTML Artifact V1 and durable `.html` file;
-- Step 05 changed to `已确认` only after adoption, and Step 06 changed to `可开始`.
+- **用户：** 产品负责人，最终决策与验收；授权提交 / 推送 / 合并。
+- **统筹（claude.ai 中的 Claude 会话）：** 产品方向、模块范围、给开发工具写完整模块提示词、阶段收尾判断；可只读用户 Mac 上的本仓库并查看 GitHub 远端分支状态。
+- **开发工具：** Claude Code 与 Codex 按额度择一主开发；必要时另一个只做一次集中只读复审；确有两个独立模块时，才在同一仓库的独立分支 + 独立 worktree 并行，共享文件只由明确负责人修改，整合与部署串行、只有一个部署负责人。参与修改的工具的自查不是独立第三方复审。
+- ChatGPT web 不再是架构顾问角色（历史记录保留）。
+- 推进、验证、收尾、Git 授权规则见 **AGENTS §23**（本文件不复制；该规则由提交 `765b33b` 引入，Codex 开发规范由 `df90894` 建立）；AGENTS §1 的必读文档在 §23 优先级前提下按需读取。
 
 ---
 
-## 3. Verified Workflow capabilities
+## 3. 模块清单（已关闭）
 
-Verified:
+“关闭提交”为 `git log` 上实际存在的短哈希；早期（2026-08/09）英文提交为该能力的主要实现提交。入口为侧栏名称（`SidebarItem`，分组：首页[仪表盘、统一检索]｜工作[卓望工作、项目、知识库]｜AI[AI 工作台、提示词库]｜学习[AI 学习中心]｜系统[Mac 优化、设置]）。
 
-- Campaign creation / detail flow
-- Six-step standard Workflow
-- Per-step AI Provider selection
-- DeepSeek Harness local execution
-- Task Package preview
-- Task execution result return
-- Human review
-- Adopt result
-- AI Run creation
-- Approval creation
-- Artifact creation
-- Step approval
-- Next-step unlock
-- Artifact version history
-- Switching currently adopted Artifact version
-- Artifact automatic local Markdown persistence
-- Finder reveal / open for local Artifacts
-- Legacy Artifact local-file migration
-- Later Workflow steps consuming currently adopted upstream Artifact content
-- Step 06 Task Package explicitly identifies the customer-service step and consumes only currently adopted upstream Artifact versions, including the adopted Prototype V3 rather than unmanaged or historical versions
-- Step 06 generated Markdown appeared as a Draft in the existing Artifact Review Workspace, including adopted Prototype V3 upstream context. The first live execution exposed a pre-adoption write defect; the narrow sandbox/integrity fix and the 2026-09-29 real Harness re-acceptance kept the formal `06_客服文档` and knowledge-base customer-service directories empty before adoption. The user then adopted the result; the UI displayed `已确认` and `已采用、已落盘`, and the separate persisted-data/file checks below confirmed that result.
-- Markdown and plain-text Preview use a native selectable Text Renderer; source is displayed literally without HTML/script execution or network loading
-- Step 06 formal adoption creates a versioned `.md` file, succeeded AI Run, approved Approval, provenance-complete Artifact with logical key `workflow.customerService.primary`, one current adopted version, and an approved final step
-- Step 06 adoption is idempotent for an already adopted matching result, preserves older versions, and does not unlock a nonexistent next step
-- Step 06 uses a narrow protected Workflow transaction with stale-baseline/decode-lock checks, backup and primary read-back verification, and memory publication only after metadata persistence succeeds
-- Step 06 Recovery imports only exact `客服文档_V数字.md` names as unadopted Artifacts and never changes the step to approved or bypasses human adoption; the incident file `客服文档 _ AI 采用结果_V1.md` is not imported.
-- Campaign Detail 工作产物区域 can open a separate delivery-package selection sheet without adding a Workflow step or changing Workflow/Run/Approval/Artifact/adoption state
-- Delivery-package eligibility groups current Campaign Artifacts by their existing logical version key and requires exactly one `isApprovedVersion == true`; a group with zero or multiple adopted versions is disabled and never uses the work-artifact list's latest-version display fallback
-- Delivery-package Phase 1 accepts only regular local files inside the current Campaign's canonical formal Workspace; URL/Figma references, relative paths, missing files, directories, symbolic links, unreadable files, and Workspace-external paths are disabled with an explicit reason
-- Source containment follows directory device/inode identity on the mounted filesystem, rather than case-folding paths or requiring identical spelling. Historical `Documents/cosmos os` locations may qualify under `Documents/Cosmos OS` only when their actual ancestor is the same Campaign Workspace. Source ancestry rejects symbolic links; `..` source components and prefix-similar sibling directories are rejected. Artifact locations and adoption metadata are unchanged.
-- Export defaults to no selection, supports selecting all eligible groups, lets the user choose a ZIP destination, refuses an existing target, and offers Finder reveal after success
-- The ZIP contains only the selected files plus `交付清单.md` and `manifest.json`; both manifests record Campaign metadata, export time, step, Artifact name/ID/logical key/version, package-relative path, byte count, and SHA-256 without exposing absolute source paths
-- Export re-reads a live Store snapshot before trusting the selection, hashes each source before and after copy, verifies each staged copy, extracts the generated ZIP into an isolated verification directory, and verifies the complete entry set, manifest/checklist bytes, byte counts, hashes, canonical containment, and path safety before publishing the final ZIP
-- Delivery-package publication uses a sibling temporary transaction directory and never overwrites an existing target; failures clean temporary package data and do not leave a final ZIP
-- Native macOS Campaign Detail window
-- Native macOS Artifact Detail window
-- Step 05 capability-based HTML Prototype Tool selection
-- immutable Provider / Connection / Tool / Route / capability execution snapshot
-- AI Execution Adapter Registry + Tool Adapter Registry orchestration
-- DeepSeek Harness to validated HTML Artifact Draft execution path
-- HTML preview and source review
-- versioned `.html` Artifact persistence with overwrite protection
-- HTML local-file disaster recovery across current and historical prototype folders
-- Step 05 approval transition only after durable file + Artifact adoption
-- Tool/Route-specific execution specification resolves the final instruction and Expected Outputs without binding the Prototype step to HTML
-- Task Package Preview shows the frozen capability and a readable Route before execution
-- tool-agnostic Prototype Execution Profile persists Fidelity / Style on the prototypeDesign step
-- immutable execution snapshots and AI Run / Artifact provenance preserve the selected Prototype Fidelity / Style
-- capability-driven Profile controls enforce supported Fidelity / Style combinations and map them into the selected Tool / Route specification
-- Artifact Review Workspace opens AI Drafts and managed adopted / historical Artifacts in the same independent resizable macOS window
-- type-agnostic Artifact Preview Renderer Registry with safe unsupported-type fallback
-- Phase 1 HTML Renderer uses a real interactive WKWebView inside selectable 375px / 390px mobile device frames
-- HTML Preview always derives an in-memory secured copy through the Renderer security policy; Source and the original Artifact remain byte-for-byte unchanged
-- Preview CSP, WebKit content rules, a non-persistent data store, and a scheme allowlist form separate defense layers
-- Artifact Review Preview / Source modes and focused Full Preview mode preserve the original Artifact content
-- Review metadata is captured from Draft + immutable execution snapshot / Artifact provenance rather than current Workflow selections
-- Artifact Detail can open a stable, independent Version Compare window for any logical Artifact with at least two managed versions
-- Version Compare supports two UUID-selected managed versions, independent Preview / Source modes, shared 375px / 390px viewport, isolated scrolling / JavaScript state, and current-adopted marking without changing adoption
-- Artifact Review projects legacy `content / location / type` into typed inline-text, local-file, or unavailable payloads without changing the persisted Artifact model
-- Preview file I/O is isolated in a read-only Resolver; only explicitly referenced supported text files are decoded as UTF-8, while binary, missing, unreadable, unknown, or conflicting media safely fall back
-- Renderer selection now uses typed Preview Input plus media classification, and Renderer capabilities independently declare Preview, Source, Full Preview, and Mobile Viewport support
-- Image Renderer Phase 1 safely previews explicitly referenced local, single-frame PNG / JPEG files without decoding binary content as text or changing persistent Artifact data
-- Image Preview uses ImageIO signature verification, bounded asynchronous decoding, pre/post file fingerprint checks, orientation-aware dimensions, controlled color-space handling, and Renderer-local Fit / 100% / 10%–400% zoom state
-- single-version Review supports Image Full Preview; Version Compare supports Image | Image and HTML | Image combinations with independent image state while Mobile Viewport remains HTML-only
-- PDF Renderer Phase 1 accepts typed local-file PDF input and is selected by the Registry only for exact PDF media classification; PDF binary content never enters the UTF-8 Reader
-- PDF Preview is limited to local, unencrypted files that pass bounded loading and the PDF security policy; the Renderer keeps only a bounded in-memory Data snapshot, a PDFKit document, minimal metadata, and Renderer-local transient state
-- PDFKit Preview supports continuous vertical scrolling, Fit Page, Fit Width, 10%–400% zoom, current / total page display, previous / next page, page-number navigation, page count, page size, file size, text selection, permission-dependent copy, and same-document internal GoTo
-- single-version Review and Full Preview support PDF; Version Compare supports PDF | PDF, HTML | PDF, Image | PDF, and PDF | Unsupported
-- each PDF Compare pane owns an independent PDFView, page state, zoom state, scroll state, binding session, delegate, and observers; actions on one side do not update the other
-- PDF capabilities do not expose Source or the 375px / 390px Mobile Viewport controls
-- PDF load, document, page, scale, delegate, observer, and security state remain Renderer-local and are not written to Store, Workflow, UserDefaults, or the Artifact model
+| 模块 | 入口位置 | 状态 | 关闭提交 | 归档 | 一句话主要限制 |
+|---|---|---|---|---|---|
+| 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
+| Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
+| AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
+| Artifact Review Workspace + 版本切换 | 活动详情 → 工作产物 | 在用 | 1d8403a | §7–§8 | 真实 UI 逐项点击未全覆盖 |
+| HTML Preview 安全边界 | Review 窗口 | 在用 | 028b393 | §7 | 兼容边界，非通用浏览器沙箱 |
+| Artifact 双版本并排比较 | Artifact 详情 | 在用 | cfa7d81 | §7 | 无文本 Diff / 差异高亮 |
+| Preview 类型化抽象层 | Review 内部 | 在用 | 01b1207 | §7 | 持久化模型仍偏 HTML |
+| 本地图片 Renderer | Review / Compare | 在用 | 30de1e0 | §7 | 仅本地 PNG/JPEG；ImageIO 解码不可中断 |
+| 本地 PDF Renderer | Review / Compare | 在用 | c7491a3 | §7 | PDFKit 在进程内解析，非进程隔离 |
+| Step 06 客服文档（DeepSeek Harness → Markdown） | 卓望 Workflow 第 6 步 | 在用（单次真实验收） | 0f1c54e | §2–§3、§13 | 仅验收 2026-09-29 一轮；Harness 暂缓 |
+| Campaign 工作产物交付包（ZIP） | 活动详情 → 工作产物 | 在用 | e15bf38 | §3、§13 | ZIP 构建/校验在 UI 动作中同步执行 |
+| Campaign 项目推进工作台 | 卓望工作 → 总览 | 在用 | e2c6151 | §13 | 摘要每次渲染重算；未逐项点击 |
+| 知识与资产中心（卓望产物检索） | 知识库 →「卓望知识与资产」 | 在用 | db15f79 | §16 | F1–F5 后续项未处理 |
+| Prompt Vault（变量模板） | 提示词库 | 在用 | 693c4fc | §17 | 单一文本分类、无标签；变量值不保存 |
+| 提示词版本管理 | 提示词库 → 详情 | 在用 | 0eca18f | §35 | schema 2，旧程序无法编辑 |
+| 学习中心 | AI 学习中心 | 在用 | 82cc7ba | §18 | 三态手动，不显示百分比；条目不可删 |
+| 省份可维护配置 | 卓望工作 → 管理工作区 | 在用 | 863fc83 | §19 | 全新安装无省份；活动改名仍改变推导目录 |
+| 全国月度会员促活清单 | 卓望（全国）→ 活动详情「月度清单」 | 在用 | 68f080f | §20 | 登记不是采用，不进交付包 |
+| 首页真实数据 | 仪表盘 | 在用 | 4c45dbb | §21 | 已结束活动只计数不列出；AI 工作台/Mac 未接入 |
+| AI 工作台 Phase 1 本机工具检测 | AI 工作台 | 在用 | 6639e43 | §22 | 只证明 `--version` 可运行 |
+| AI 工作台 Phase 2 任务准备与提示词交接 | AI 工作台 | 在用 | e66dd21 | §23 | 草稿仅页面内存 |
+| AI 工作台 Phase 3 任务交接记录 | AI 工作台 → 交接记录 | 在用 | bc9cb33 | §24 | 历史全量加载、无分页 |
+| 任务上下文资料选择 | AI 工作台 | 在用 | 3024ceb | §25 | 单份 2 MiB、总提示词 4 MiB |
+| 核心数据备份（现为 V3） | 设置 | 在用 | 16dd386 | §26 | 仅元数据；非加密、非签名 |
+| 核心数据空环境恢复 | 设置 / 启动保护 | 在用 | 72f020b | §27 | 非跨进程原子事务；仅空环境 |
+| Mac 环境只读概览 | Mac 优化 | 在用 | 7124c4f | §28 | 无内存压力、电池健康；只读 |
+| 日常使用部署（Universal Release） | `scripts/deploy-macos.py` | 在用 | f6a1e90 | §29 | ad-hoc 签名，无公证与自动更新 |
+| 个人项目 Projects | 项目 | 在用 | caf6150 | §30 | 引用仅路径；无永久删除 |
+| 卓望工作区入口接通 | 卓望工作 → 概览 | 在用 | a5294c9 | §31 | 真实按钮/导航未逐项点击 |
+| 卓望分类页接通 | 卓望工作 → 分类 | 在用 | 5eb45f6 | §32 | 仅 FAQ/原型/流程图/素材/提示词有归属 |
+| 活动资料与外部成果引用 | 活动详情 → 概览 | 在用 | 6c86c60 | §33 | 只登记路径/链接，不读实体 |
+| 统一检索 | 统一检索 | 在用 | 16b9463 | §34 | 只搜白名单元数据字段，不搜正文 |
+| 个人知识笔记 | 知识库 →「个人笔记」 | 在用 | 6272a52 | §36 | 纯文本 / Markdown 源文；无永久删除 |
+| 个人内容导出（本期） | 个人笔记 / 提示词库 → 批量导出、详情单条导出 | 在用 | ebf4280 | §37 | 真实点击与保存面板未测；不是备份 |
+
+**内容导出（归档 §37 摘要）：** 单条 `.md` = 所选**已保存版本**正文的 UTF-8 原字节（不含标题 / 元数据 / 引用）；批量 ZIP（`说明.md`、`manifest.json`、`notes|prompts/<显示名>--<UUID>/current.md` + 可选 `history/vNNN.md`，manifest 含来源 / 稳定 ID / 版本 / 保存时间 / 路径 / 字节 / SHA-256，笔记引用只登记）。准备时冻结，导出前两次重读按指纹核对，所选记录变化即停；源库只读；临时目录生成并读回 → `.part` → `renamex_np(RENAME_EXCL)` 不覆盖发布；取消仅在发布前生效；保存位置不得在源库目录。manifest `exportFormat=CosmosContentExport`，核心校验 / 恢复拒绝。本期新增 17 个测试，加受影响既有类共 55 项（17+24+14）54 通过，唯一失败为新夹具大小假设，修复后通过；ditto 与 Python zipfile 独立解包核对。
+
+**测试活动现状（浙江活动测试）：** Workflow 01–06 均已确认；完整策划案采用 **V1**；产品原型采用 **V3**，Artifact 详情管理 V1 / V3 / V4，本地 V2 刻意不入管且不得导入 / 删除 / 修改；Step 06 为一次成功 Run + 一次已批准 Approval + 已采用 Markdown V1（`~/Documents/Cosmos OS/Workspaces/卓望/浙江/浙江活动测试/06_客服文档/客服文档_V1.md`，28,360 字节，SHA-256 `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`）。除非用户明确更改，不覆盖这些选择。
 
 ---
 
-## 4. Persistence and recovery status
+## 4. 数据存储与格式
 
-A persistence regression was discovered after adding new Workflow model fields.
+### 4.1 UserDefaults（正式域 `com.wangyucosmos.Cosmos-Toolbox`）
 
-Observed failure:
+业务键（Data）：`cosmos.zhuowang.campaigns.v1`、`…workspace.v1`（含省份配置）、`…workflows.v1`（内嵌 Artifact / Run / Approval）、`…ai.providers.v1`、`…ai.connections.v1`、`…ai.toolIntegrations.v1`、`…ai.agentToolRoutes.v1`；每个主键有同名 `.backup`。保护：向后兼容解码（新增字段不使旧数据不可解码）；解码失败锁定 Store、保留原字节、不以空数据覆盖；写前备份并读回；写失败不发布到内存；陈旧 Store 实例重读后拒绝写；仅主键真正缺失时才种默认配置。Workspace 模块更新 / 删除只是 Store API，无正式 UI。完整性闸门口径：逐键 SHA-256 + 解码检查；整份 plist 哈希只作诊断（含 AppKit 窗口状态键）。
 
-- previous Workflow progress disappeared after app run/restart;
-- Artifact UI showed 0 items;
-- local Artifact Markdown files still existed.
+### 4.2 独立 JSON 文件存储（`~/Library/Application Support/Cosmos OS/…`）
 
-Root cause:
+共同模式（Prompt Vault 首创，Learning / Handoff / Projects / Notes 复制改写，未抽象成框架）：缺库只读零初始化；lstat 父路径与文件类型校验、拒绝符号链接、`O_NOFOLLOW` 读；flock 协作写锁；锁内重读最新磁盘文档并核对目标修订；写前备份**精确原字节**并读回；同目录临时文件 fsync + 原子 rename；发布后读回校验，失败 = `uncertainWrite` 并锁定保存；损坏 / 未知 schema / 重复身份 / 缺主有备份 / 符号链接 → 锁定写入，不自动恢复、不以空库覆盖；容量超限拒绝而不截断，其中带历史的模块（提示词、笔记）用 `capacityExceeded` **不锁定模块**。
 
-- old persisted Workflow payload could become undecodable after non-optional Codable schema changes;
-- decode failure could result in an empty Workflow state.
+| 存储 | 目录 / 主文件 | 备份 / 锁 | schemaVersion | 容量与要点 | DEBUG 隔离参数 |
+|---|---|---|---|---|---|
+| Prompt Vault | `PromptVault/templates.json` | `templates.backup.json`、`.prompt-vault.lock` | 写 2、读 1/2 | 16 MiB；每模板 500 版本 | `--cosmos-prompt-fixture-root /private/tmp/CosmosPromptVaultPhase1-<UUID>` |
+| 学习中心 | `Learning/learning.json`（主题 + 记录同一文档） | `learning.backup.json`、`.learning.lock` | 1 | 16 MiB；单条记录 ≤1 MiB | `--cosmos-learning-fixture-root …/CosmosLearningPhase1-<UUID>` |
+| AI 工作台交接 | `AIWorkspace/handoffs.json` | `handoffs.backup.json`、`.handoffs.lock` | 1 | 16 MiB；同 ID 幂等重试 | `--cosmos-ai-handoff-fixture-root …/CosmosAIHandoffPhase3-<UUID>`；`--cosmos-ai-workspace-history` |
+| Projects | `Projects/projects.json` | `projects.backup.json`、`.projects.lock` | 1 | 16 MiB；单段 ≤1 MiB | `--cosmos-projects-fixture-root …/CosmosProjectsPhase1-<UUID>` |
+| 个人笔记 | `PersonalNotes/notes.json` | `notes.backup.json`、`.notes.lock` | 1 | 16 MiB；正文 ≤1 MiB；≤500 版本、≤200 引用 | `--cosmos-notes-fixture-root …/CosmosPersonalNotesPhase1-<UUID>` |
+| 核心恢复控制 | `CoreRestore/state.json`、`payload-<sourceID>.json` | `.restore.lock`（非阻塞 flock） | — | journal fsync + 原子 rename | `--cosmos-core-restore-fixture-root …/CosmosCoreRestorePhase1-<UUID>` |
+| 资产中心 / 资料读取 | （只读，不是存储） | — | — | 单份文本 2 MiB；32 MiB LRU | `--cosmos-asset-fixture-root /private/tmp/CosmosAssetPhase1-*` |
 
-Fixes implemented:
+- 内容导出**没有持久化存储**（无导出记录）。
+- 隔离启动同时要求：隔离 Bundle ID 前缀 `com.wangyucosmos.cosmostoolbox.persistenceui.`、`--cosmos-store-phase1-suite`（UUID suite）与上述 UUID 根；缺失或无效一律失败关闭，不回退正式位置。Release 不含这些参数（历次 Release 二进制扫描为 0 命中）。
+- 本地工作文件：`~/Documents/Cosmos OS/Workspaces/卓望/<省份>/<活动>/`（`01_需求整理`…`06_客服文档`、`Assets`；历史目录名保持可读）。实际路径使用 `ZhuowangProvince.pathName = directoryName ?? name`，省份改名不改路径；活动名仍参与路径。
 
-- backward-compatible Workflow Step decoding;
-- persistence protection against overwriting unreadable saved Workflow data;
-- lightweight Workflow backup payload;
-- backward-compatible decoding for AI Provider, AI Connection, Tool Integration, and Agent/Tool Route payloads;
-- independent backup payloads and write locks for all four configuration boundaries;
-- backup refresh only after the current payload is successfully decoded again;
-- preservation of the last recoverable backup when the current payload is unreadable;
-- default configuration seeding only when a storage key is genuinely missing, not when saved data is empty or unreadable;
-- local-file disaster recovery;
-- local Markdown Artifact discovery;
-- reconstruction of missing Artifact metadata;
-- reconstruction of completed Workflow steps;
-- reconstruction of the next actionable step.
+### 4.3 核心备份格式
 
-Campaign / Workspace Store persistence protection Phase 1 now adds:
-
-- no-op startup loads preserve an existing valid primary payload byte-for-byte and do not create a backup;
-- initialization writes defaults only when the primary key is genuinely missing;
-- corrupt primary payloads lock the Store, preserve the original bytes, detect but do not automatically restore a valid backup, and reject mutations;
-- successful mutations create one last-known-good backup from the currently decoded primary before writing the candidate;
-- stale in-process Store instances reject writes after rereading the current primary under a shared process-local lock;
-- write verification failures do not publish the candidate into the Store's public in-memory state;
-- Campaign create / update / delete (Store API **and** formal UI: `ZhuowangCampaignView`, `ZhuowangCampaignDetailView`) use the protected transaction boundary;
-- Workspace create (province / category / module) is exposed in the formal Workspace Manager UI; Workspace module **update / delete are Store API capabilities only** (`updateModule`, `deleteModule`) covered by XCTest — there is no formal UI for them and none is claimed;
-- DEBUG-only suite injection is UUID-scoped, fails closed when invalid, and never falls back to the production UserDefaults domain; it is additionally accepted **only** when the running Bundle ID starts with the temporary UI prefix `com.wangyucosmos.cosmostoolbox.persistenceui.` — under the production Bundle ID, an empty / unreadable Bundle ID, or any other Bundle ID the App is blocked before any Store is created (the Workflow / AI Stores still read `UserDefaults.standard`, so a suite under the wrong Bundle would only be a partial, misleading isolation);
-- Release builds do not compile the suite-injection bootstrap path, the isolation banner, the isolation metadata (`isIsolated` / `isolationSuiteName` / `isolatedSuite(named:)`), or any test-only string (verified by scanning the Universal Release binary);
-- the main window's direct root is the stable, internal `CosmosRootView` in both Debug and Release, so AppKit window-state keys no longer embed a random `(unknown context at $ADDR)` type name;
-- the DEBUG isolation banner is rendered only in the DEBUG isolated branch as `VStack(spacing: 0) { banner; navigationContent }`; the non-isolated Debug path and Release return the unchanged `NavigationSplitView` content directly (an earlier `.safeAreaInset(edge: .top)` variant overlapped the sidebar and was replaced).
-
-Current formal Workspace persistence baselines after the recorded no-op re-encoding incident are:
-
-```text
-raw SHA-256       163b2189391e52019f31cb427b211d26fab85a888f13506591a89b0a54e9c4b0
-canonical SHA-256 711fd948e14f10e31f465731f84c25dd75c5360f2b18e2004942beacd4c0843b
-```
-
-The incident changed JSON object key order only. Exhaustive reconstruction matched both raw encodings from the same semantic object; all fields, UUIDs, and array order remained equal. No recovery or overwrite was performed.
-
-Phase 1 is intentionally limited to a process-local lock and UserDefaults read-back verification. It does not provide cross-process transactions, automatic recovery, backup rotation, or a disk-level durability guarantee. When any persistence verification fails (initial write, encoding, backup write / read-back, primary write / read-back) the Store locks and the UI does not publish the change; the persisted primary and/or backup may already have changed, so the user is told to stop and verify before restarting. The wording promises neither that the backup is valid nor that the primary is unchanged. No automatic rollback is performed.
-
-Step 06 Phase 1 reuses this protected boundary only for the customer-service adoption operation. The transaction accepts the Store's last loaded Workflow bytes as its baseline, rereads and decodes the current primary under the process-local lock, builds the candidate in isolation, writes the versioned Markdown file, verifies backup and primary writes, and publishes the decoded candidate only after success. A file-write failure leaves Workflow memory and metadata unchanged. If metadata persistence or read-back fails after the file has been created, the file is deliberately retained as user-owned recovery material; Recovery may import it only as unadopted and must not approve Step 06. This is a narrow Step 06 hardening, not a migration of every historical `ZhuowangWorkflowStore` mutation to Store Phase 2.
-
-Formal data gate: business integrity is gated by the per-key SHA-256 of the 11 business `Data` keys plus decode checks. The whole-plist SHA-256 of `com.wangyucosmos.Cosmos-Toolbox.plist` is a diagnostic indicator only, because it also contains AppKit window-state keys that any process using the production Bundle ID (including the XCTest host) legitimately updates.
-
-Review status (2026-09-19): Claude's independent read-only review found P0 = 0, P1 = 0, P2 = 4, P3 = 10. All four P2 findings (unstable Debug root view type; DEBUG stand-in views replacing the formal Campaign UI during acceptance; self-referential "no re-encode" tests; Dashboard layout wrapped in a VStack) and P3-1 / P3-3 / P3-9 / P3-10 were fixed by Claude in a directed follow-up and re-verified (41 Store-focused tests, 156 total XCTest, Universal Debug and Release builds). A second independent re-review closed the four P2 items and raised **P2-A** (isolated suite accepted under the production Bundle ID), which is now fixed as described above. The P2-A resolver tests were actually executed on 2026-09-20 (Store-focused 43 / complete suite 158, all passed) with the 11 business `Data` keys byte-identical before and after; the empty `Tests`-prefixed suite plists left in `~/Library/Preferences` are a known test by-product awaiting separate cleanup authorisation. Formal Campaign UI acceptance was then completed on 2026-09-20 under a temporary Bundle ID + temporary suite (Round 6): create, edit, first restart with the edit retained, delete through the formal `ZhuowangCampaignDetailView`, second restart with the deletion retained (primary `[]`, backup = the pre-delete edited record), no lock, no error alert, and no obvious visual regression on Dashboard, Workspace overview, Campaign list or detail. The Workflow / AI Stores created by the formal Campaign UI wrote only into the temporary Bundle domain. All 11 business `Data` keys were byte-identical before and after every launch. The temporary Round 5 / Round 6 domains, the old temporary UI domain and the 346 empty test-suite plists were removed afterwards under explicit, path-exact authorisation; `/tmp` acceptance evidence is retained for now. Deferred P3 items: finer error enumeration, built-in module deletion rule, whole-Store `@MainActor` migration, stale-conflict reload, duplicate `allowsMutations` guards.
-
-Recovery was manually verified.
-
-Current recovered state is again:
-
-```text
-01-04 已确认
-05 可开始
-06 未开始
-```
-
-All known local work files were confirmed to still exist.
+- `manifest`：`format=CosmosCoreMetadata`、`version`、`exportedAt`、`exclusions`、逐源条目（id / present|missing / 路径 / 字节 / SHA-256 / transformation）。未压缩 ZIP，只接受固定路径白名单，CRC32 + SHA-256；单源 16 MiB、包 128 MiB、清单 256 KiB；发布用 `renamex_np(RENAME_EXCL)`。
+- **V1（10 源）** campaigns、workspace、workflows、providers、connections、tools、routes、prompts、learning、handoffs；**V2（11 源）** + projects；**V3（12 源，当前导出版本）** + notes（`data/notes.json`）。V1 / V2 按各自固定源清单与原排除说明继续校验，不把新源硬套入旧包；未知版本（≥4）拒绝；V3 条目上限 13（manifest + 12 源）。
+- 普通业务 JSON 原字节；AI 配置按白名单脱敏（Provider 排除 configurationIdentifier；Connection / Tool / Route 排除自由配置、endpoint、adapter、notes）；不读 Keychain，不整域导出 UserDefaults。恢复后 AI 配置均为禁用 / needsSetup。
+- **空环境恢复的“非空”判定：** 固定 7 个 UserDefaults 主键及 `.backup` 必须不存在；Prompt / Learning / AIWorkspace / Projects / PersonalNotes 五个根下主文件、备份、写锁均不存在；任何有效空载荷、错类型、损坏、不可读、未知恢复控制数据都算非空而拒绝。根视图先进入数据启动保护；“创建新环境”先持久化 started 标记，之后不能再作空环境恢复。
 
 ---
 
-## 5. AI Provider / Tool boundary
+## 5. 兼容与回退限制（集中记录，勿丢）
 
-This boundary is now mandatory.
-
-### AI Providers
-
-Examples:
-
-- OpenAI / ChatGPT
-- Codex
-- DeepSeek Harness
-- Claude
-- future AI providers
-
-### Tools / Adapters
-
-Examples:
-
-- Figma
-- HTML Prototype
-- Pixso
-- future prototype / external tools
-
-Figma was previously present in the AI Provider list.
-
-That was corrected:
-
-- Figma no longer appears in the "执行 AI" picker.
-- Figma remains available as a prototype Tool.
-- The legacy `.figma` provider enum case may remain temporarily for backward decode compatibility.
-
-Do not reintroduce Figma as an AI Provider.
+1. **提示词库 schema 2：** 新版首次成功写入后写 schema 2，旧程序读到 `unsupportedSchema` 并禁止保存（不会静默丢历史）；读 schema 1 不写盘。`templates.backup.json` 是**滚动备份**（每次成功保存前被“写前主文件字节”替换），**不能**当永久降级副本；只有用户另行保留的 schema 1 副本才能供旧程序使用，回退会丢失升级后的新版本。
+2. **核心备份当前 V3：** 旧 App 校验 / 恢复 V3 会因版本 / 源清单拒绝；新 App 读 V1 / V2 / V3，旧包恢复预览明确提示“不含 Projects / 个人笔记”，不建空库；V3 包中笔记引用只含登记记录。
+3. **文件引用实体不随备份打包**（Campaign 引用、Projects 引用、笔记引用只备份登记的路径 / 链接）；登记路径仍依赖原文件，不是完整换机恢复。备份不加密、不签名，哈希只防意外损坏。
+4. **内容导出 ZIP / .md 不是核心备份**：`exportFormat=CosmosContentExport`、`isCoreBackup=false`，核心备份校验与恢复均拒绝；不能用于恢复。
+5. **App 回退副本只回退程序，不保证数据格式可降级**（见 1、2）。
+6. 恢复是“带持久化收据、启动门控和协作锁的协议”，不是文件与 UserDefaults 的跨进程原子事务；同卷 hardlink 是文件发布前提（跨卷 EXDEV 安全失败）。
+7. 所有独立存储的协作 flock 只协调本 App 的写者，不防非协作外部进程在检查后写入，也不承诺断电耐久。
+8. 版本显示 1.0（构建 1）不代表 PRD V1.0（需连续使用 30 天等使用类标准）。
 
 ---
 
-## 6. Prototype design architecture
+## 6. 部署
 
-Workflow step 05 is now conceptually:
-
-`产品原型设计 / Product Prototype`
-
-Capability:
-
-`prototypeDesign`
-
-It must not be hard-bound to Figma.
-
-Target composition:
-
-```text
-Workflow Step
-      ↓
-Choose AI Provider
-      +
-Choose Tool
-      ↓
-Task Package
-      ↓
-Execution / Adapter
-      ↓
-Artifact
-```
-
-Examples:
-
-```text
-Codex + Figma
-Claude + HTML Prototype
-DeepSeek Harness + Pixso
-ChatGPT + future web prototype tool
-```
-
-The user must be able to re-run the same Workflow Step with another AI and/or another tool, producing a new Artifact version while preserving old versions.
+- 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
+- Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
+- 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
+- **最近一次回退副本：** `Cosmos Toolbox-20261010-231413-e78e7eea.app`（该目录当前共 8 个 2026-10-10 的副本，不自动清理）。
+- 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
 
-## 7. Current Tool Adapter work
+## 7. 验证与安全基线
 
-Implemented and automatically verified:
-
-- `ZhuowangToolAdapter.swift`
-- `ZhuowangHTMLPrototypeAdapter.swift`
-- `ZhuowangWorkflowExecutionCoordinator.swift`
-- `ZhuowangWorkflowTransitionLogic.swift`
-- `ZhuowangTaskExecutionSpecification.swift`
-
-The Tool Adapter abstraction exists to prevent Workflow logic from being tied to one concrete product.
-
-The first real Step 05 path is:
-
-```text
-DeepSeek Harness
-→ AI Execution Adapter Registry
-→ raw AI result
-→ HTML Prototype Tool Adapter Registry
-→ validated HTML Artifact Draft
-→ preview / source review
-→ human adoption
-→ versioned .html file + Artifact provenance
-→ Step 05 approved
-→ Step 06 ready
-```
-
-HTML validation rejects empty, structurally incomplete, non-UTF-8, and Placeholder results. The HTML Adapter adds a generation-time CSP to newly produced Artifacts, but this is not the Preview trust boundary and historical files are not migrated or rewritten.
-
-Every HTML entering Artifact Review now passes through a Renderer-owned Preview security chain:
-
-```text
-original ArtifactReviewDocument.content
-→ ArtifactHTMLPreviewSecurityPolicy
-→ in-memory secured Preview HTML with Renderer CSP
-→ WKContentRuleList external-network blocking
-→ non-persistent WKWebView
-→ navigation scheme policy
-```
-
-The Renderer CSP is inserted at the start of the Preview document head even when the source already has its own CSP; missing-head and provenance-free historical HTML receive a safe in-memory fallback. It denies external/default sources, connections, form actions, base URLs, frames, objects, workers, and unsafe evaluation while retaining the current prototypes' required inline CSS, inline JavaScript / event handlers, and scoped `data:` / `blob:` image or media support. The WebKit content rules independently block HTTP, HTTPS, WS, WSS, and file requests across resource types and must compile before Artifact content is loaded; failure is closed. The website data store remains non-persistent, but is not treated as network isolation. Navigation permits only `about:` for `loadHTMLString` and same-document anchors; HTTP, HTTPS, file, mailto, data, blob, and all unrecognized navigation schemes are cancelled.
-
-The Prototype step now keeps only the tool-agnostic business goal. The frozen capability + Tool + Route resolve the concrete execution specification. For the current DeepSeek Harness → HTML Prototype Route, both the final prompt and Preview Expected Outputs require a complete runnable single-file HTML result; the obsolete “prepare an execution brief and wait for confirmation” wording has been removed.
-
-Prototype fidelity and style are represented by a tool-independent `ZhuowangPrototypeExecutionProfile`. Missing historical data defaults to High-fi + 高保真活动页 to preserve the previously accepted behavior. The Profile is persisted on capability-bearing Workflow Steps, frozen into each execution snapshot, shown in Task Package Preview, and translated by the selected Tool / Route specification. It does not alter the Artifact logical key, so Low-fi / Mid-fi / High-fi runs remain versions of the same logical prototype.
-
-Do not assume HTML is the final prototype path.
-
-Artifact review is now separated from execution and adoption:
-
-```text
-Artifact Draft / historical Artifact
-→ ArtifactReviewDocumentProjector
-→ ArtifactReviewPayload (inlineText / localFile / unavailable)
-→ ArtifactPreviewInputResolver (read-only, controlled I/O)
-→ ArtifactReviewDocument (immutable provenance + typed input)
-→ ArtifactPreviewRendererRegistry
-→ registered Renderer or safe fallback
-→ ArtifactReviewWorkspace
-```
-
-The Artifact Preview Abstraction Layer Phase 1 is confined to Review projection and Renderer input. It does not modify `ZhuowangArtifact`, `ZhuowangArtifactType`, UserDefaults schema, Adoption, Recovery, Workspace File Manager, or Task Package construction. Legacy inline text is projected without normalization; a supported local HTML / Markdown / plain-text reference is read only while resolving Preview Input. Binary files are never decoded as `String`, arbitrary `location` values are not inferred as external URLs, and missing, unreadable, unknown, or conflicting media enter the safe fallback.
-
-Renderer selection now starts from typed Preview Input rather than only `ZhuowangArtifactType`. Media classification considers payload kind first, then UTType identifier, MIME type, file extension, and the legacy type hint; conflicting evidence fails closed. Renderer capabilities drive whether Source, Full Preview, and 375px / 390px controls appear, so unrelated renderers are no longer forced to receive a mobile viewport. The Registry currently contains HTML, Text, Image, and PDF Renderers plus the safe fallback; Figma, Pixso, external URL, and other external-document Renderers remain deferred.
-
-Image Renderer Phase 1 extends the Review-only typed boundary without changing persistence:
-
-```text
-ArtifactReviewPayload.localFile
-→ ArtifactPreviewInputResolver (reference only; no UTF-8 decode)
-→ typed local-file Preview Input
-→ ArtifactPreviewRendererRegistry
-→ ArtifactImagePreviewLoader
-→ ImageIO validation + bounded decode
-→ Renderer-local CGImage + minimal metadata
-→ adaptive Image Preview canvas
-```
-
-Only local, single-frame PNG and JPEG are accepted. The Loader verifies the actual ImageIO type against declared UTType / MIME / extension evidence and rejects damaged, disguised, conflicting, multi-frame, or unsupported files rather than falling back to WebView or `NSImage`. Hard limits are 50 MiB file size, 16,384 px per side, 36 MP total pixels, and a 224 MiB estimated peak decompression budget; oversized files are rejected rather than downsampled. Decode work is asynchronous and globally serialized to one heavy operation, with cancellation and document-generation guards. File size, modification time, and resource identity are checked before and after decoding so changed results are discarded.
-
-Image Preview supports Fit, backing-scale-aware 100%, zoom from 10% to 400%, reset, two-axis scrolling, transparent-image checkerboard, and minimal format / pixel / file-size information. It does not expose Source or Mobile Viewport. Image-specific state remains inside each Renderer instance, so Compare panes do not share zoom, load, error, or decoded-image state. Single-version Full Preview is supported; Compare intentionally continues without Full Preview.
-
-PDF Renderer Phase 1 extends the same typed local-binary Review boundary:
-
-```text
-ArtifactReviewPayload.localFile
-→ ArtifactPreviewInputResolver (reference only; no UTF-8 decode)
-→ exact PDF media classification
-→ ArtifactPreviewRendererRegistry
-→ ArtifactPDFPreviewLoader
-→ bounded Data snapshot + fingerprint checks
-→ ArtifactPDFPreviewSecurityPolicy
-→ PDFKit PDFDocument
-→ ArtifactSecurePDFView + Renderer-local binding session
-```
-
-The Loader accepts only an explicitly referenced local PDF whose declared and detected media evidence agrees. It enforces file-size, page-count, page-dimension, and page-area limits; rejects encrypted documents; and discards results when cancellation, document generation, or the file fingerprint changes. Expensive PDF loading is serialized through one app-wide gate. The gate's verified maximum concurrent operation count is one and returns to zero after completion.
-
-The security inspection rejects AcroForm / Widget content; JavaScript, OpenAction, Additional Actions, Launch, URI, RemoteGoTo, disallowed Named Actions, attachments, Sound, Movie, RichMedia, 3D, and unknown actions fail closed. Runtime PDFView delegation permits same-document internal GoTo while external HTTP / HTTPS, file, mailto, RemoteGoTo, Print, and other external actions do not launch another application. The UI does not provide Print, Save, Export, or Annotation editing. Error messages expose a sanitized reason rather than the full absolute file path.
-
-PDF Preview uses continuous vertical PDFKit layout with Fit Page, Fit Width, 10%–400% zoom, page navigation, minimal page / size metadata, text selection, and copy only when the document permissions allow it. Review and Full Preview share the same Renderer. Compare creates one independent Renderer and PDFView per side for PDF | PDF and keeps mixed HTML | PDF, Image | PDF, and PDF | Unsupported capabilities isolated. Source and Mobile Viewport controls remain hidden for PDF.
-
-`ArtifactPDFRendererBindingSession` makes cleanup explicit and idempotent. The View Model retains the active session; the session owns the safe delegate, observer tokens, and deferred publications while weakly referencing the View Model and PDFView; the Coordinator retains the session. Cancellation or dismantling invalidates the generation, cancels pending work, removes observers, clears both delegate references and the document, and disconnects the session. Teardown does not depend on object deinitialization or only on `dismantleNSView`, and late notifications or an old generation cannot write state back.
-
-This is a bounded in-process preview boundary, not a claim that arbitrary hostile PDFs are safe. PDFKit and Core Graphics still parse inside the Cosmos OS process. Phase 1 cannot precisely cap PDF internal object counts, framework caches, or synchronous parse time, and a logical timeout cannot forcibly terminate work that has already entered synchronous PDFKit parsing. A materially stronger boundary requires a future XPC or separate-process Renderer.
-
-Source displays the unchanged original HTML; Preview renders only the secured in-memory copy in a non-persistent real WKWebView. The existing HTML CSP, WKContentRuleList, Navigation Policy, and content-rule fail-closed behavior were not weakened or duplicated. The 375px / 390px device widths are layout constraints, not screenshot scaling or source-file rewriting.
-
-The adopted Artifact Detail entry now defaults to a Preview Workspace action instead of rendering HTML source as its primary body. Users can still explicitly select source view, and switching among managed versions resets the entry to Preview. Both Draft and adopted Artifact entries construct an `ArtifactReviewDocument` and open the same `ArtifactReviewWindowManager`; unsupported types retain the Registry fallback, and historical Artifacts without provenance remain safe.
-
-Artifact Version Compare Phase 1 adds a separate review surface without expanding the single-version Workspace into compare-specific branches:
-
-```text
-managed Artifact version collection
-→ UUID-based compare selection state
-→ ArtifactVersionCompareWorkspace
-→ left / right ArtifactReviewPane
-→ ArtifactPreviewRendererRegistry
-→ secured Renderer Preview or unchanged Source
-```
-
-Compare state is window-local SwiftUI state only. It is not written to UserDefaults, SceneStorage, Workflow, Artifact models, or Codable persistence. The default pair is the current adopted version on the left and the selected historical version on the right; when the selected version is current, the highest other managed version is used. Choosing the opposite side's UUID swaps the pair so both sides can never reference the same Artifact. The Compare window identity is stable by `campaignID + versionGroupKey`, independent of the selected pair, and an existing window is brought forward instead of duplicated.
-
-Both Compare sides reuse the same `ArtifactReviewPane` as the single-version Workspace. Each side resolves its Renderer from its own typed Preview Input, so HTML Preview continues through the established Renderer Security Boundary and unsupported / unavailable inputs continue through the safe fallback. Preview / Source are independent per side and Source is offered only when that Renderer declares support. The shared 375px / 390px control remains fully compatible for two HTML sides and is passed only to sides declaring Mobile Viewport support. A version change replaces that side's `ArtifactReviewDocument` and recreates only that Renderer subtree by the stable Artifact UUID, preventing prior DOM / JavaScript state from surviving or crossing between WebViews.
+- **只用隔离数据**：测试和 UI 验收只用合成数据、`/private/tmp/…` UUID 根、独立测试身份 / 随机 UserDefaults suite；隔离依赖缺失时失败关闭；不读写正式业务数据，不操作正式 App 窗口做验收。
+- **禁止按同名 App 使用 System Events**：2026-10-10 一次 UI 自动化尝试因隔离 App 与正式 App 同名，误改了正式 App 窗口位置 / 大小（已按原值恢复位置与大小，前台状态无法还原，未发点击输入，未做业务数据全面审计）。此后 UI 自动化只能定位**唯一进程名的隔离拷贝**，无法确认目标时放弃该 UI 操作。
+- **DEBUG 隔离模式下打开 Campaign 详情窗口可能写入正式 Workspace**（`onAppear` 的恢复 / 迁移调用不受隔离；归档 §13 todo 4）；因此隔离验收不打开合成活动详情，统一检索也拒绝隔离下的 Campaign 详情。
+- 测试数量按**唯一测试**去重，不把“首轮 + 修复后重跑”重复计数；报告区分**本轮实测**、**沿用证据**、**未覆盖**。真实窗口点击 / 保存面板 / Finder 的交互在多数模块仍为未覆盖缺口，工具无法安全完成时记录缺口，不要求用户逐步点击。
+- 每阶段最多一轮集中测试 + 一轮集中修复（AGENTS §23）。
+- 隔离测试遗留的空 suite plist 可能残留于 `~/Library/Preferences`，清理需单独授权。
 
 ---
 
-## 8. Current Artifact principles
+## 8. 已知风险 / 技术债
 
-Artifacts are versioned work assets.
+**P0 / 高**
+- 卓望核心业务数据（Campaign / Workspace / Workflow / AI 配置）仍在 UserDefaults；仅进程内锁 + 读回，无跨进程事务、自动恢复、备份轮换、断电耐久；长期应迁移到更稳健的结构化存储（需单独规划）。
+- Workspace 主键缺失但有备份时，加载会重新初始化默认配置而不查备份（既有行为，历史仍在磁盘与其他存储）。
+- 数据格式降级不受保护（见 §5：提示词 schema 2、备份 V3）。
+- 任何 JSON 存储在“检查后被非协作进程改写”的竞态下无保证。
 
-Current behavior / requirements:
-
-- preserve V1 / V2 / V3...
-- one currently adopted version per logical Artifact
-- allow rollback to an older version
-- never delete old versions merely because a newer version exists
-- preserve local file paths
-- prefer real local files for important outputs
-- recover metadata from local files where possible
-
-Campaign 工作产物交付包 Phase 1 is a read-only projection of currently adopted, managed local files. It does not add an Artifact type or persistent export record, does not import unmanaged files, does not select historical versions, does not collect HTML dependencies, and does not convert, regenerate, upload, or share content.
-
-Local workspace example:
-
-```text
-~/Documents/Cosmos OS/Workspaces/卓望/浙江/浙江活动测试/
-```
-
-Known step folders include:
-
-```text
-01_需求整理
-02_策划思路
-03_完整策划案
-04_页面结构
-05_...
-06_客服文档
-Assets
-```
-
-Historical folder naming must remain readable.
+**P1**
+- 活动改名会改变推导的活动目录（省份已用 `directoryName` 固定路径，活动未处理）。
+- DEBUG 隔离未隔离 Campaign 详情写 Workspace（见 §7）。
+- 交付包 ZIP 创建 / 哈希 / 解压校验在选择面板动作中同步执行，大交付集可能卡 UI。
+- 进程内解析：PDFKit / ImageIO 在 Cosmos 进程内，限制只降低风险；更强边界需 XPC / 独立进程 Renderer。HTML Preview 允许内联脚本与 `data:`/`blob:` 资源（兼容边界，放宽需单独威胁评估）。
+- Provider 覆盖窄：只有 DeepSeek Harness 完成端到端；`DeepSeekHarnessAdapter` 仍写死用户特定 `npx` 路径（运行时发现层仅限 DeepSeek）；Figma / Pixso 自动执行、Claude Desktop / ChatGPT / Codex 在 Cosmos 内直接执行均未实现。
+- Step 06 仅 Harness → Markdown，未采用结果仅存会话内；其验收只覆盖 2026-09-29 一轮，不证明后续 Harness 版本的约束。
+- Artifact 持久化模型仍偏 HTML；二进制 / 外部文档的采用、恢复、持久化引用（安全书签）未做。
+- 多处同步或 UI actor 上的读取 / 解码 / 线性搜索（资产中心、统一检索缓存、首页）在大数据量下的性能未测。
+- 真实 UI 交互验收普遍缺口（点击、保存面板、关闭 / 退出提醒、重启）；Swift 6 迁移 actor / Sendable warning 保留。
 
 ---
 
-## 9. Current architecture boundary
+## 9. 非阻塞待办（按模块，去重）
 
-Do not prematurely refactor into a universal multi-Workspace framework.
-
-Long-term:
-
-```text
-Workspace
-├── Organization / Company
-├── Projects
-├── Workflows
-├── Artifacts
-├── Knowledge
-├── Templates
-└── AI Connections
-```
-
-Current implementation focus:
-
-**Make the real 卓望 workflow mature first.**
+- **卓望 / 推进工作台：** 指标卡把列表挤出首屏；摘要每次渲染重算；省份概览与首页残留占位；活动列表行不标省份停用；路由请求在编辑中到达不重放。
+- **资产中心：** F1–F5（打开的详情保留旧快照、详情与搜索共用代次、窗口身份被 Campaign Review 共用、读不到正文的资产在正文搜索中缺席无提示、隔离根过滤 / Review 关闭 / 并发测试覆盖不足）；失败读取不缓存。
+- **Prompt Vault / 提示词版本：** 解析警告位置文案未插值；任何替换阶段失败都按 `uncertainWrite` 保守锁定；窗口持有旧 Store 列表可能过期；无历史差异比较 / 导入 / 历史删除 / 历史变量填充。
+- **学习中心：** 条目不可删 / 归档；链接仅复制；窗口标题不随改名；侧栏名仍是“AI 学习中心”。
+- **省份 / 月度会员促活：** 普通活动与月度活动不可互转；登记只追加；10 槽掌厅文案无结构化编辑；把 Word / Figma / 链接成品登记为受管 Artifact 是后续阶段。
+- **首页：** 导航只开模块不保留选择；大 Workflow 解码成本未测；AI 工作台 / Mac 优化未接入。
+- **AI 工作台：** Codex / Claude 内置路径随应用升级可能变；多安装只取第一个可运行者；交接历史无分页；资料正文大段直接 Text 呈现。
+- **核心备份 / 恢复：** 内存中处理接近上限时有内存成本；配置自由字典全部排除（需扩展白名单才可保留）。
+- **Mac 概览：** 无内存压力、电池循环 / 健康容量。
+- **Projects / 笔记 / 内容导出：** 列表一次渲染全部记录（超大库需分页）；批量包为不压缩 ZIP；导出无“排除引用位置”开关；强制退出可能残留隐藏 `.part` 或系统临时目录。
+- **部署：** 未实机触发“未保存阻止退出”与回退分支。
 
 ---
 
-## 10. Known technical debt / risks
+## 10. 暂缓事项（原样保留，不得自行恢复）
 
-### P0 / High
-
-- Business data still relies heavily on UserDefaults in current implementation.
-- Long-term business persistence should move toward a more robust structured persistence strategy.
-- Schema migration and recovery must remain safe.
-- Workflow, AI Provider, AI Connection, Tool Integration, and Agent/Tool Route payloads now have decode protection and backup recovery.
-- Campaign Store and Workspace Store now share the Phase 1 protected transaction boundary. Cross-process coordination, backup rotation, automatic recovery, and disk-level durability remain future work.
-
-### P1
-
-- The first HTML Adapter Registry / execution orchestration path is complete; other Tool Adapters remain future work.
-- Browser / desktop-width preview is not implemented; Phase 1 currently focuses on 375px / 390px mobile HTML review.
-- Artifact Version Compare Phase 1 provides managed-version side-by-side review. Text / semantic Diff and difference highlighting are not implemented.
-- Review annotations, anchored comments, approval notes, and markup are not implemented.
-- Figma, Pixso, external URL, and other external-document Preview Renderers are not registered yet; unsupported or unavailable inputs still use the safe fallback. Image and PDF Phase 1 remain local-file review only and do not add binary Artifact Adoption, persistent payload changes, recovery, search, thumbnails, Outline, form interaction, editing, OCR, annotation, printing, saving, export, password handling, or external URL documents.
-- ImageIO decode calls cannot be interrupted once inside the framework. Cancellation prevents queued work and discards late results, but a currently executing decode may consume its bounded budget until ImageIO returns.
-- PDFKit and Core Graphics parse PDF content inside the Cosmos OS application process. File, page, dimension, area, action, and concurrency limits reduce exposure but do not provide process isolation or guarantee safe handling of arbitrary malicious PDFs.
-- PDF internal object counts, framework caches, and synchronous PDFKit parsing time cannot be precisely bounded at the current layer. Cancellation and logical timeout prevent stale publication but cannot forcibly terminate framework work already executing synchronously; a stronger trust boundary requires a future XPC or separate-process Renderer.
-- Local Image Preview currently relies on the explicit URL already projected into the Review document. Durable security-scoped bookmark persistence and cross-Mac file relocation remain part of a future persistent payload / recovery phase.
-- HTML Preview intentionally permits inline JavaScript / event handlers and scoped `data:` / `blob:` image or media resources for existing interactive prototypes. This is a compatibility boundary, not a general browser sandbox; any future relaxation or Browser Preview capability requires a separate threat review.
-- The persisted Artifact model and adoption / recovery paths remain partly HTML-first. Phase 1 intentionally stops at the Review projection boundary; a future real binary or external-document adoption path still needs an optional, backward-compatible persistent payload descriptor without rewriting historical data.
-- DeepSeek Harness now has a scoped Runtime Compatibility Layer. Swift no longer pins a concrete DSH release-candidate version; it discovers the installed `dsh` executable, reads its reported version, verifies `--profile headless` support, and resolves `DSH_HOME` from the launch environment or Harness LaunchAgent.
-- Target runtime boundary:
-
-```text
-Cosmos OS
-↓
-Harness Runtime Adapter
-↓
-Current environment-available Harness Runtime
-```
-
-The discovered executable is used directly. If discovery fails, the previous npx-based launch shape remains available as a version-unpinned compatibility fallback. Runtime discovery logs the selected source, path, version, and `DSH_HOME`. This remains a DeepSeek-only compatibility layer, not a universal AI Runtime Adapter Layer.
-- Figma real automated execution is not yet implemented.
-- Claude Desktop direct execution is not yet implemented.
-- ChatGPT direct execution path is not yet implemented.
-- Codex execution path from inside Cosmos OS is not yet fully implemented.
-- Step 06 Phase 1 supports only DeepSeek Harness → Markdown. Local import, external URL/cloud-document references, Word/PDF generation, other Provider adapters, persistent draft/revision history, comments, annotations, hard rejection, undo, and a general approval framework remain deferred.
-- Step 06 pre-adoption running/result/revision state is session-only. The first live run violated this boundary by allowing Harness to write directly; after the child-process sandbox and before/after integrity check were added, the 2026-09-29 real Harness run left the formal customer-service Workspace and knowledge-base directories empty and the Workflow primary/backup bytes unchanged before adoption. This is one live acceptance, not a proof for all future Harness versions or external services.
-- Step 06 Provider choice is now session-local until adoption, so selecting it for generation no longer saves Workflow/Step `updatedAt`. Step 01–05 provider behavior is unchanged.
-- Step 06 has broad automated persistence, Review, Compare, Recovery, and regression coverage. The 2026-09-29 fixed-runtime Draft/Preview and human adoption passed real UI acceptance; persisted Workflow metadata and the formal Markdown V1 were independently checked afterward. Restart recovery and future-version compatibility were not part of this acceptance.
-- Campaign 工作产物交付包 Phase 1 has automated ZIP-content, manifest/checklist, SHA-256, adoption-change, duplicate-adoption anomaly, missing/outside/symlink/directory, path-traversal, source-mutation, archive-corruption, destination-collision, cleanup, and default Python ZIP-reader coverage. The requested real export and existing-target refusal checks passed. ZIP creation, hashing, extraction, and verification still run synchronously from the selection sheet action; large delivery sets may temporarily block UI responsiveness. No hang was observed in this small Campaign export; that does not resolve the deferred responsiveness risk. Ditto's raw UTF-8 names initially lacked bit 11; the Service now validates strict UTF-8 bytes and paired local/central records before setting the flag in both headers. An independent whole-archive comparison proves only these flags change, not payloads, CRC, sizes, names or manifests. Other P3 items remain deferred.
-- Artifact sidecar manifests are deferred, so disaster recovery can reconstruct the primary HTML prototype logical key only from the canonical artifact name.
-
-### Deferred
-
-- Permission optimization for DeepSeek subprocess / macOS file permissions.
-- Artifact window opening performance optimization.
-- global UI / motion polish.
-- universal multi-Workspace refactor.
+- **Word WIP：** 本地分支 `wip/markdown-word-export-phase1-20260930`（提交 `2d26b2a`，未合并、未推送、部分 UI 验收、未接受）。
+- **Step 06 Harness：** 不运行；不重复采用；不再触发真实 Harness。
+- **客服文档 V1 重新采用 / 导入：** 不做；事故文件 `客服文档 _ AI 采用结果_V1.md` 不导入。
+- **Evidence / Quarantine：** 四个文件保持原样（均在正式 Workspace 与知识库路径之外，31,878 字节，SHA-256 `a198eb7d2336c4487683360bc3f008fd94f569601d3a1850d65a412e67aaa9ec`），不删除、不覆盖、不恢复、不自动导入。
+- **旧 P3**（Store Phase 2 / 细分错误枚举 / 内置模块删除规则 / 整 Store `@MainActor` 迁移 / 陈旧冲突重载 / 重复 `allowsMutations` 守卫等）、**F1–F5**（见 §9）、Browser / 桌面宽度 Preview、批注 / 评论、persistent draft / revision、外部引用 Renderer（Figma / Pixso / URL）、通用 AI Runtime Adapter 层、全局 UI / Motion 美化、通用多 Workspace 重构、Artifact 窗口性能与 DeepSeek 子进程权限优化。
+- 远端另有分支 `wip/pdf-renderer-phase1-20260902`（归档未记录，不处理）。
+- 内容导出本期明确不做：Word / PDF / 富文本导出、导入、历史删除、云分享、自动 / 定时导出、持久化导出记录。
 
 ---
 
-## 11. Current development workflow decision
+## 11. 不得回退
 
-Development responsibility is being split intentionally:
-
-### User
-
-- Product owner
-- final business decisions
-- final UX acceptance
-
-### ChatGPT web
-
-- Product architecture advisor
-- technical solution design
-- roadmap / tradeoff analysis
-- cross-session project review
-
-### Codex on Mac
-
-- local repository engineer
-- codebase analysis
-- file modifications
-- build / test
-- bug fixing
-- diff review
-- documentation updates
-- Git preparation
-
-The goal is to remove manual code-copy / file-replacement work from the user.
+- 01–04 Workflow 恢复能力；完整策划案当前采用 V1；产品原型采用 V3 的选择未经用户明确更改不覆盖。
+- **Figma 是 Tool，不是 AI Provider**；原型步骤（`prototypeDesign`）保持工具无关；Workflow Step = AI Provider + Tool → Artifact。
+- Artifact 保留全部历史版本，每个逻辑 Artifact 恰有一个当前采用版本；后续步骤只消费当前采用版本；采用后才落盘并解锁下一步。
+- 本地工作文件不是一次性数据；原生业务详情窗口保持原生独立窗口；核心架构先于视觉美化；不过早做通用多 Workspace 重构。
+- 数据安全：不清空 / 重置 UserDefaults 或工作区作为修复捷径；元数据恢复幂等且不删用户文件；新增 Codable 字段保持旧数据可解码。
+- 首页不显示编造的任务 / 健康数；任何位置不显示学习百分比进度（三态手动）。
+- 引用（Campaign / Projects / 笔记）只登记，不读取、复制、移动、删除实体；登记不等于 Artifact 采用或交付资格。
+- 测试与验收不触碰正式数据；不按同名 App 做 UI 自动化（§7）。
 
 ---
 
-## 12. Daily synchronization protocol
+## 12. 下一优先级
 
-After meaningful Codex development:
-
-1. Build / test.
-2. Update this file.
-3. Create/update today's file under:
-   `Docs/Development Log/`
-4. Review Git diff.
-5. Commit with:
-   `feat/fix/docs/refactor/chore/test: 中文描述`
-6. Push when the user requests synchronization.
-
-Then ChatGPT web can read GitHub and continue from the latest repository state.
-
----
-
-## 13. Next priority
-
-**Current:** 个人知识笔记完整模块已接受并关闭（§36）；下一模块先确定范围，不自动开始。（此前：提示词版本、统一检索、活动引用、卓望分类页等阶段均已关闭，其待办/限制见各自章节。）工作区入口、Projects 等已关闭阶段与全部暂缓事项保持不动。
-
-AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
-
-**Previous milestone:** 知识与资产中心 Phase 1 is closed after Claude’s one concentrated read-only review (A; no discovered blockers). The owner authorized its single feat commit and normal origin/main push. The next major module awaits product coordination; do not automatically start it, repair deferred F1–F5, restore Word WIP, run Harness or expand deferred work. Previous checkpoint: Campaign 项目推进工作台 Phase 1 is closed. No further tests or manual click-through were requested for this phase. Do not open Campaign detail windows with sample / fixture Campaigns in the DEBUG isolated mode: detail windows can write into the formal Workspace path (todo 4). Development policy from 2026-09-30: advance whole features; per phase at most one focused test / review round and one focused fix round, then verify only affected parts; record non-blocking issues as todos until the whole project runs; no repeated full-suite runs and no step-by-step clicking requests. Data safety, content integrity and broken core functions are still fixed within the phase.
-
-Campaign 项目推进工作台 Phase 1 (read-only summary):
-
-- Entry: 卓望工作 sidebar → 总览 → **推进工作台** (selected by default when entering the Workspace). The previous province / module 概览 tab showed hard-coded placeholder metrics and recent-work rows; those two sections are replaced by the same workbench scoped to that province / module. 快捷创建 and 内容资产 placeholders remain unchanged.
-- Content: metrics (activities, within activity dates, failed / needs revision, deliverable); filters (province / module, Campaign status, name search) with empty states; 推进列表 grouping each Campaign once by real Workflow state (failed / needs revision → generating / awaiting confirmation → next step → deliverable → six steps confirmed but no deliverable file → Workflow not created); 近期活动 by the Campaign's own start / end calendar days (ongoing, upcoming, ended within 30 days, with the date basis shown and no inferred deadlines); 活动总览 with name, province / module, dates, status, six-step progress and adopted-artifact count (multiple-adoption conflicts flagged).
-- Deliverable means all enabled steps approved / completed and at least one adopted artifact accepted by the existing delivery-package eligibility rules (real local file inside the Campaign Workspace).
-- Actions reuse the existing Campaign window manager: 打开 Workflow, 查看产物, 导出交付包 (opens the existing delivery sheet), 打开 (overview). A small route object lets an already-open Campaign window switch tab. No Step 07.
-- Read-only: builds from persisted Campaign / Workspace / Workflow data; never creates a Workflow, changes status or adoption, or generates AI content. One Workflow Store instance is now shared by the Campaign list, the workbench and the Campaign windows they open (previously each Campaign list view created its own instance).
-
-Todos (non-blocking, deferred until the whole project runs): (1) the large existing metric cards push lists below the fold on short windows; (2) summaries, including delivery-file checks, are recomputed on every render / filter keystroke — cache if Campaign count grows; (3) remaining placeholder sections in the province 概览 tab and the Dashboard home; (4) DEBUG isolated UI mode does not isolate Workspace files, and opening a Campaign window runs legacy-artifact migration that writes into the formal Workspace path — so real click-through of workbench actions was not exercised with fixture data; (5) the isolated App ignored a preset window frame, limiting captures; (6) a route request that arrives while a Campaign window is being edited is not re-applied after editing ends.
-
-Previous milestone notes (delivery package / Word export) follow.
-
-The product owner confirmed Phase 1 acceptance and authorized Git closeout on 2026-09-30. The requested final-code real export checks are complete, including default 0/6 selection, six current versions, all-eligible selection, successful save, ZIP inspection and Finder reveal. Existing-target refusal passed through the real Save Panel Replace confirmation and application refusal; UTF-8 normalization does not change destination validation/publication. Disabled-item scenarios are covered by fixtures (this real Campaign has six eligible items); Save Panel cancellation was not separately exercised. Claude's prior independent static review is complete per the user; no new full review is requested, and other P3 work remains deferred. After Git synchronization, await the owner's next explicitly selected milestone; do not automatically start P3, Step 07 or another project.
-
-This feature is an independent post-Workflow capability, not Step 07. Phase 1 does not include cloud upload/sharing, AI regeneration, historical-version selection, unmanaged-file import, binary adoption/recovery, format conversion, dependency collection, or export-history persistence.
-
-Step 06 Phase 1 is implemented and accepted for the observed 2026-09-29 real UI path:
-
-```text
-Step 06 ready
-→ Task Package with currently adopted upstream Artifacts
-→ DeepSeek Harness Markdown result
-→ session-only Artifact Draft
-→ safe Text Renderer in Artifact Review Workspace
-→ human adoption
-→ protected Workflow transaction
-→ versioned .md + Run + Approval + provenance-complete Artifact
-→ Step 06 approved
-→ Artifact Detail / version history / Text Compare
-```
-
-Completed milestone capabilities:
-
-- safe native Markdown/plain-text Preview with literal selectable content and no HTML/script/network execution;
-- DeepSeek result conversion into the existing Review Workspace without formal writes before adoption;
-- a stable `workflow.customerService.primary` logical Artifact group with version preservation and exactly one adopted version;
-- a Step 06-specific protected adoption transaction with stale/decode checks, backup and primary verification, structured UI errors, and safe retry;
-- unadopted-only Step 06 local-file Recovery that never approves the step;
-- adopted Markdown reopening through Artifact Detail and using the existing managed-version Compare surface;
-- isolated XCTest and Universal Debug/Release builds from the implementation, P1 and P2 verification rounds, plus the Release isolation-string scan. These automated checks preceded the final live adoption; they were not rerun as part of the 2026-09-29 closeout.
-
-Next-session handoff:
-
-1. Use this accepted Step 06 Phase 1 as the baseline; do not repeat adoption or import the quarantined accident file.
-2. Keep the four Evidence/Quarantine files intact until the product owner separately authorizes their disposition. The knowledge-base customer-service directory remains empty; the adopted file lives only in the Cosmos Workspace.
-3. Let the product owner choose the next milestone explicitly. Persistent drafts/revisions, comments/annotations, local import, external references, additional Providers, Word/PDF generation, Browser/Desktop Preview, Store Phase 2, and cross-process persistence remain separate future work.
-
-A universal AI Runtime Adapter Layer remains deferred. Do not disturb the accepted DeepSeek Harness + HTML Step 05 path while adding Review capabilities.
-
----
-
-## 14. Do not regress
-
-Do not regress these verified decisions:
-
-- 01-04 Workflow recovery
-- 完整策划案 current version = V1
-- Figma is Tool, not AI Provider
-- prototype step is tool-agnostic
-- Artifact versions are preserved
-- local work files are not disposable
-- native business detail windows remain native macOS windows
-- core architecture before visual polish
-- no premature universal Workspace refactor
-
----
-
-## 15. Current verification checkpoint
-
-- 2026-09-30 Campaign 项目推进工作台 Phase 1 (automated + isolated capture; **no manual UI acceptance**): `ZhuowangCampaignWorkbenchTests` **8/8** (progress / next step / attention / adoption / conflicts; category priority and disabled steps; calendar-day date phases incl. boundaries; province / module / status / name filters; deliverable counting through the delivery-package rules with real temporary files; read-only proof over real Stores backed by an in-memory data source — zero writes, storage unchanged, no Workflow created; route delivery; offscreen rendering of the real view for full, province-scoped and empty states). One review round found and fixed: overview header row stretching (flexible `Color.clear`), overview table overflowing and clipping the detail pane at common widths (compact dates / columns), and Swift 6 actor-isolation warnings; only affected tests were re-run. Universal Debug **BUILD SUCCEEDED** `x86_64 arm64`; `git diff --check` passed. The real App was launched in its existing DEBUG isolated mode (temporary Bundle ID `…persistenceui.C29DD703-…` + Store Phase 1 suite seeded with the test fixture) and opened directly on the workbench through a new DEBUG-only, isolated-only `--cosmos-initial-sidebar zhuowang` argument; the window was captured. Temporary domains created by this work were deleted afterwards. Screens: `/private/tmp/Cosmos-Workbench-Screens-20260930/`. Formal data check: all 11 business `Data` keys, five adopted source hashes, adoption / step states and the 浙江活动测试 Workspace file listing are unchanged versus the 15:39 baseline. `project.pbxproj` Xcode re-serialization (semantically identical) was restored to HEAD. Incident: an AppleScript resize meant for the isolated App resolved the product owner's running Xcode-run App by name and moved / resized its 客服文档 Artifact Detail window (window geometry only; no data). System Events automation was not used again.
-
-- Post-P0 runtime state was manually verified by the user without regenerating 01-04 or changing the adopted V1 selection.
-- P0 persistence changes do not reset or delete UserDefaults data.
-- The user confirmed that Workflow progress, Tool separation, recovered Artifacts, and historical versions remained intact after running the updated app.
-- Step 05 runtime adoption preserved the approved state of Steps 01-04 and the currently adopted Campaign Plan V1 while advancing only Step 05 to approved and Step 06 to ready.
-- Full Universal macOS Debug build completed with `BUILD SUCCEEDED` on 2026-08-19.
-- Minimal Step 05 Unit Test Target completed with 7/7 tests passing.
-- Step 05 execution-semantics follow-up completed with full Universal Build success and 9/9 Unit Tests passing on 2026-08-20.
-- Step 05 real runtime acceptance completed on 2026-08-21: credentials service resolution succeeded, DeepSeek returned real HTML, preview/source/interaction checks passed, HTML Artifact V1 was adopted and persisted, Step 05 became approved, and Step 06 became ready.
-- The last manually accepted Harness run used `@deepseek-ai/dsh@0.1.0-rc.6` with `DSH_HOME=$HOME/.dsh-rc8-clean`. Swift no longer pins that package version; the compatibility layer currently discovers the installed local `dsh` runtime and the same LaunchAgent-managed `DSH_HOME`. A post-change live smoke run remains pending.
-- Prototype Fidelity Control completed a macOS Debug Build and 30/30 Unit Tests on 2026-08-21. Live UI confirmation of profile selection, persistence, Preview display, and one Low-fi / High-fi Harness output remains pending.
-- Artifact Review Workspace Phase 1 plus adopted Artifact Detail entry completed a macOS Debug Build and 39/39 Unit Tests on 2026-08-21. Automated coverage includes V1 / V2 / V3 HTML review documents, Preview as the Artifact Detail default, Renderer Registry selection, and legacy Artifacts without provenance. Live UI confirmation of version switching, selected-version window content, independent-window sizing, mobile interactions, full-preview ergonomics, and Light/Dark Mode remains pending.
-- Artifact Review Renderer Security Boundary Phase 1 completed a Universal macOS Debug Build and 47/47 Unit Tests on 2026-08-21. Read-only UI smoke confirmed managed V1 / V3 / V4 Preview loading, V3 Preview / Source, 375px / 390px, scrolling, local button interaction, Full Preview, and V3 remaining adopted. V1-V4 file hashes and the Cosmos Toolbox UserDefaults domain hash were unchanged before and after the smoke test; unmanaged V2 remained untouched.
-- Artifact Version Compare Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 59/59 Unit Tests on 2026-08-24. Read-only UI smoke confirmed default V3 | V4, Detail-selected V1 opening V3 | V1, UUID swap behavior, independent Preview / Source and scrolling, shared 375px / 390px viewport, isolated WebView interaction state, stable Compare window reuse, native full screen / close / reopen, and unchanged single-version V1 / V3 / V4 Review plus Full Preview. The adopted prototype remained V3; Workflow and UserDefaults were unchanged; V1-V4 hashes remained identical and unmanaged V2 stayed untouched.
-- Artifact Preview Abstraction Layer Phase 1 completed a Universal macOS Debug Build for arm64 + x86_64 and 70/70 Unit Tests on 2026-08-24. Automated coverage verifies legacy inline/local text projection, exact Source preservation, binary files bypassing UTF-8 decoding, missing/unreadable/conflicting fallback, stable IDs and provenance, typed Registry selection, capability-driven UI normalization, unchanged HTML security, and mixed Compare compatibility. Read-only UI smoke reconfirmed V1 / V3 / V4 Review, V3 | V1 and default V3 | V4 Compare, independent Preview / Source and scrolling, shared 375px / 390px, isolated button state, Full Preview, native full screen / close / reopen, adopted V3, and Workflow 01–05 approved / 06 ready. Prototype file hashes remained unchanged, including unmanaged V2. The application preference plist was reserialized during the native-window smoke session because it contains `NSWindow Frame` / split-view state, so its whole-file hash changed; no business-data mutation was invoked, and the live Workflow/adoption state remained unchanged.
-- Artifact PDF Renderer Phase 1 completed 115/115 Unit Tests with 0 failed and 0 skipped, plus a Universal macOS Debug Build for arm64 + x86_64 with `ONLY_ACTIVE_ARCH=NO` and `CODE_SIGNING_ALLOWED=NO`. `git diff --check` passed. The focused Fixture smoke passed five consecutive runs; the final post-acceptance Fixture smoke passed in 2.420 seconds. Security policy focused tests passed 5/5, lifecycle coverage passed, and the app-wide PDF load gate reached a maximum concurrency of one and returned to zero.
-- PDF Fixture acceptance used only dynamically generated temporary files and did not read or import a real business PDF. Six business-shaped Fixture windows reached ready and contained seven real PDFViews. Human-observed and automated interaction coverage confirmed PDF display, continuous scrolling, page navigation and page entry, Fit Page, Fit Width, 100%, 10%–400% limits, independent PDF | PDF page / zoom state, Full Preview close / native close / reopen / resize / native full screen, HTML | PDF, Image | PDF, PDF | Unsupported, Light / Dark appearance, and the corrected temporary WindowContext close path. No PDF Publishing warning, crash, hang, or abnormal CPU use was observed.
-- Manual acceptance did not completely cover the final system clipboard contents after text selection, a viewable-but-copy-prohibited PDF, or clicking every dangerous PDF action. Those boundaries have automated policy coverage and are explicit Phase 1 acceptance gaps rather than claims of complete manual security validation. A focused combined run also recorded two SwiftUI `@State` warnings caused by construction in other Compare tests; they were not PDF Publishing warnings and did not fail the tests. This was kept out of the PDF Phase 1 scope for separate follow-up.
-- PDF verification did not run Harness, generate, import, or adopt an Artifact, or modify business UserDefaults. The canonical Workflow SHA-256 remained `a7e3dd5f7e2dc1c62f62d0e7490b660df59b3947eb0f90e293d7ad617dd02b61`; Workflow remained 01–05 approved and 06 ready; adopted prototype remained V3; managed versions remained V1 / V3 / V4 and V2 remained unmanaged; the established V1–V4 file hashes remained unchanged.
-- Initial Step 06 implementation checkpoint: 170/170 XCTest passed with 0 failed/skipped under temporary Bundle ID `com.wangyucosmos.cosmostoolbox.step06tests.6F0B17A4-795F-4DA3-9DC7-BFC7A4C1D698`. The temporary preference domain contained only two window-state keys and no business `Data` key. The test build and independent macOS Debug/Release builds contained `x86_64 arm64`; the Release isolation-string scan found zero matches for 10 DEBUG-only identifiers and retained `CosmosRootView`. At that earlier checkpoint the formal plist and Workflow bytes were unchanged, and live UI acceptance had not yet run.
-- 2026-09-24 P1 fix: targeted Step 06 XCTest 15/15 and full suite 175/175 passed with 0 failed/skipped under a temporary Bundle ID, suite and `/tmp` data/build roots. Universal Debug and Release builds succeeded for `x86_64 arm64`; 10 Release DEBUG-only identifiers were absent and `CosmosRootView` remained. No post-fix formal App or real Harness run occurred. The two incident files remain untouched.
-- 2026-09-29 narrow P2 follow-up: the Step 06 sandbox profile and child environment use matching POSIX-canonical temporary run/DSH paths; only the exact `/dev/null` device is additionally writable. Real `sandbox-exec` probes cover permitted HOME, TMPDIR, cwd, PWD, npm cache, DSH_HOME and `/dev/null` writes, denied protected-root writes, and denied Git execution. Step 01–04 revisions use the original raw request, while Step 06 revisions retain the sandboxed task-package path. Focused and complete isolated XCTest and Universal Debug/Release builds passed; Release DEBUG-isolation scan had zero hits. Claude's narrow static re-review passed before the later live re-acceptance.
-- 2026-09-29 live Step 06 re-acceptance: the user observed a real Harness Markdown Draft and readable Review Workspace. Before adoption, the two formal customer-service directories remained empty and the Workflow primary/backup bytes remained at the recorded pre-generation values. The user then clicked Adopt; the UI showed Step 06 `已确认` and the Markdown V1 `已采用、已落盘`. Independent read-only inspection found the 28,360-byte formal V1 file with SHA-256 `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`; persisted Step 06 is `approved` with exactly one succeeded Run, one approved Approval and one uniquely adopted Markdown Artifact. The Artifact's content bytes equal the file bytes. The Workflow backup equals the pre-adoption primary (`88ab71fe…`); the post-adoption primary is `b71226b1…`. The four incident Evidence/Quarantine files retain their original 31,878-byte size and `a198eb7d…` hash. This verifies this one adoption round trip, not restart recovery or universal future-runtime confinement.
-- Campaign 工作产物交付包 Phase 1 focused XCTest passed 11/11. The isolated real-ZIP fixture creates and independently extracts a ZIP, then verifies the selected file bytes, manifest/checklist content, package-relative paths, byte counts, and SHA-256 values. Adoption-change coverage rejects both a group losing its adopted version and a selected Artifact being replaced by another adopted version before save. Related Artifact Review/Compare and Step 05/06 regression suites passed 95/95 in total with 0 failed and 0 skipped. These tests used temporary roots and a temporary Bundle ID; they did not launch the formal App or run a real Harness operation.
-- Campaign 工作产物交付包 Phase 1 Universal macOS Debug build succeeded for `arm64 x86_64` with `CODE_SIGNING_ALLOWED=NO`. `git diff --check` passed. Full real UI acceptance remains pending.
-- 2026-09-30 path eligibility fix: focused delivery-package XCTest **13/13**, related delivery-package / Step 05 / Step 06 / Artifact Review / Compare regression **97/97**, all passed. The case-variant fixture exported and independently extracted a real ZIP with matching bytes, size, and SHA-256 on the current case-insensitive volume; on a case-sensitive volume the test expects a nonexistent case variant to be disabled. Existing outside/missing/directory/symlink tests remain intact; new coverage rejects a prefix-similar sibling, source `..` traversal, and a directory symlink. Universal Debug build succeeded (`arm64 x86_64`); final App: `/private/tmp/CosmosDeliveryPathFixDebug20260930/Build/Products/Debug/Cosmos Toolbox.app`. The real successful export is recorded below; full acceptance remains pending.
-- Real export on 2026-09-30 11:07:58 +08: `/Users/rainiesmac-15/Documents/浙江活动测试_交付包.zip` (35,996 bytes), outside the Campaign Workspace but saved in Documents rather than the proposed isolated directory. Native independent extraction and read-only ZIP checks confirmed exactly 6 adopted files (01–04 V1, Prototype V3, Customer Service V1), `交付清单.md`, and `manifest.json`; item IDs, logical keys, steps, versions, file bytes, sizes, hashes, and absence of absolute source paths all matched. Customer Service V1 SHA-256 is `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`. All 11 business Data keys and 9 managed source hashes were unchanged; window-state keys were compared separately and also unchanged. No `.cosmos-delivery-*` directory remained in Documents or the acceptance directory. Evidence: `/private/tmp/Cosmos-Delivery-UI-Acceptance-20260930/zip-verification-after-export.json`. Existing-target refusal is still awaiting a real UI operation; default-empty selection, Finder reveal, and Save Panel cancellation have not been explicitly reported by the user. No complete UI acceptance is claimed.
-- 2026-09-30 final UTF-8 compatibility verification supersedes the earlier pending-acceptance checkpoints above: focused delivery-package XCTest **15/15**, related delivery / Step 05 / Step 06 / Review / Compare **99/99**, 0 failed/skipped; Universal Debug **BUILD SUCCEEDED**, `x86_64 arm64`. Evidence: `/private/tmp/CosmosDeliveryUTF8Focused20260930.xcresult`, `/private/tmp/CosmosDeliveryUTF8Regression20260930.xcresult`, `/private/tmp/CosmosDeliveryUTF8Debug20260930.log`. Tests/build correspond to the final Service and Tests; no subsequent source edit occurred.
-- Real non-overwrite check: after native Replace confirmation, the App refused with `目标 ZIP 已存在。为保护用户文件，Cosmos OS 不会覆盖它。`. The disposable target SHA-256 remained `c634c2aeac08d7b5a469e059402c5635ba15891fe7887e546443e17b47dd83b2`; no transaction remnants. This preceded the UTF-8-only patch; destination handling is unchanged and the final existing-target XCTest passed.
-- Final-code real export at **2026-09-30 13:49:47.842 +08** used `/private/tmp/CosmosDeliveryUTF8Debug20260930/Build/Products/Debug/Cosmos Toolbox.app` (running PID 51814 verified). Output: `/private/tmp/Cosmos-Delivery-UI-Acceptance-20260930/浙江活动测试_交付包_UTF8最终验收.zip`, 35,996 bytes, SHA-256 `110c2231f702220ee72d4424dc9d965512da545a4f57f1bcbd30bb6460ba8512`. Exactly six adopted files (01–04 V1, Prototype V3, Customer Service V1) and two manifests passed exact Chinese-name, metadata, byte-count and hash verification with **Python 3.9.6 default zipfile/extractall** and **macOS ditto extraction**. Finder reveal passed. Windows and macOS Archive Utility extraction were not tested.
-- Final integrity comparison: all **11 business Data keys** are byte-identical and JSON-decodable; **9 managed source hashes** and Workflow/Run/Approval/Artifact/adoption state are unchanged. Customer Service V1 remains `ad4b0f6070d9e5b743cb3f6fff2c631469fb934a96fe9f8ca836efc50d830fd5`. Only the separately compared window key `NSWindow Frame GoToSheet` changed; this is not business data. No `.cosmos-delivery-*` remained in Documents or the acceptance directory. Evidence: `/private/tmp/Cosmos-Delivery-UI-Acceptance-20260930/zip-verification-final-utf8.json`. No Harness, adoption, incident-file operation, commit or push occurred.
-- `git diff --check` completed successfully.
-- Runtime validation of V2 append behavior remains a future follow-up; pure-logic unit coverage already verifies that V2 append does not overwrite V1.
-
-
-## 16. 知识与资产中心 Phase 1 — 2026-10-09
-
-> 2026-10-10 起「知识库」入口为 `KnowledgeHubView`：分段切换「个人笔记」（§36）与「卓望知识与资产」（本节资产中心，行为与检索语义不变）。
-
-### Current behavior
-
-Main sidebar 知识库 now opens 知识与资产中心, explicitly limited to Cosmos OS managed Zhuowang Artifacts. Search / province, Campaign and type filters → exact version / source → native read-only asset detail → existing safe Review or Finder → complete original text copy. No import, export, adoption, Campaign-detail navigation, Compare, AI, OCR, external knowledge synchronization or persistent index.
-
-- Group identity is Campaign UUID + existing versionGroupKey. Current mode shows the unique adopted version even if a newer historical version exists; zero-adoption groups have a count / explicit All Versions entry; multiple-adoption groups remain visible with explicit conflicts and no automatic choice or repair. All Versions search identifies each concrete version and adoption state.
-- A small raw-data snapshot reader decodes primary Campaign / Workspace / Workflow payloads without creating a business Store. Missing keys are explicitly reported without initialization; corrupt primary data produces a read error without backup recovery; orphan references remain visible. Two bounded attempts reject a changing snapshot. Optional Provider metadata supplies labels only. Duplicate Artifact UUIDs fail explicitly rather than selecting an ambiguous record. No cross-process transaction guarantee.
-- Nonempty Artifact.content is authoritative; otherwise the explicitly referenced supported local text is used. Search / detail / copy / text Preview consume the same controlled result. Original whitespace, newlines and Unicode bytes are retained. File/metadata equality is marked only after successful UTF-8 read and byte comparison; missing, unreadable, oversized, conflicting or nonapplicable files remain explicit. No overwrite or synchronization.
-- 2 MiB applies to metadata and local text; oversized content is not truncated and metadata results remain discoverable. A serial background service performs bounded FileHandle reads, pre/post device/inode/size/mtime/ctime checks, final-component no-follow open, cancellation and a 32 MiB accounted LRU cache. Refresh clears cache; metadata changes alter requests; each cached read rechecks the file fingerprint. Search has 250ms debounce and request-generation protection.
-- Only explicit regular absolute local files are admitted; relative paths, URL strings, traversal, directories, symbolic links and unreadable files are rejected. Safe explicit references outside the Campaign directory are allowed. No directory enumeration. Existing local Image/PDF Renderer safety remains in force.
-- Details are independent resizable native windows; no adoption controls. Vanished selected UUIDs do not silently switch version. Refresh clears detail results and closes this center's tracked Review previews; explicit actions re-resolve the selected body. Text Review receives an injected resolver containing the controlled result and cannot fall back to the unlimited default reader. Copy / Finder run only after explicit actions.
-- DEBUG isolated asset launches require an explicit `/private/tmp/CosmosAssetPhase1-*` root; missing root fails closed. All sample references must be beneath that root. This does not repair the older Campaign-detail isolated-Workspace risk; do not open sample Campaign details.
-
-### Actual verification
-
-- First focused batch: 40 tests, 36 passed / 4 failed. All failures involved file-body admission: Foundation standardized existing `/private/tmp` paths into `/tmp`, then the strict symlink guard correctly rejected the alias. One concentrated fix preserved explicit paths, retained symlink / fingerprint checks, tightened byte equality and full read-length checks, and invalidated old Review previews on refresh. Unicode and historical / same-ID metadata-refresh tests were added in that round.
-- Final affected batch: **42 passed, 0 failed, 0 skipped** = **15 asset tests + 27 ArtifactReviewWorkspace tests**. Evidence: `/private/tmp/CosmosAssetPhase1-Validation/Fixed.xcresult`. Coverage includes raw-data zero writes from startup, corrupt-primary / no-backup behavior, bounded snapshot retry, older adopted versions, conflicts / orphans, raw named-Pasteboard copy, injected Finder request, exact text Preview, changed-file / refresh cache invalidation, invalid / missing / unreadable / symlink / oversized / non-UTF8 files, cache budget, cancellation, latest search, historical hits and changed / removed metadata.
-- Final **Universal Debug and Release BUILD SUCCEEDED**, `x86_64 arm64`, `ONLY_ACTIVE_ARCH=NO`, `CODE_SIGNING_ALLOWED=NO`. Logs: `/private/tmp/CosmosAssetPhase1-debug-final.log`, `/private/tmp/CosmosAssetPhase1-release-final.log`. Release binary contains zero instances of `--cosmos-asset-fixture-root`, `--cosmos-initial-sidebar`, `--cosmos-store-phase1-suite`.
-- Offscreen real center/detail rendering generated PNGs; this is not real-App interaction acceptance. Fixtures / retained evidence: `/private/tmp/CosmosAssetPhase1-DB2B0E1E-B554-484A-8477-89B4D402B7F0/`.
-- Real App: only the temporary Debug bundle `com.wangyucosmos.cosmostoolbox.persistenceui.assetphase1` with a UUID-scoped suite and temporary root. CUA verified current-mode historical-only query returns zero; explicit All Versions returns V3 with historical status/snippet; native detail opens and switches to V1; metadata/file equality and actual body are displayed; Text Review opens; Finder selects the exact temporary Markdown file. No sample Campaign detail was opened. CUA quit/re-query left a temporary bundle process without the isolation banner; the exact temporary executable was then terminated by path, without acting on a same-named formal App.
-- Temporary suite's three business keys remained byte-identical to the imported fixture, no extra cosmos business keys appeared, and the temporary Markdown SHA-256 remained unchanged (`ui-integrity.json`). No formal Workspace or personal knowledge repository was used as a sample or scanned. Formal App was not intentionally launched or operated.
-
-### Remaining limits / next action
-
-Phase closed on existing evidence after Claude’s one concentrated read-only review: conclusion **A**, no discovered blockers. Claude independently read the final `Fixed.xcresult` and confirmed **42/42 passed, 0 skipped**, later than the last source modification. Build and real-App results above are Codex’s original verification records; Claude did not rerun them. Closeout also read the existing result and source modification times without running tests/builds. The owner authorized one `feat: 新增知识与资产中心` commit and normal origin/main push from baseline `e2c615165fef4951d6dec99915949bddfbab2aa1`; actual delivery refs are verified after push. This is not complete end-to-end UI acceptance. The next major module awaits product coordination.
-
-Not covered by real UI: clipboard button / general clipboard round trip (named Pasteboard and action injection tested), refresh automatically closing a still-open Review, all filter combinations, all file Renderers, restart and large-catalog performance. Inherited Review XCTest reports an existing SwiftUI State-outside-installed-View warning; build reports AppIntents metadata extraction skipped without a dependency. Neither failed checks.
-
-Deferred engineering: snapshot JSON decode stays on the UI actor and linear search has no persistent index; assess responsiveness with large metadata before optimizing. Invalid UTF-8 read failures can be reattempted on subsequent queries despite unchanged fingerprint (bounded reads, safe failure; optimize failure caching later). Native previews remain bounded in-process, not a stronger parsing sandbox. Existing Workbench / old P3 todos and Word WIP remain untouched.
-
-### Concentrated review follow-ups (non-blocking; not repaired in this phase)
-
-- **F1:** 离开资产中心后，已打开详情保留旧元数据快照，采用标签可能过期；复制仍对应窗口显示版本。后续优先考虑快照标识及重新核对采用状态。
-- **F2:** 详情读取与搜索共用代次，搜索变化可能使详情读取失效并停留在重新核对状态。
-- **F3:** 资产中心与 Campaign Review 共用窗口身份，后续打开可替换内容，资产中心刷新可能关闭共享窗口。
-- **F4:** 无法读取正文的资产可能在正文搜索中缺席，缺少搜索覆盖提示；按名称仍可定位。
-- **F5:** 隔离根过滤、Review close、并发测试覆盖及 sleep 稳定性待完善；相关边界与时序的自动化证据仍有限，后续增强，不扩大本轮验收声明。
-
-
-## 17. Prompt Vault Phase 1 — 2026-10-09 (closed)
-
-> **Historical note (added with 学习中心 Phase 1):** statements in this section such as "unstaged / uncommitted" and "Changes are intentionally unstaged/uncommitted on main baseline `db15f79…`" describe the implementation checkpoint *before* closure and are kept as history. Actual Git after closure: Prompt Vault is committed as `693c4fc` (`feat: 新增提示词库与变量模板`, parent `db15f79`) and pushed; `main` = `origin/main`. The Closure paragraph at the end of this section is the current state.
-
-### Scope and current implementation
-
-Existing Prompt Vault sidebar now routes to the personal module. User-created templates contain stable UUID / createdAt, name, exact body, optional single text category, favorite / archive flags, updatedAt and per-template revision. No predefined templates, imports, permanent deletion, version history, tags, AI, Provider, Workflow / Artifact integration, cloud or semantic search. Default list excludes archived records; explicit archive view offers restore. Search covers saved name/body and combines category/favorite/archive filters.
-
-Category/list/use-detail uses native pure-text UI with a compact category selector fallback. Only saved templates feed use-detail; editor drafts do not update saved body. Variable values are transient and keyed by template UUID and UTF-8 variable identity, survive search/filter and template switching in the module, and clear on leaving the module/restart. Successful template changes preserve same-name values, remove deleted variables and leave new variables empty. Missing/whitespace-only values disable complete-result copy; raw-template copy remains separate. Named Pasteboard exact-copy tests passed. Text tokens preserve untouched UTF-8 spans, whitespace/newlines and replacement values; values are not recursively parsed. Invalid/nested/incomplete placeholders remain literal with warnings; slash parity implements literal escapes.
-
-**Former blocker (fixed 2026-10-09, takeover):** `CharacterSet.letters` is defined as Unicode L*+M*, so it contains U+0301; `PromptTemplateRenderer.validName` therefore admitted a leading combining mark. Fix: first scalar must be `_` or general category Lu/Ll/Lt/Lm/Lo; later scalars `_`, `-`, letters, marks (Mn/Mc/Me) or Nd, judged per Unicode scalar (so `e`+U+0301 stays valid). Source text is never normalized; escape, invalid-placeholder and non-recursive rules untouched. Regression tests: leading mark (with/without leading space, alone, embedded) stays literal with a warning and creates no variable or missing blocker; letter+marks, `_`+mark, Chinese/underscore/hyphen/digit, repeated variables and escapes remain valid.
-
-### Storage and protection
-
-New independent UTF-8 JSON resolves FileManager Application Support + `Cosmos OS/PromptVault/templates.json`; sibling `templates.backup.json` and `.prompt-vault.lock` are the only durable support files. Opening a missing library does not create directories/files; first save does. No legacy Store or Workspace initialization. Default production storage was not used in verification.
-
-Background serial storage uses a dedicated flock, rereads the latest disk document, checks only the target template revision, builds a candidate from that latest document, preserves unrelated templates, backs up exact valid primary bytes, atomically renames the candidate and verifies primary bytes/decode before publishing memory. Raw disk snapshots check for intervening external changes; no redundant document revision. The lock coordinates cooperating module writers, not arbitrary external editors; no claim of power-loss durability or race-proof hostile parent-directory replacement. Parent/file admission rejects symlinks and non-directory/non-regular objects; file reads use no-follow opens. JSON library limit is 16 MiB, rejected without truncation.
-
-Corrupt/unreadable data, duplicate UUID, future schema, missing core fields, or missing primary with existing backup prevent empty initialization. Backup is not automatically restored. Failures preserve drafts and do not publish saved state; post-replacement verification failure marks disk status uncertain and locks saving. A conflict leaves draft intact and exposes copy draft / explicitly confirmed reload, without forced overwrite or automatic text merge. Reload is an explicit disk recheck; a still-corrupt file remains locked.
-
-Native edit windows are keyed by storage root + template UUID, reused by bringing forward without replacing their content. New draft UUID remains its window identity after save. Close choices are save/discard/cancel; failure/cancel retain the window. A minimal `NSApplicationDelegateAdaptor` forwards application termination to the Prompt manager; pending termination freezes editor input and refuses additional editor opens, saves sequentially and replies only after decisions. No other module lifecycle was refactored. Actual native alerts/quit/reuse were not UI-accepted.
-
-### Actual verification and limits
-
-- Initial concentrated command failed during compile because Swift key-path backslashes were omitted in generated sources; zero tests executed. One concentrated repair corrected key paths and froze edit sessions during pending termination. (Codex's original phase: no second repair; the takeover fix below was separately authorized.)
-- Codex-era final affected XCTest (before the takeover fix; Renderer 6 at that time): **36/36 passed, 0 failed, 0 skipped** = Renderer 6 + file persistence 8 + state/editor 8 + existing persistence-boundary regression 14. `/private/tmp/CosmosPromptVaultPhase1-Validation/Fixed.xcresult`; log `fixed.log`. Device arm64; this does not claim tests ran on x86_64.
-- Tests cover real temporary-file create/update/reopen, exact Unicode/CRLF/whitespace, single prior backup, compatibility defaults, corrupt/future/duplicate/missing-identity cases, missing-primary/backup refusal, symlink/directory rejection, read/encode/backup/backup-readback/replace/readback failure hooks, nonpublication/draft preservation/uncertain lock, same-template stale refusal, unrelated-template preservation, concurrent different-template saves, search/category/favorite/archive/restore, transient values vs drafts, saved-variable reconciliation, named Pasteboard, close and termination decision logic.
-- Test host Bundle `com.wangyucosmos.cosmostoolbox.persistenceui.promptphase1tests`, explicit UUID temporary file roots, temporary suites for existing regression, separate DerivedData. Existing-business Data keys in the temporary host stayed equal during Prompt operations; source dependency inspection found no old Store construction/write path in Prompt. No claim of instrumenting all formal business writes or rehashing formal Workspace files.
-- Universal Debug and Release **BUILD SUCCEEDED**, both `x86_64 arm64`, signing disabled. Logs `debug.log`, `release.log` under the verification root. Release executable has zero occurrences of `--cosmos-prompt-fixture-root`, `--cosmos-initial-sidebar`, `--cosmos-store-phase1-suite`, `--cosmos-asset-fixture-root`; `release-scan.json` retained.
-- Offscreen actual Prompt view rendered successfully in XCTest; its PNG was temporary and removed by test teardown, so no retained visual-layout screenshot or real UI acceptance is claimed. XCTest records a FocusState-outside-installed-View warning in this rendering test; builds also record the existing AppIntents no-dependency warning / existing PDF weak-variable warnings.
-- Native CUA initialization timed out twice (30s / 20s). No standalone App launch or real UI operations were performed. Real restart, editor reuse/close/quit alerts, narrow/wide layout, archive visibility after mutation, module-exit value clearing and general clipboard button are unverified at UI level. No user click-through requested or replacement automation framework created.
-- Takeover re-run after the Unicode fix: Renderer 8 + PromptVaultState 8 = **16/16 passed** (`/private/tmp/CosmosPromptVaultPhase1-TakeoverValidation/Takeover.xcresult`). Remaining validation limitations: concurrent test uses two async tasks and the real flock but no explicit overlap barrier; real unreadable-file permission and parent replacement races are not exercised; error hooks simulate stages but do not prove every filesystem failure mode. These are review/coverage follow-ups, not passing claims.
-
-### Git and next action
-
-Changes are intentionally unstaged/uncommitted on main baseline `db15f790450da5f1a5107ee78e6076c0e3ff2ed1`; no push/merge/WIP restore. Only Dashboard and App entry plus new Prompt sources/tests and these two progress documents changed. `project.pbxproj` unchanged; synchronized groups found new Swift files automatically.
-
-Takeover review (2026-10-09) of transaction/lock ordering, target-revision and unrelated-template preservation, byte integrity, parser, close/quit handling, App delegate, DEBUG fail-closed root and business-Store isolation found no data-loss, overwrite, body-loss, isolation or core-function blocker beyond the fixed Unicode issue. Non-blocking todos: (1) parser warnings print the literal text `位置 (start + 1)` (string not interpolated; byte offsets would also be misleading for CJK) — fix wording/position in a later polish; (2) any failure inside the replace/read-back block, including a pre-rename write failure such as disk full, is reported as `uncertainWrite` and locks saving until an explicit reload — safe but conservative; (3) an open editor window keeps the Store of the module instance that opened it; after leaving and re-entering the module the new Store reloads from disk, and saves from either side stay protected by revision checks, but the list can be stale until refresh; (4) a new unsaved draft's dirty check ignores the favorite flag; (5) Release was not rebuilt after the pure-Renderer change (Debug test build compiled the same file; earlier Release evidence covers all other files). Real UI items (restart, editor reuse/close/quit alerts, narrow layout, module-exit value clearing, copy button), real permission failures and parent-replacement races remain unverified.
-
-Closure (2026-10-09): product owner accepted the current verification scope; Phase 1 closed with one feat commit and normal push. No further fixes, tests, builds or real-UI acceptance were run for closure. The next major module is to be chosen by product coordination; do not start it automatically. Word WIP (`wip/markdown-word-export-phase1-20260930`, `2d26b2a`), Step 06 Harness, Evidence/Quarantine, F1–F5 and old P3 remain untouched.
-
----
-
-## 18. 学习中心 Phase 1 — 2026-10-09 (closed)
-
-> **Closure (2026-10-09):** the product owner accepted the existing verification scope and closed Phase 1, authorizing one `feat: 新增学习中心与学习记录` commit and a normal push to origin/main. No further fix, review, test, build or real-UI acceptance was run for closure. The section below was written at the implementation checkpoint; wording such as "implemented, unstaged / uncommitted" is history and is superseded by this closure and by the actual repository refs.
-
-> **Evidence boundaries:** first concentrated batch 57/58, the single failure being a wrong test expectation, corrected and re-run to pass; the offscreen-render test re-run after the routing fix passed (the full 58 were not re-run after those follow-ups); Universal Debug and Release succeeded on the final code; the isolated real page confirmed routing and the topic / status / last-study-day / next-step display with an unchanged fixture hash. Editors, native close / quit alerts, filters, archive, copy button, restart and narrow layout were **not** UI-accepted; no complete end-to-end pass is claimed. The non-blocking todos below are retained and not handled.
-
-### Scope and behavior
-
-The existing **学习 → 学习中心** sidebar entry now opens a personal learning module (previously a bare placeholder; no model, store or tests existed). Path: create topic → write goal and next step → record one study session → read history → continue with the next step.
-
-- **Topic:** name (required, trimmed, no newline, ≤ 200 chars), goal (≤ 4000), status 计划中 / 学习中 / 已完成 (manual only; recording a session never changes it), next step (≤ 1000; the user's own action text, no inferred deadline), optional resource link (http/https text only; shown selectable with a copy button; never fetched, never opened automatically), archive flag, revision. Goal, next step and notes are stored **exactly as typed** (whitespace, CRLF, Unicode, pure-whitespace values included); only name and link are trimmed. "Has a next step" is judged on non-whitespace content without rewriting stored text.
-- **Entry:** study day, note body (must contain non-whitespace; ≤ 1 MiB UTF-8; rejected, never truncated), optional whole-minute duration 1–1440 (blank = not recorded). Same-day entries are allowed. No totals, averages or statistics.
-- **Progress decision:** no percentage or progress bar. 3 states only. The PRD/UI sketches' "28%" / "Today 45 min" are illustrative and intentionally **not** adopted; the other Docs are not rewritten for this.
-- **Combined save:** saving an entry can update the topic's next step in the same transaction (only when the next-step text was edited); either side stale → nothing is written.
-- **Archive:** topics are archived/restored, never deleted; entries are kept. Archived topics are read-only (no edit, status change, or new/edited entries) until restored; enforced inside the storage transaction, not only by disabled buttons. Entries have no delete/archive in Phase 1 (edit only).
-- **List/detail:** search (name, goal, next step, link, note bodies), status filter, 仅有下一步, 查看归档. Topics sort by most recent study day (ties: entry creation, then stable id), topics without entries last. Detail shows goal, next step, link, history newest first (long notes collapse to 6 lines, full text selectable).
-- **Native windows:** topic and entry editors are independent native windows keyed by storage root + kind + UUID (re-opening brings forward). Close asks save / discard / cancel; failed save keeps the window and draft; "copy draft" and confirmed "reload saved version" are available; ⌘S saves.
-- **Dashboard home:** the fabricated "Python 28%" learning card was replaced by a neutral text card without numbers (no real summary wired in).
-
-### Dates
-
-`LearningDay` stores a calendar-day label `yyyy-MM-dd` (strict: 10 ASCII chars, real proleptic-Gregorian date, years 1900–9999; `2026-02-30` etc. are rejected, never normalized). Saved days are never reinterpreted by time-zone changes. New or changed days later than the current local day are rejected; an unchanged historical date on an existing entry is accepted even if a time-zone change makes it "future" (checked against the latest on-disk entry under the lock).
-
-### Storage and protection
-
-Independent JSON at Application Support `Cosmos OS/Learning/learning.json` (+ `learning.backup.json`, `.learning.lock`), topics and entries in one document so combined saves are atomic. Opening creates nothing; first save creates. Safety primitives are **copied and adapted** from Prompt Vault storage (not shared, Prompt storage untouched, no general storage platform): lstat parent walk / symlink and file-type refusal, no-follow read, 16 MiB limit (reject, never truncate), flock, atomic sibling-temp rename, single previous backup with read-back. ISO-8601 (fractional seconds) dates, sorted keys, pretty-printed for hand recovery.
-
-Under the lock the latest disk document is re-read and the mutation validated against it: target record revision; entry's topic still exists and is not archived; combined saves check both baselines; unrelated topics/entries from other writers are preserved; state is published only after verified read-back. Failure classes: any failure **before** the primary rename (including temp-file write errors) → retryable `writeFailed`, disk untouched, saving not locked; a failure after the rename or an unconfirmable read-back → `uncertainWrite`, saving locked until an explicit successful reload; corrupt / non-UTF-8 / future schema / duplicate id / orphan entry / invalid on-disk content / missing primary with backup → saving locked, nothing overwritten, no automatic backup restore or empty-library initialization. Conflicts keep drafts and never auto-merge or force-overwrite.
-
-### Shared quit protection
-
-`CosmosTerminationCoordinator` (in `LearningEditors.swift`) serializes one quit request over Prompt and Learning participants: cancel if a save/close is in flight or a quit is already pending; terminate immediately when neither module has unsaved drafts (original behavior); otherwise freeze **both** modules (editors disabled, new editor windows refused), ask each dirty module in turn, unfreeze both and reply to AppKit **exactly once**. A cancel or failed save by either module cancels the quit and restores both. `CosmosPromptTerminationDelegate` now calls the coordinator; `PromptTemplateWindowManager` gained a `CosmosTerminationParticipant` extension and its old `requestTermination` method (replaced by that extension; Prompt editing/close behavior otherwise unchanged) was removed. Prompt storage was not touched. No other application-lifecycle refactoring.
-
-### Files
-
-New: `LearningModels.swift`, `LearningFileStorage.swift`, `LearningStore.swift` (+ `LearningLocation`), `LearningViewModel.swift`, `LearningCenterView.swift`, `LearningEditors.swift`; tests `LearningPersistenceTests.swift`, `LearningStateTests.swift`. Modified: `DashboardView.swift` (route, DEBUG isolated learning root + initial-sidebar entry, neutral home card), `PromptTemplateEditor.swift` (termination wiring only). `project.pbxproj` unchanged (synchronized groups).
-
-### Actual verification and limits
-
-- Concentrated batch (Learning persistence + Learning state + existing PromptVaultState as Prompt exit/state regression, 58 tests): **57 passed, 1 failed** — the failure was a wrong test expectation (an editor stale after the topic was archived is refused as `conflict` first; the archived-with-matching-revision case is covered at the storage boundary). One concentrated repair: expectation corrected, that test re-run **passed**. After a later production fix (below) only the offscreen-render test was re-run (**passed**). The full 58 were not re-run after those two follow-ups. Results: `/private/tmp/CosmosLearningPhase1-Validation/Test1.xcresult`, `Test2.xcresult`, `Test3.xcresult`.
-- Covered: strict dates and zone-independence, validation limits and exact text, round trip/reopen/backup, stale topic/entry refusal, unrelated-record preservation, concurrent writers, archive/restore with entries kept, archived topic refusal for every mutation, topic-missing, combined-save atomicity and non-writing on either stale baseline, future-date and zone-shift rules, pre-replace vs post-replace failures (hooks and a real read-only-directory write failure), uncertain write lock and reload, corrupt/unsupported/duplicate/orphan/impossible-date/unknown-status/blank-body files, missing primary with backup, symlinks and wrong types, oversize file and over-limit save, DEBUG location fail-closed, search/filters/ordering/history, exact clipboard copy, edit-session dirty/draft behavior, close choices, coordinator scenarios (no drafts, blocked, both modules, Learning approves then Prompt cancels in both orders, first-cancel, second request while pending, single reply, reuse) and real window managers (freeze refuses new editors, cancel keeps draft, save writes once, failed save blocks quit), offscreen rendering of the real center/detail/editor views.
-- Builds: Universal Debug and Release **BUILD SUCCEEDED**, `x86_64 arm64`, signing disabled, on the final code. Release executable contains none of the five DEBUG launch strings (`--cosmos-learning-fixture-root`, `--cosmos-prompt-fixture-root`, `--cosmos-initial-sidebar`, `--cosmos-store-phase1-suite`, `--cosmos-asset-fixture-root`) nor `CosmosLearningPhase1-`. Test execution was arm64 only.
-- Isolation: temporary Bundle `com.wangyucosmos.cosmostoolbox.persistenceui.learningphase1tests`, UUID roots under `/private/tmp/CosmosLearningPhase1-*`, injected locations/clocks/pasteboards, separate DerivedData; a sentinel `cosmos.zhuowang.*` defaults key stayed equal; Learning code references no Campaign/Workflow/Artifact/Workspace/Prompt store. No formal Learning directory or formal Zhuowang data was read or hashed.
-- Real UI (one limited attempt with window-scoped capture): the first launch showed the old placeholder, which exposed a **real defect** — the Dashboard route for `.learningCenter` had not actually been applied (the unit tests do not cover Dashboard routing). Fixed, rebuilt with the temporary Bundle, relaunched against a temporary fixture: the Learning Center page loaded from the isolated root and showed both fixture topics with status, last study day and next step; the fixture file SHA-256 was unchanged after the run; the exact temporary process was terminated by PID. A top-alignment layout tweak followed. A first capture attempt grabbed the full screen instead of the app window and showed unrelated content from the user's own browser; that image was deleted immediately and not used. No click tool was available, so **editor windows, native close/quit alerts, filters, archive, copy button and restart in the real UI are not UI-accepted.**
-- Existing warnings unchanged; test code only: Swift-6-mode capture / isolation warnings in the two new test files.
-
-### Non-blocking todos
-
-1. Real-UI acceptance of editors, close/quit alerts, archive/filters, copy, narrow layout, restart.
-2. Safety primitives are duplicated between Prompt and Learning storage; extract only when a third module needs them.
-3. Editor windows keep the Store of the module instance that opened them; after leaving and re-entering the module the list may be stale until refresh (same as Prompt todo 3); revision checks keep saves safe.
-4. Entries cannot be deleted or archived; link is copy-only (no "open in browser").
-5. Window title does not follow a renamed topic; search matches note bodies without highlighting; list recomputes on every render (cache if data grows).
-6. Sidebar label still reads the pre-existing "AI 学习中心" naming; other Dashboard home cards remain placeholders (existing todo).
-7. Test-code Swift 6 warnings; DatePicker has no range, so a future day is rejected on save with a message.
-
-### Git and next action
-
-At the implementation checkpoint all changes were unstaged and uncommitted on `main` (implementation baseline `693c4fc0d93544a69ff78bf03f02b02ccbbc52a6`; during the session the owner added the docs-only commit `765b33b` — AGENTS.md §23 coordination rules plus a one-line CLAUDE.md — so the actual HEAD is `765b33b`, `main` = `origin/main`, and no phase file overlaps it); nothing of this phase is committed, pushed or merged. Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, formal Workspace and personal knowledge repositories were not touched. Next: closed; the next module is chosen by product coordination (candidate: read-only survey of existing province management, see §13). Do not start it automatically.
-
----
-
-## 19. 省份可维护配置 — 2026-10-09 (closed)
-
-> **Closure (2026-10-09):** the product owner accepted the existing verification scope and closed Phase 1, authorizing one `feat: 支持省份配置维护与历史保留` commit and a normal push to origin/main. No further test, build, review, UI acceptance or todo fix was run for closure. The section below was written at the implementation checkpoint; "implemented, unstaged / uncommitted" there is history and is superseded by this closure and the actual repository refs.
-
-> **Evidence boundaries:** the concentrated batch was 68/68 passed, 0 skipped (new suite 18 + existing Workspace persistence, store boundary, workbench and asset-center suites); Universal Debug / Release succeeded on the final code. The isolated real-UI run confirmed only the sidebar display (enabled order, collapsed stopped group, stopped province absent from the main list) and that the workspace payload **length** was unchanged; this is not recorded as business data being byte-for-byte unchanged. Manager operations (rename, move, stop, restore), the stopped-province page and the create-form refusal were not UI-accepted; the refusal is covered at the rule level only. The non-blocking todos below are retained and not handled.
-
-### Behavior
-
-Provinces are now maintainable inside the existing **管理工作区** sheet (no new window): add, rename, move up/down, stop and restore. Province identity is the UUID; the array order is the display order (no `sortOrder` field); provinces are never deleted. All changes use the existing protected workspace transaction.
-
-- **Stop / restore:** stopping only forbids creating **new** Campaigns. Historical and in-progress Campaigns stay editable; Workflow, Artifacts, files and delivery are unchanged. Confirmation shows the province's Campaign count. Restoring returns the province to its old position.
-- **Sidebar:** enabled provinces in order; stopped ones under a collapsible **已停用省份（历史）** group (opened automatically when one is selected). A stopped province page keeps its history but has no "新建活动" and explains why. With no provinces, the sidebar shows a "还没有省份，点击添加" entry to the manager.
-- **Filters:** the progress-workbench and asset-center province pickers still list every province and label stopped ones "（已停用）", so history stays filterable and searchable.
-- **New Campaign form:** opening the form is not the only gate. Saving re-reads the live configuration (`ZhuowangProvinceRules.creationRefusalMessage`); if the province was stopped after the form was opened, saving is refused and the input stays in the form. Saving an existing Campaign has no province check.
-- **National / other:** Campaigns with `scopeType` national/other keep `provinceID == nil` and the "全国及其他" folder; "全国", "全国及其他" and the national module's name are reserved and can never become provinces.
-- **Fresh install decision:** a fresh install **no longer seeds the six fixed provinces**. The default snapshot still seeds modules and categories; provinces start empty and are added by the user. Existing saved provinces, UUIDs, order, Campaigns and files are untouched, and an existing library is never re-seeded (no write on load). Existing tests that assumed six default provinces were updated for this.
-
-### Compatibility and folders
-
-`ZhuowangProvince` gained `isEnabled` (missing → `true`) and `directoryName` (optional) with custom `decodeIfPresent` decoding, so old saved data keeps decoding and loading it triggers **no migration write**. `pathName = directoryName ?? name` is the only name used for path construction; `name` is display only.
-
-- New provinces fix `directoryName` at creation. For a province saved before this field existed, the **first rename that changes the name pins the old name as `directoryName` in the same transaction**; later renames never change it. An English-name-only edit does not pin.
-- Path construction sites switched to `pathName`: Campaign detail (delivery-package workspace URL, local-artifact discovery/recovery, workspace creation, legacy migration calls), the Workflow view's AI-execution calls and the progress workbench's deliverable count. Display-only uses (delivery manifest `province`, asset scope names, task-package text, sidebar) intentionally keep `name`. Workflow Store functions only forward the path name they are given. Artifact absolute `location` values are preserved; no directory is moved or renamed.
-- Existing risk, unchanged and **not** handled: the Campaign **name** is also part of the folder path, so renaming a Campaign still changes its derived folder (todo).
-
-### Validation (business layer, `ZhuowangProvinceRules`)
-
-Display names must be unique among all provinces, stopped ones included (compared trimmed, Unicode-canonical, case- and width-insensitive). A new province's folder name must not collide with any existing province's *effective* folder (pinned or legacy), compared after the file manager's actual path sanitization plus the same folding — a conservative check, not a claim of file-system identity. Rename checks only display names and excludes the province itself; it never needs or changes a folder. Existing duplicate data is kept and shown as a warning in the manager (never merged, deleted or locked). Violations return the generic invalid-input result at the store; the manager pre-validates and shows the precise reason, so the persistence error vocabulary was not extended.
-
-### Files
-
-New: `ZhuowangProvinceRules.swift`, `ZhuowangProvinceManagementView.swift`; test `ZhuowangProvinceConfigurationTests.swift`. Modified: `ZhuowangModels.swift`, `ZhuowangWorkspaceStore.swift`, `ZhuowangWorkspaceFileManager.swift` (sanitizer made internal), `ZhuowangWorkspaceView.swift`, `ZhuowangCampaignView.swift`, `ZhuowangCampaignDetailView.swift`, `ZhuowangWorkflowView.swift`, `ZhuowangCampaignProgress.swift`, `ZhuowangCampaignWorkbenchView.swift`, `ZhuowangAssetCenterView.swift`; tests `ZhuowangWorkspaceStorePersistenceTests.swift` and `ZhuowangStorePersistenceBoundaryTests.swift` (default-province expectations). `project.pbxproj` unchanged.
-
-### Actual verification and limits
-
-- One concentrated batch (new province suite 18 + existing Workspace persistence, store boundary, Campaign workbench and asset-center suites): **68/68 passed, 0 skipped**, no repair round needed (`/private/tmp/CosmosProvinceConfig-Validation/Test1.xcresult`). Covered: fresh install without provinces and no reseed; old data unchanged with zero writes and decode compatibility; add / duplicate / case / width / Unicode / stopped-province duplicates; folder conflict against pinned folders; reserved names; first and repeated renames keep the folder URL stable; English-only rename; rename excluding itself; existing duplicates kept and reported; stop/restore keep order and write nothing on no-ops; reorder and restart; unrelated workspace fields and other stores' bytes untouched; stale and locked states; creation gate and save-time refusal rule; historical Campaigns of a stopped province still in the progress workbench, still editable and still in the asset catalog; renamed province keeps ownership by UUID. Tests use in-memory data sources and URL assertions under an injected root; no UserDefaults suite for the unit tests, no file system writes, no formal Workspace data read.
-- Builds: Universal Debug and Release **BUILD SUCCEEDED** (`x86_64 arm64`, signing disabled) on the final code; Release has none of the DEBUG launch strings. Test execution was arm64.
-- Real UI (one limited attempt, temporary Bundle `com.wangyucosmos.cosmostoolbox.persistenceui.provinceconfigtests`, isolated suite, window-only capture, no Campaign detail opened): an old-format workspace payload with a pinned-folder renamed province and a stopped province loaded healthily; the sidebar showed the enabled provinces in the saved order (with the renamed display name) and a collapsed **已停用省份（历史）** group; the stopped province was not in the main list; the saved workspace payload length was unchanged after the run; the exact temporary process was stopped by PID. The suite plist left by the isolated run remains (as in earlier phases).
-- **Not UI-accepted** (no click tool): the manager sheet itself, inline rename, up/down, stop confirmation, restore, expanding the stopped group, a stopped province page, the create sheet's save-time refusal, picker labels. The create-form refusal is covered at the rule level, not by driving the form.
-
-### Non-blocking todos
-
-1. Real-UI acceptance of the manager and stopped-province pages (above).
-2. Campaign rename still changes the derived Campaign folder (existing; untouched).
-3. Existing: when the workspace primary key is missing but a backup exists, load re-initializes defaults instead of consulting the backup. Not introduced or worsened by this change (a fresh default now simply has no provinces, so nothing fake is re-created); history stays on disk and in other stores.
-4. `ZhuowangProvinceRules.isReserved` passes `displayKey`/`pathKey` as method references and produces two Swift-6-mode actor-isolation warnings (behaviour correct); trivially fixable with closures.
-5. The workbench Campaign list rows do not mark a stopped province (only the pickers do).
-6. Province display names in the manager use a plain list; large lists are not paginated.
-
-### Git and next action
-
-At the implementation checkpoint all changes were unstaged and uncommitted on `main` (baseline `82cc7bab3d3772b296cb421fa85b8b5e43f42bf9`). Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, the formal Workspace and personal knowledge repositories were not touched. Next: closed; the next candidate is the national monthly member-activation integration investigation (see §13), not started automatically.
-
----
-
-## 20. 全国月度会员促活 Phase 1 — 2026-10-09 (closed)
-
-> **Closure (2026-10-09):** the product owner accepted the existing verification scope and closed Phase 1, authorizing one `feat: 接入全国月度会员促活清单` commit and a normal push to origin/main. No further fix, review, test, build or real-UI acceptance was run for closure. The section below was written at the implementation checkpoint; "implemented, unstaged / uncommitted" there is history and is superseded by this closure and the actual repository refs.
-
-> **Delivered:** the national monthly project type, the month label, the 7 outputs and 7 inputs with stable keys, registration history with explicit finalization confirmation, and the live previous-period reference. **A registration is not Artifact adoption and does not enter the existing ZIP delivery; no real material has been imported.**
-
-> **Evidence boundaries:** the concentrated batch was 78/78 passed, 0 skipped; Universal Debug / Release succeeded on the final code. The isolated real run confirmed only that the synthetic data loaded and the progress workbench displayed it; its comparison was of payload **length** only and is not recorded as business data being byte-for-byte unchanged. The create form's monthly section and the checklist actions were not UI-accepted. The non-blocking todos below are retained and not handled.
-
-### Business basis
-
-The checklist definition follows the monthly process document in the separate `zhuowang-workspace` repository (`流程/月度会员促活.md`, plus the referenced "掌厅引导页" / fixed-skeleton sections and `流程/Word交付.md` 3.4 / 3.6 / 3.7), read once and read-only for this phase. That repository was not modified or synchronized; nothing from it is imported. The process document marks its schedule as an initial convention, so the suggested days below are references only.
-
-### Scope and behavior
-
-- **Project type:** in the national module's "新建活动" form a Campaign can be created as **月度会员促活** (plain Campaign remains the default; province Campaigns cannot be monthly). Stored as an optional `monthly` plan on the Campaign: old saved data decodes with `nil`, loading writes nothing, and ordinary Campaigns never gain the field. No Step 07, no copied Workflow, step 03 is **not** disabled by default (existing step enable rules apply).
-- **Month and dates:** `YYYY-MM` label (strictly validated, 1900–9999) kept separate from the real start / end times. The form prefills "previous month-end 17:00 → this month-end 17:00" in Asia/Shanghai, both editable; changing the month never overwrites dates the user edited by hand. A duplicate month only produces a warning.
-- **Previous-period reference (optional):** only the reference Campaign's identity is stored, never its content. Default candidate: the latest monthly Campaign of an *earlier* month (never itself, never the same or a later month); a manual choice is limited to the same rule. The reference is live: the checklist shows the previous period's current registration per output ("上期当前定稿（实时参考）" when confirmed there, otherwise "上期当前登记（未确认定稿）"); it follows later edits of the previous period and is never counted toward this period. A missing or non-monthly reference is reported explicitly and never replaced automatically.
-- **Monthly checklist** (new "月度清单" tab in the Campaign detail window, shown only for monthly Campaigns):
-  - **7 outputs** (stable keys, never associated by Chinese title): 思路与文案方案, 主活动页原型, 掌厅引导页文案, 动效稿, 客服文档, 掌厅活动规则, 主活动页活动规则. Each shows a *source hint* (the mapped existing step and its adopted-artifact count), the process document's reference day relative to T (= the activity start), and the registered final.
-  - **7 business inputs**: 奖品表, 0 元流量包方案编号与排除口径, 活动时间书面确认与活动链接, 掌厅奖池是否共用, 抽奖数值, 券类奖品权益条款原文, 业务联系人. Ordinary inputs are 待要 / 已到 / 不适用 with an exact-text note; the prize-pool relation is 待确认 / 共用 / 独立 and is **reset to 待确认 for every new Campaign**. The contact input only records whether it was obtained; no contact-detail field exists.
-  - **Suggested days** are labelled "流程参考日 … 初版约定，非截止日期": no reminder, no overdue state, never treated as a real deadline.
-- **Creating a new month copies nothing:** no files, no text, no registered locations, no confirmations, no input states, and no prize-pool relation; only the optional reference identity.
-
-### Registration is not Artifact adoption and not ZIP delivery
-
-A **registration** is metadata on the monthly plan: a location string (an explicit absolute local path starting with `/`, or an http/https link), an optional free-text version label, an exact-text note and a stable UUID. Registering **does not open the link, read, copy, scan or verify the file**, does not create an Artifact, does not adopt anything, does not write into any Campaign workspace folder, and does not make a file eligible for the existing delivery package. The UI states "已登记，未核验文件／链接可用性" and never shows a landed-file or deliverable state. By contrast an **Artifact adoption** is the Workflow's protected transaction that makes one version of a real managed file the adopted version of a step, and **ZIP delivery** packages adopted local files inside the Campaign workspace; both stay exactly as before and neither is touched. The existing adopted artifacts of the mapped step are shown only as a source hint; "step has an adopted artifact" never means the checklist item is done (a Markdown customer-service document is not the external Word final).
-
-Registration rules: an output may have no registration; new registrations are appended and history is kept (no edit, no delete; a mistake is corrected by registering a new one); the newest registration becomes the single current one; a new registration is never auto-confirmed; changing the current registration clears that output's confirmation; the confirmation stores the specific registration ID and only counts while it equals the current one; confirming needs a current registration; blank locations cannot be saved; relative paths, `~`, `file:`, other schemes, `..` components and control characters are refused; notes are kept exactly as typed; version labels are labels, not identities.
-
-### Four separate statements (never substituting for one another)
-
-"月度成品已确认 x/7" (only your explicit confirmations of registered finals), "业务输入已齐备 y/7", the existing Workflow step progress, and the existing delivery-package eligibility. None modifies the others, none changes adoption or step status, and the general workbench's "可以交付" judgement is unchanged. Opening the checklist never creates a Workflow, never triggers recovery and never adopts anything.
-
-### Data protection
-
-Plan changes use the existing protected Campaign transaction (`updateMonthlyPlan`), applied to the **latest persisted** plan with a per-plan revision check: a stale revision is refused (`stale`), the user's input stays in the UI, other Campaigns are untouched, plan edits do not change `updatedAt` or reorder the list, and a stale cross-instance baseline is refused by the existing persistence layer. `updateCampaign` now preserves the persisted `monthly` plan, so an ordinary edit with a stale Campaign copy can never overwrite it. Creation reuses the existing `addCampaign` path (single transaction) with a blank plan; no multi-store "atomic" creation is simulated and no Workflow is created at creation. Unknown future item keys inside a stored plan are preserved on decode.
-
-### Files
-
-New: `ZhuowangMonthlyPromotion.swift` (month type, fixed definition, plan models, rules and pure helpers), `ZhuowangMonthlyChecklistView.swift`; test `ZhuowangMonthlyPromotionTests.swift`. Modified: `ZhuowangCampaignModels.swift`, `ZhuowangCampaignStore.swift`, `ZhuowangCampaignView.swift` (create form), `ZhuowangCampaignDetailView.swift` (new tab). `project.pbxproj` unchanged.
-
-### Actual verification and limits
-
-- One concentrated batch (new monthly suite plus existing Campaign store persistence, Campaign workbench, asset-center and the province-configuration suites as affected regression): **78/78 passed, 0 skipped**, no repair round (`/private/tmp/CosmosMonthlyPhase1-Validation/Test1.xcresult`). Covered: fixed definition identities and mapping; strict month and Shanghai default periods (leap year, January, year boundary); hand-edited dates preserved; reference-day arithmetic; old data decodes with zero writes; ordinary Campaigns unchanged; creation refusals (bad month, non-national scope, reversed dates, missing / non-monthly / same-month / future reference); new month copies nothing and resets the prize-pool relation; default-reference candidate rules and duplicate-month reporting; reference validation and live states (including a deleted reference); location validation; append-only history, current / confirmation semantics; input states, exact notes and the separate prize-pool relation; the separate progress concepts; read-only Workflow hints and zero Workflow writes; stale revision and stale baseline refusal with other Campaigns kept; a stale Campaign copy cannot overwrite the plan; list order unchanged; offscreen rendering of the checklist (with history, reference and prize-pool states), a non-monthly fallback and the create form (national module). Only synthetic metadata and virtual locations, in-memory data sources; no formal Workspace, no file system and no real material was used.
-- Builds: Universal Debug and Release **BUILD SUCCEEDED** (`x86_64 arm64`, signing disabled) on the final code; Release has none of the DEBUG launch strings. Tests ran on arm64.
-- Real UI (one limited attempt, temporary Bundle `…persistenceui.monthlyphase1tests`, isolated suite, window-only capture, **no Campaign detail opened**): a synthetic workspace plus campaigns payload (two monthly Campaigns in the new format and one old-format Campaign) loaded without locking; the progress workbench counted all three; the empty-province state from the previous phase was visible; the payload length was unchanged after the run (not claimed as byte-for-byte business-data identity); the exact temporary process was stopped by PID. The suite plist left by the run remains.
-- **Not UI-accepted** (no click tool; opening a Campaign window can write into the formal Workspace path in isolated mode, todo 4): the create form's monthly section, the "月度清单" tab, registration / confirmation / input actions and the stale-save message in the real window. These are covered by data-level tests and offscreen rendering only. Note that opening *any* Campaign detail window already runs the existing recovery / legacy-migration calls in its `onAppear` (existing behavior, tab-independent); the monthly tab adds none.
-
-### Non-blocking todos
-
-1. Real-UI acceptance of the create form's monthly section and the checklist tab (blocked by todo 4's missing workspace-file isolation).
-2. No monthly marker on Campaign list rows / workbench rows and no "月度成品已确认 x/7" summary there (the general workbench is unchanged by design).
-3. An existing ordinary Campaign cannot be converted to monthly, and a monthly Campaign cannot be converted back.
-4. Registrations are append-only: no hide or delete; location text cannot be edited after the fact.
-5. Registering real Word / Figma / link finals as managed Artifacts (adoption, version history in the Workflow, ZIP delivery) is a separate future phase; the 10-slot 掌厅 copy table has no structured editor yet.
-6. The default month text is the next calendar month; the month in an existing plan can be edited but never moves the dates.
-7. Carried over: Campaign rename still changes the derived folder; "primary missing but backup exists" re-initialization; the two isolation warnings in `ZhuowangProvinceRules.swift`; real-UI acceptance of earlier modules.
-
-### Git and next action
-
-At the implementation checkpoint all changes were unstaged and uncommitted on `main` (baseline `863fc83690bd02543c0ca1570a88883a4b43831c`). Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, the formal Workspace and personal knowledge repositories were not touched. Next: closed; the next stage is determined by product coordination and is not started automatically.
-
----
-
-## 21. Dashboard 真实数据整合 Phase 1 — 2026-10-09 (closed)
-
-> **Closure (2026-10-09):** the product owner accepted the existing verification scope and closed Phase 1, authorizing one `feat: 首页接入真实工作与学习数据` commit and a normal push to origin/main. No further fix, review, test, build or UI acceptance was run for closure. The section below was written at the implementation checkpoint; "implemented, unstaged / uncommitted" there is history and is superseded by this closure and the actual repository refs.
-
-> **Delivered:** the Home now shows real campaign / Workflow state, the monthly checklist, favorite prompts and the learning summary. Reading is strictly read-only: no restore, no migration, no delivery-file check. **Evidence boundaries:** 56/56 tests passed, 0 skipped; Universal Debug / Release succeeded on the final code. The real isolated run covered the activities and monthly cards only; the refresh and navigation buttons, the lower (Prompt / Learning) cards and the calendar-day event were not verified in the real App.
-
-> **Known display limitation (not changed):** a campaign whose status is 已结束 never appears in the Home list even if its Workflow steps are unfinished (it is only counted in the summary); it remains visible in the progress workbench.
-
-### Behavior
-
-The Home (仪表盘) is rebuilt as a read-only summary of what the finished modules actually hold. The fabricated "今日工作 3 项待处理任务", the fake "最近项目" list (with its inert "查看全部") and the fake "AI 工作台 8/9 / 系统状态 正常" health numbers were removed, as was the hard-coded "下午好". Now:
-
-- **Header:** greeting from the real local clock, the real date, a refresh button and "读取于 HH:mm". "读取于" is the time of *this read* (the snapshot time), not a data update time.
-- **活动 · Workflow 状态:** real campaigns with Workflow step state. Progress is computed over the **actually enabled** steps (never a fixed six). A campaign whose enabled steps are all confirmed / completed / skipped is only counted ("启用步骤均已确认", explicitly *not* meaning files usable, exported or deliverable); a campaign with zero enabled steps (or an empty workflow) is shown as "没有启用的 Workflow 步骤" and never as done. Campaign status 已结束 is counted only. List: at most 5, grouped by Workflow state (failed / needs revision → generating or waiting → next step ready → not created → no enabled steps), same group ordered by campaign update time, with stable id tie-breaks; the rest is summarized ("还有 N 个"). "活动期" is only the campaign's own start / end dates, not a task deadline. No today-todo, priority, overdue or "recently visited" wording anywhere.
-- **月度会员促活:** the two most recent periods by month (same month: newer creation first, then a stable id order; invalid month labels last). Per period three independent statements: "月度成品已确认 x/7", business inputs counted as 已到 / 不适用 / 待要 (the six ordinary inputs; **不适用 is never folded into "complete"**) and the prize-pool relation shown separately (待确认 stays visible, in orange), plus the Workflow step progress line. None of them is presented as, or replaces, ZIP-deliverable status.
-- **提示词 · 收藏:** favorite, non-archived templates, at most 5, ordered by template update time ("按模板更新时间", not "最近使用"); it only opens the Prompt Vault, never copies.
-- **学习:** non-archived, non-completed topics, at most 3, in the learning module's most-recent-study order, with the user's own next step exactly as saved (whitespace-only counts as none).
-- **未接入:** a single line stating AI 工作台 / Mac 优化 are not yet connected to the Home.
-- **Navigation:** every card only opens an existing module through the sidebar selection (`DashboardCard.target`): campaigns and monthly → 卓望工作 (its progress workbench), prompts → 提示词库, learning → 学习中心. No shortcut into a Campaign detail window (opening one runs recovery / migration code). Selections inside modules are not preserved.
-
-### Read-only reading
-
-`DashboardReader` reads the persisted campaign, workspace and workflow data directly from the configuration's data source and decodes it; it **never creates a business Store**, so nothing is initialized, defaulted, restored or migrated. Prompt Vault and the learning center are read with their own read-only `load()` and existing isolated-location resolution (a blocked location is shown as blocked and never falls back to production). No directory is created or scanned, no asset body is read, and no delivery-file check runs: the existing progress projection is reused with an explicitly injected zero-returning delivery counter, and its delivery-dependent `category` / `nextActionText` are never used. Two back-to-back reads of the data keys must agree, otherwise the section reports "data changed during the read". Heavy decoding (campaigns, workflows) runs in the background; unchanged bytes reuse the previous decode (cache shared across Home visits), but every date-dependent projection is recomputed from `now` on each read and on a calendar-day change (`NSCalendarDayChanged`, no polling), without re-reading.
-
-### Section states
-
-Each section carries its own state: **尚未建立** (key / file does not exist, nothing is created), **真实为空** (built, no qualifying items), **无法读取** (decode / storage failure, with reason, "首页没有修改任何数据" and an entry to the module) and **被阻止** (isolation). A missing Workflow dataset means "尚未创建"; an *unreadable* Workflow dataset is shown as unreadable and is never counted as not created (campaigns are still listed without progress; the monthly section does not depend on it). When a refresh fails, the previous value is kept only with its own successful read time and the current error ("以下是 … 上次成功读取的内容，不是本次读取的结果"); a failed read is never presented as freshly loaded; a vanished or blocked source drops the old value. A newer refresh or leaving the Home discards older results (generation guard).
-
-### Files
-
-New: `DashboardSnapshot.swift` (source and display states, projection, reader, greeting), `DashboardHomeViewModel.swift`, `DashboardHomeView.swift`; test `DashboardSnapshotTests.swift`. Modified: `DashboardView.swift` (old fake Home and the unused `ProjectRow` removed; new Home wired with the persistence configuration, the isolated Prompt / Learning locations, a shared read cache and the module-opening callback). No existing module logic was modified.
-
-### Actual verification and limits
-
-- One concentrated batch (new Dashboard suite plus the Campaign workbench and monthly suites it depends on): **56/56 passed, 0 skipped**, no repair round (`/private/tmp/CosmosDashboardPhase1-Validation/Test1.xcresult`). Covered: all four data states and zero writes (in-memory source write count 0, missing roots not created, no lock / backup / temporary files, existing files byte-identical); per-section failures; blocked locations; inconsistent reads; byte-reuse vs re-decode; Workflow read failure vs missing; enabled-step progress, zero / all-disabled steps, completed and ended campaigns counted but not listed; stable shuffle-independent ordering and the 5 / 2 / 5 / 3 limits; independent monthly states and the 不适用 / pending prize-pool semantics; same-month stable ordering; favorites-only prompts; learning exclusions and exact next-step text; cross-day re-projection without a re-read; failed-refresh stale handling (time, repeated failures, recovery, independent sections); stale-generation and cancel discarding; greeting / date; navigation target mapping; offscreen rendering of the loaded, not-built, blocked and stale states. Synthetic data only.
-- Builds: Universal Debug and Release **BUILD SUCCEEDED** (`x86_64 arm64`, signing disabled) on the final code; Release has none of the DEBUG launch strings. Tests ran on arm64.
-- Real UI (one limited attempt, temporary Bundle `…persistenceui.dashboardphase1tests`, isolated suite and temporary Prompt / Learning roots with synthetic data, window-only capture): the Home loaded from the isolated sources; the activities card showed the two campaigns with "Workflow 尚未创建" (the Workflow key was absent) and the activity phase; the monthly card showed 0/7 confirmed, 已到 1 / 不适用 1 / 待要 4 and the prize pool 待确认 in orange; the greeting, date and "读取于" were real. After the run no lock, backup or other file existed in the Prompt / Learning roots and the suite held only the two seeded keys (the Home created nothing); the temporary process was stopped by PID.
-- **Not verified in the real window:** the refresh button and every navigation button were not clicked (no click tool); the Prompt and Learning cards were below the visible area in the captured window (covered by offscreen rendering and data tests only); the day-change event and the stale / failure states were not triggered in the real App.
-
-### Non-blocking todos
-
-1. Real-UI acceptance of refresh, navigation and the lower cards.
-2. Navigation opens modules only; no preserved selection or deeper links (would need module changes).
-3. The step-confirmed wording follows the existing progress rule (approved / completed / skipped count as done), hence "含跳过".
-4. Decoding cost for very large Workflow datasets is unmeasured (background decode and byte reuse are in place).
-5. In isolated runs all keys come from the injected suite while the Workflow Store itself still uses the standard domain (existing); the Home follows the asset center's convention.
-6. AI 工作台 and Mac 优化 remain unconnected; the activity card keeps the shared card's minimum height (some empty space).
-7. Carried over: earlier modules' real-UI acceptance, Campaign rename folder risk, "primary missing but backup exists" re-initialization.
-
-### Git and next action
-
-At the implementation checkpoint all changes were unstaged and uncommitted on `main` (baseline `68f080fe72f69ba037b897a2a3962d9db9d87b1c`). Word WIP, Harness, Evidence/Quarantine, F1–F5, old P3, the formal Workspace, formal module data and personal knowledge repositories were not touched. Next: closed; the next module is determined by product coordination and is not started automatically.
-
----
-
-## 22. AI 工作台 Phase 1 — 本机工具与运行环境检测 — 2026-10-09 (closed)
-
-Implementation baseline `4c45dbbdd33ba3226a0a3b880a081eb9bbb9752e` (clean, main = origin/main at start). Phase 1 is closed; the accepted formal commit is `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b` (owner-provided push/clean baseline reused in Phase 2).
-
-### Behavior
-
-- The sidebar item **AI 工作台** opens a page listing five tools: Claude Code, Codex CLI, Git, Node.js, Python. Each row shows status (可运行 / 无法运行 / 未找到 / 未检测), the version number and the first line of the real output, the executed path (plus the symlink-resolved location when different), the **actual discovery source**, and a short failure explanation with a hint.
-- Detection is **manual**: first entry shows "尚未检测"; the button reads 开始检测 / 重新检测 and is disabled while running. The last completed result and its time are kept **in memory only** (a cache owned by `DashboardView`), so switching sidebar items and coming back still shows it. Nothing is persisted; the result is not written anywhere and is not shown on the Home.
-- A fixed notice states the boundary: detection only proves the tool exists and `--version` runs; it says nothing about login, quota, network or model availability. Nothing is installed, updated, logged into, read for keys, or run beyond `--version`; no AI service is called.
-- Existing `ZhuowangAIConnectionStore` records (Codex `.available`, Claude Code `.needsLogin`, …) are **not read or modified**.
-
-### Discovery and execution rules
-
-- Candidates per tool, in order, de-duplicated by path (first discovery wins the label): current process `PATH` entries (**当前进程 PATH**) → `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, `/usr/bin` (**常见安装位置**; Claude also `~/.claude/local`, Node also `~/.volta/bin`, `~/.asdf/shims` and the numerically newest `~/.nvm/versions/node/*`) → Claude Desktop's bundled CLI under `~/Library/Application Support/Claude/claude-code/<version>/<id>/claude.app/Contents/MacOS/claude`, highest numeric version first, at most three versions (**Claude 桌面版内置**) → Codex in `/Applications` and `~/Applications` `ChatGPT.app/Contents/Resources/codex-cli/bin/codex` (**ChatGPT 桌面版内置**). No login or interactive shell is used and no unrelated directory is scanned. The first candidate that runs successfully wins; an earlier failure never blocks a later good candidate.
-- Execution goes through `AIWorkspaceProcessRunner`: absolute path, fixed `--version`, stdin `/dev/null`, **allow-listed environment** (`PATH` = executable's own directory + system dirs, `HOME`, `LANG`, `NO_COLOR`; nothing inherited, so no `CLAUDE_*` / `ANTHROPIC_*` values), stdout+stderr read concurrently through `poll` with a 64 KiB cap (excess is drained and dropped so the child never blocks), 5 s timeout per command and 8 s budget per tool. Timeout and task cancellation send SIGTERM, SIGKILL after 1 s, and a last-resort deadline always resumes the caller. Five tools are probed concurrently.
-- **System shims:** `/usr/bin/git` and `/usr/bin/python3` are only run after `/usr/bin/xcode-select -p` reports an existing developer directory. Otherwise they are skipped and the row reads 未找到 with the explanation that developer tools are missing and nothing is installed (the user may run `xcode-select --install` themselves).
-- **Repeated refresh / leaving the page:** a refresh while one is running is ignored; leaving the page cancels the task (children are terminated); a generation token guarantees a superseded or cancelled run can never overwrite a newer result or the cache. A finished result survives leaving the page.
-
-### Files
-
-New: `AIWorkspaceModels.swift`, `AIWorkspaceProcessRunner.swift`, `AIWorkspaceToolProbe.swift`, `AIWorkspaceViewModel.swift`, `AIWorkspaceView.swift`; test `AIWorkspaceToolProbeTests.swift`. Modified: `DashboardView.swift` (route `.aiWorkspace`, the in-memory cache, and DEBUG-only, isolated-only launch arguments `--cosmos-initial-sidebar aiWorkspace` and `--cosmos-ai-workspace-autodetect`). `project.pbxproj` needs no change (synchronized folders); a running Xcode re-serialized it during the session and it was restored to HEAD. No model, Store, UserDefaults schema or data file was changed.
-
-### Actual verification and limits
-
-- **Focused tests: 24/24 passed, 0 failed** on the final code (`AIWorkspaceToolProbeTests`; temporary fake executables only). Covered: version/exit-code capture; timeout kills the child (including a shell with a sleeping grandchild) and returns promptly; a child ignoring SIGTERM is SIGKILLed; cancellation terminates the child; an already-cancelled task never launches; output cap without blocking; controlled environment (no leaked secrets, stdin closed); launch failure; discovery source for every tool incl. highest bundled Claude version and newest nvm version; first-discovery label on duplicate paths; symlink resolution; not-executable / non-zero / timeout explanations; a later good candidate beating an earlier failure; version-less output still runnable; shim not launched without developer tools and run with them; version parsing and numeric sorting; view-model single-run, cancel-then-refresh with a late stale finisher, result surviving leave/return, cancelled run keeping the old result; probe cancellation stops children; a live probe smoke (five tools in order); offscreen rendering of the real view (idle and mixed states).
-- **One repair round** (test-only): the first full run exposed test problems — real `/usr/bin` leaking into discovery tests (common directories made injectable) and cold first-exec latency of freshly written scripts exceeding 1 s (test timeouts raised, pid-based tests wait for the child to start). No product code failure.
-- **Universal Debug build SUCCEEDED** (`x86_64 arm64`, signing disabled, temporary isolated Bundle ID); no warnings from the new files. `git diff --check` passed. Release was not rebuilt.
-- **Real App (one launch, via LaunchServices `open`, isolated Bundle + suite, DEBUG auto-detect argument, window-only capture):** the App opened directly on AI 工作台 and detected on its own. Visible in the capture: Claude Code 2.1.293 from Claude 桌面版内置; Codex CLI 0.162.0-alpha.17.2 from ChatGPT 桌面版内置; Git 2.54.0 at `/usr/bin/git` via 当前进程 PATH, marked 系统自带入口; "最近检测" time shown. These match the independent `--version` probes made during the investigation. The App process's own PATH (read with `ps eww`, PATH only) contained `~/.local/bin` on this Mac, so Node resolves as 当前进程 PATH here. Temporary preference domain deleted afterwards; the formal App and data were not touched.
-- **Not verified:** the Node.js and Python rows were below the visible area in the real window (covered by the live probe test and offscreen rendering only); the detect button was not clicked and the cancel-on-leave path was not exercised in the real App (no click tool; DEBUG auto-detect used instead; covered by tests); behavior on a machine without developer tools was tested only with fake `xcode-select` scripts (no real shim dialog scenario); a Finder launch with a bare launchd PATH was not reproduced (this Mac's launchd PATH already includes `~/.local/bin`); TCC / Gatekeeper behavior for running binaries inside other apps' bundles was not observed beyond this one successful launch; Release build, full suite and historical tests were not run.
-
-### Non-blocking todos
-
-1. The Codex and Claude bundle paths are app-internal layouts and may change with app updates; a miss shows 未找到 rather than an error.
-2. Multiple installs are not compared: the first working candidate is shown, not necessarily the one the user's Terminal uses.
-3. `Process.terminate()` signals only the direct child (no process group); `--version` children rarely spawn grandchildren, and the test with a sleeping grandchild confirms the call still returns.
-4. Deferred: login / quota / network checks, update hints, Homebrew / npm / uv / VS Code / DeepSeek Harness, Home summary, mapping detection onto `ZhuowangAIConnection` status, persistence.
-5. The existing `DeepSeekHarnessAdapter` still hard-codes a user-specific `npx` path (not touched).
-6. Carried over: earlier modules' real-UI acceptance and the other non-blocking items above.
-
-### Git and next action
-
-Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Historical verification above remains bounded to its stated scope. Phase 2 was explicitly authorized and is recorded below. Word WIP, Step 06 Harness, Evidence/Quarantine, F1–F5, old P3, other repositories, the knowledge base and formal App data remain outside this work.
-
-
-## 23. AI 工作台 Phase 2 — 任务准备与提示词交接 — 2026-10-10
-
-### 当前行为与边界
-
-- 从现有主元数据只读读取全部 Campaign、已有 Workflow 与 Workspace 名称配置，不初始化业务 Store、不创建默认活动/流程、不恢复备份。支持省份、全国、其他范围，不硬编码负责省份。
-- 用户选择活动与步骤、Claude / Codex，填写本次目标与补充要求；完整提示词实时预览，一键复制。CLI 未检测或不可运行不阻止交接。切换活动/步骤清空输入，无确认弹窗；草稿仅当前页面内存，离开页面可能丢弃，不建立历史或持久化。
-- 提示词标明来源，包含活动名称/范围/时间/状态/notes、流程与步骤 ID/状态/启用/说明/能力及工具要求、用户输入和关联产物元数据。按既有 versionGroupKey 与 isApprovedVersion 判定当前采用；其他版本为参考，零采用明确未确定，多采用明确冲突；排除所属活动不匹配的产物。不读取文件正文、不验证登记路径可读性、不以最新版本兜底。
-- 月度活动补充既有参考活动关联、业务输入状态/说明、奖池关系、登记版本/位置/定稿状态，以及现有清单定义中与步骤关联的交付形式。
-- 步骤模型没有独立目标/详细完成标准字段，因此目标由用户填写，步骤 notes 保留为说明；不把说明冒充完成标准。提示词明确已有 requiresApproval 语义和详细标准缺失。新产物输出目录未确定，登记路径只作为来源，不推导或编造输出目录，不把源码仓库作为活动输出目录。
-- 缺少活动、Workflow、步骤、目标及读取异常均阻止生成/复制。刷新发现关联失效会清空对应选择与输入。复制前重新读取主元数据；若文本变化，更新预览并要求核对后再次复制；若失效或读取失败则拒绝复制。成功/失败均有反馈，输入变化清除旧反馈。
-- 不自动执行 CLI/AI、发送或导出，不创建 Run/Approval、不改 Workflow、不采用/覆盖/移动/删除产物、不改业务 Store。不授权提交、推送或其他知识库回写。Phase 1 检测入口及执行逻辑保留。
-
-### 本轮验证
-
-- 新增 `AIWorkspaceTaskPreparationTests` **10/10 通过**：真实关联及动态省份名称；旧 V1 当前采用而 V3 为参考；采用冲突/未采用/跨活动产物；活动/步骤切换与清空；缺活动/流程/步骤/目标；失效关联与复制前更新；输入/工具变化后预览和复制一致；失败反馈；只读主数据且不读备份/不写 Store；重复身份拒绝；实际 SwiftUI 视图离屏布局与私有剪贴板全文一致。
-- **Universal Debug BUILD SUCCEEDED**，`lipo` 确认 `x86_64 arm64`；临时 DerivedData / 隔离 Bundle，签名关闭。新增文件无编译警告；旧省份规则两条 actor 警告及 AppIntents 提示不修复。`git diff --check` 通过。未跑历史/全量测试、Release 或独立复审。
-- 首次沙箱内 xcodebuild 被 Swift 宏插件 sandbox_apply 拒绝，测试未执行；改用同一隔离配置在沙箱外验证成功，无产品阻塞或修复轮次。
-- **真实 App 一次隔离启动**：LaunchServices 后台 `open -g -n`，随机 suite + 临时 Bundle、合成活动/步骤/产物，仅窗口截图，未移动用户窗口。任务准备页面呈现，Phase 1 DEBUG 自动检测完成，显示重新检测及时间。Campaign / Workflow / Workspace 三份 payload 前后逐字节一致，无新增 cosmos 业务键；临时进程已结束、随机 suite 已删除。证据：`/private/tmp/CosmosAIPhase2-UI/`；测试 `/private/tmp/CosmosAIPhase2-Focused.xcresult`；构建日志 `/private/tmp/CosmosAIPhase2-build.log`。
-
-### 未覆盖与下一步
-
-- 原生 UI 操作工具初始化超时，未重复尝试；真实 App 未点击活动/步骤选择、输入、复制/失败反馈、刷新及检测按钮，未滚动检查所有检测行。功能逻辑、离屏视图及私有剪贴板证据不等于完整端到端 UI 验收。月度提示词扩展本轮只做编译与静态检查，没有专项运行测试；真实文件路径存在性不在本期实现范围。
-- 非阻塞：大规模 Workflow 元数据读取当前同步进行，后续真实规模出现卡顿时再考虑优化；离开工作台不保证保留草稿。本期无任务历史、导出、自动发送或 CLI 启动。
-- **结论：用户已接受上述验收范围，本阶段关闭，无已知阻塞。** 用户授权的 `feat: 新增 AI 工作台任务准备与提示词交接` 已正常推送 main，正式提交 `e66dd21fe228828ba05753ff78cebf97efdd6806`，parent `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，仅包含报告的 7 个文件；收尾实际远端 SHA 与 main/origin/main 一致、ahead/behind 0/0、工作区干净。收尾 fetch 曾遇到瞬时 SSL 错误，随后 ls-remote 成功核对实际远端；不重复测试、构建或复审。后续 Phase 3 由用户明确授权实施，记录见 §24。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他仓库/知识库均未处理。
-
-
-## 24. AI 工作台 Phase 3 — 任务交接记录 — 2026-10-10
-
-### 当前流程与语义
-
-- 准备任务 → 复制提示词 → 手动“记录本次交接” → 交接记录入口 → 按活动筛选 / 时间倒序查看 → 原生详情窗口 → 再次复制保存原文。复制与记录为两个动作，不自动检测发送，不代表 AI 已执行或任务完成。
-- 新的不可变值类型保存 UUID、首次记录点击时间、Campaign/Workflow/Step 稳定 ID 与当时名称、工具标识与显示名、完整目标/补充要求以及完整提示词。历史不引用当前资料重新生成、不改写旧名称、不提供编辑、删除或完成标记。
-- 保存前重新读取 Phase 2 只读上下文，核对原有活动/流程/步骤身份并逐 UTF-8 字节比较当前预览；上下文变化时不保存，先更新预览提示核对。关联失效时拒绝记录且保留草稿。最近复制后文字变化时，明确告知记录的是当前预览而非之前复制版本。
-- 保存过程中停用按钮；成功后相同预览不能连续记录，需明确“准备再次交接相同任务”重新开启下一次登记。允许有意重复交接相同任务。失败保留草稿与预览；重试未确认写入时复用记录 ID / 时间，磁盘已有同 ID 且内容逐字一致则返回已有记录，不重复追加。
-- 历史按记录快照中的活动 ID 筛选，显示保存时名称、步骤、工具、时间和目标。读失败显示错误，不能伪装为空；详情在打开及用户点击“核对当前关联”时只读核对当前关联。关联已删除或无法读取不影响查看/复制历史；历史复制逐字使用保存文本，并有成功/失败反馈。
-- Phase 1 检测与 Phase 2 准备能力保留；本期不启动任务、不改 Campaign/Workflow/Run/Approval/Artifact、不调用服务、不改 Prompt Vault / Home、不同步其他知识库，暂缓事项仍不处理。
-
-### 独立存储与数据保护
-
-- 正式位置遵循现有 Application Support 约定：`~/Library/Application Support/Cosmos OS/AIWorkspace/handoffs.json`，备份 `handoffs.backup.json`，协作写锁 `.handoffs.lock`；当前工程关闭 App Sandbox。文件内 schemaVersion = 1；库大小超过 16 MiB 时拒绝而非截断。仅手动记录时创建目录/主文件，首次读取不存在目录不写入默认数据。
-- 使用模块独立的串行 I/O 队列与 flock；安全读路径/拒绝符号链接、读取最新已验证文件、保留既有记录、原子写备份并读回、同目录临时文件 fsync + rename 原子替换主文件、逐字读回确认后发布。沿用 LearningFileStorage 已有安全原语但不修改 Learning 模块，不引入通用框架。
-- 写前失败保留已有主文件；写后校验失败明确标为结果不确定，不冒充未保存或自动回滚，重试同 ID 幂等。解析错误、未知 schema、危险路径及主文件缺失但备份存在时拒绝保存，不自动恢复、清空或重建。历史加载错误保留内存记录但显示错误并阻止记录，用户可刷新核对。
-- DEBUG 隔离必须同时有隔离 Bundle、隔离 suite 和获准 UUID 临时根（`--cosmos-ai-handoff-fixture-root /private/tmp/CosmosAIHandoffPhase3-<UUID>`）；缺根或错误配置不会回退正式目录。隔离可用 `--cosmos-ai-workspace-history` 打开历史页。测试宿主不传根时历史失败关闭，不创建正式历史数据。
-
-### 本轮实测
-
-- 新增 `AIWorkspaceHandoffTests` 15 项：首轮 **14 通过 / 1 失败**；唯一失败为测试比较 directory URL 尾部斜杠而非路径，不是产品缺陷。一次集中修复仅改该断言，随后只重跑受影响项并通过；最终 **15 项通过（14 项首轮有效结果 + 1 项修复后通过）**，未重跑全套或 Phase 1/2 历史测试。
-- 覆盖保存/重载全文及 Unicode/CRLF/空白字节一致；改名历史不变；关联删除仍可读/复制；复制不记录；复制后改要求提示当前版；当前可见预览与保存一致；上下文变更/失效阻断；连续点击及有意再次登记；写失败保留已有文件与草稿；读错误不覆盖、不恢复备份；各写前阶段失败；写后不确定重试同 ID；两个存储实例并发追加不丢记录；符号链接与未知 schema 拒绝；私有剪贴板全文/失败反馈；业务数据源零写入；隔离失败关闭；缺目录读取不创建；实际历史/详情 SwiftUI 视图离屏布局。
-- **Universal Debug BUILD SUCCEEDED**，`lipo` 确认 `x86_64 arm64`；新增文件无编译警告。既有省份规则两条 actor 警告与 AppIntents 提示不扩大修复。`git diff --check` 通过。Xcode 自动重排 project.pbxproj 已在解析内容相等后恢复，不纳入变更。
-- 一次隔离真实 App 后台 LaunchServices 启动，只截该 App 窗口，不移动用户窗口。历史页显示入口、筛选、合成记录、保存时活动/步骤/工具/目标/时间和明确临时存储路径；Phase 1 自动检测完成（截图可见 Claude 可运行）。交接主文件 SHA-256 和一条记录数量均未变化，无备份/锁/写入临时文件被创建；Campaign/Workflow/Workspace 三份 payload 逐字节不变，无新增业务键。进程结束，UUID suite 删除，正式历史及正式数据未读写。
-- 证据：首轮 `/private/tmp/CosmosAIPhase3-Focused.xcresult`；修复项 `/private/tmp/CosmosAIPhase3-IsolationFixed.xcresult`；构建 `/private/tmp/CosmosAIPhase3-build.log`；窗口及完整性 `/private/tmp/CosmosAIHandoffPhase3-51da0eeb-ee32-4553-a936-ed76e0ca074f/`。
-
-### 覆盖缺口、待办与收尾
-
-- 本会话原生 UI 操作工具先前已超时，不重复尝试。真实 App 未点击记录、筛选、详情、再次复制、再次交接或准备/历史切换；这些由状态/存储测试或离屏视图覆盖，不宣称完整端到端 UI 验收。未测真实正式目录写入（按要求隔离验证）、Release、全量/历史测试或独立复审。
-- 非阻塞：历史本期全部加载，无分页；超过 16 MiB 明确拒绝追加；关联提示不是持续实时监听，可手动核对；跨进程只承诺遵守协作锁的追加及现有文件变化检查，不宣称覆盖全部非协作文件系统竞争；无自动备份恢复 UI。首次创建记录目录也会创建协作锁文件，失败时可能保留空目录/锁，但不破坏旧主文件。
-- **结论：用户已接受上述验收范围，Phase 3 关闭，无已知阻塞。** 用户授权以 `feat: 新增 AI 工作台任务交接记录` 提交并正常推送 main。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；逐项核对范围为 10 个文件，不纳入个人记录、锁、备份或临时数据。沿用已通过验证，不追加测试/构建。实际提交 `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`，parent `e66dd21fe228828ba05753ff78cebf97efdd6806`；正常推送后 ls-remote 核对远端 main，main / origin/main / 远端 main 一致、ahead/behind 0/0、工作区干净。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 及其他知识库不动。后续资料选择 Phase 1 的实施见 §25。
-
-
-## 25. 任务上下文资料选择 Phase 1 — 2026-10-10
-
-### 当前流程与读取边界
-
-- 选择活动/步骤 → 明确选择参考产物 → 读取并预览原文 → 完整提示词 → 复制 / 手动记录交接。默认不选、不读正文，仅提供当前 Campaign 已管理的 Workflow.artifacts，不扫描目录、导入产物或读取其他知识库。
-- 复用知识与资产中心的 ZhuowangAssetTextReader 与 request(for:)：元数据正文优先，UTF-8 文本文件后备，限量读取、符号链接/路径拒绝、读取前后文件检查、缓存及原文保留。图片、PDF、HTML、Figma、Word、Excel、URL 等只显示元数据，不新增提取/转换。
-- 唯一当前采用版本优先展示；历史、未采用及采用冲突置于需明确展开选择的区域。按既有 versionGroupKey / isApprovedVersion 判断，不以最新版本代替采用版本。重复 Artifact ID 显示错误，拒绝可靠选择。
-- 所选正文可查看、移除、重新读取。提示词标记名称、版本、稳定身份、来源步骤、逻辑组、采用状态、正文来源、登记位置及文件核对状态；使用不会出现在正文中的分隔符，逐 UTF-8 字节保留空白、CRLF、Unicode 和尾部。正文中的指令只作参考，不提升为当前任务授权。
-- 单份正文最多 **2 MiB**（沿用安全读取器）；**最终完整提示词最多 4 MiB UTF-8**（包括基础说明与全部正文），超限拒绝，不静默截断。读取失败且无有效正文则阻止交接；若有效元数据正文存在而文件不可读、不一致或文件超限，沿用资产中心优先级，明确显示使用元数据正文和文件核对失败/超限，不冒充已加入文件正文。元数据自身超限或读取期间文件变化仍拒绝。
-- 切换活动清空资料并使晚到异步结果失效；切换步骤保留同活动明确选择项，显示保留数量及核对用途提示，本次目标/要求仍清空。移除、切换或正在读取时不会交接旧正文。
-- 复制与记录前只重新校验所选资料及主元数据；文件修订、正文、元数据或采用状态变化先更新预览并拒绝当前操作，用户核对后再次点击。即使元数据仍是优先正文、显示文本未变化，文件修订变化也要求再次操作。最终逐字比较可见预览，不能静默复制或保存另一文本。
-- Phase 3 保存最终完整提示词快照；历史查看与复制始终使用保存原文，不随资料变化重新生成。资料选择及正文仅页面内存，无新持久化结构；历史存储位置仍为 §24 独立目录。不写业务 Store、不修改源文件、Workflow、Run、Approval 或采用状态。
-- DEBUG 资料读取复用既有隔离 asset root；隔离缺根失败关闭，不回退正式文件。Phase 1 检测、Phase 2 准备及 Phase 3 历史入口保留。
-
-### 本轮实测与保护证据
-
-- 新增 AIWorkspaceTaskReferencesTests **14/14 通过，0 失败**，无集中修复：默认零磁盘读取、当前活动限定/采用优先、明确历史/未采用/冲突；原文字节与完整预览/私有剪贴板/保存重载历史一致；活动清空、步骤明确保留、晚到读取失效；元数据优先及 Unicode 原字节缓存校验；文件修订/正文或采用变化首次交接拒绝、再次明确操作成功；缺失/非 UTF-8/符号链接失败；单份及总上限拒绝且不截断；非支持类型仅元数据、隔离缺根零读取；删除产物/重复身份；实际选择视图离屏布局。测试使用 UUID 临时目录，业务数据源零写入、源文件逐字节不变。
-- **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`，签名关闭、临时 DerivedData/隔离 Bundle。新增代码无编译警告；既有省份规则 actor 警告和 AppIntents 提示不扩大修复。git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，不纳入变更。未跑全量或历史测试、Release 或独立复审。
-- 一次真实 App 后台 LaunchServices 隔离启动，使用随机 suite、临时 asset root 和历史 root，仅截目标窗口、不移动用户窗口：任务准备/交接记录入口呈现，Phase 1 自动检测完成时间可见。Campaign / Workflow / Workspace 三份载荷逐字节不变、无新增业务键，样本源文件 SHA-256 不变，临时历史目录无记录/锁/备份文件。结束隔离进程并删除随机 suite，正式数据未读写。
-- 证据：`/private/tmp/CosmosTaskReferences-Focused.xcresult`、`/private/tmp/CosmosTaskReferences-focused.log`、`/private/tmp/CosmosTaskReferences-build.log`；窗口、载荷及完整性报告 `/private/tmp/CosmosAssetPhase1-a2441e3b-4ccb-43a2-b071-7bf4d183930b/`。
-
-### 限制、待办与结论
-
-- 原生 UI 工具本会话先前已超时，不重试。真实 App 未选择活动/资料、滚动正文、点击复制/记录或体验变化后二次确认；新选择区域位于截图可见区域以下。逻辑、离屏视图与私有剪贴板测试不等于完整端到端 UI 验收。未触碰正式文件、未跑历史读取器完整测试；本轮新增路径的实际读取风险由新测试覆盖。
-- 非阻塞：大段正文/完整预览目前直接 Text 呈现，接近上限时可能有排版成本；选中资料仅页面内存，离开页面不保证保留。校验为操作前检查及既有 stat 修订检查，不承诺防止外部进程在检查结束后修改文件。无全文搜索、编辑、转换、任意目录资料或跨知识库同步。
-- 修改范围：新增 AIWorkspaceTaskReferences.swift、AIWorkspaceTaskReferencesView.swift、AIWorkspaceTaskReferencesTests.swift；修改 AIWorkspaceTaskPreparation.swift、AIWorkspaceTaskPreparationView.swift、AIWorkspaceHandoffStore.swift、AIWorkspaceView.swift、DashboardView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetTextReader.swift，以及本文件和当日日志，共 12 个文件。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 用户授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main，仅包含报告中的 12 个文件。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`。沿用 14/14 测试、Universal Debug 构建及隔离数据保护证据，不追加测试/构建/复审；真实按钮交互未覆盖及大段正文排版成本继续作为验收限制。实际正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`，parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`；正常推送后 main / origin/main / 实际远端 main 一致、ahead/behind 0/0、工作区干净。下一模块仅依用户明确授权开展（本轮 §26）。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他知识库保持不动。
-
-
-## 26. 核心数据备份 Phase 1 — 导出与完整性校验 — 2026-10-10
-
-以下保留已关闭 V1 阶段的历史验收；当前 Projects 第 11 源与 V2/V1 兼容扩展见 §30。当前包格式为 V3（12 个固定源，新增个人笔记）见 §36；以下 10/11 源描述为历史。
-
-### 用户流程与实际数据边界
-
-- Settings → 查看包含/不包含与安全排除 → 保存面板选择新 ZIP → 后台导出并校验 → 显示结果及逐源状态 → Finder 查看；也可选择已有 ZIP 独立校验。正在操作时停用按钮，失败明确反馈，不自动重试、不导入或恢复。
-- 开工只查 status / HEAD，实际干净基线为 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`。沿用用户提供的有效远端收尾证据，不 fetch、不重跑历史验证、不设调查或独立复审。
-- 只读 10 个明确主数据源；不初始化 Store、不扫描目录/偏好域、不读产物实体、不刷新业务备份、不创建缺失默认数据。配置读取经现有 dataSource；UserDefaults 已有非 Data 值明确报错，不能伪装缺失。缺失主数据但已有对应备份时拒绝，不自动恢复或重建。
-
-| 包内源 ID | 实际持久化来源 | 包内路径（存在时） |
-| --- | --- | --- |
-| campaigns | `cosmos.zhuowang.campaigns.v1` | `data/campaigns.json` |
-| workspace | `cosmos.zhuowang.workspace.v1`（包含省份配置） | `data/workspace.json` |
-| workflows | `cosmos.zhuowang.workflows.v1`（内嵌 Artifact、Run、Approval） | `data/workflows.json` |
-| providers | `cosmos.zhuowang.ai.providers.v1` | `data/providers.json` |
-| connections | `cosmos.zhuowang.ai.connections.v1` | `data/connections.json` |
-| tools | `cosmos.zhuowang.ai.toolIntegrations.v1` | `data/tools.json` |
-| routes | `cosmos.zhuowang.ai.agentToolRoutes.v1` | `data/routes.json` |
-| prompts | Application Support / Cosmos OS / PromptVault / templates.json | `data/prompts.json` |
-| learning | Application Support / Cosmos OS / Learning / learning.json（主题+记录） | `data/learning.json` |
-| handoffs | Application Support / Cosmos OS / AIWorkspace / handoffs.json | `data/handoffs.json` |
-
-- 普通业务 JSON 原字节保留（包括正文、空白、CRLF、Unicode、登记路径引用）；配置先解析验证，再按固定白名单输出已知非敏感字段。Provider 排除 configurationIdentifier 和未知字段；Connection / Tool / Route 排除整份自由 configuration 字典、endpointOrPath、adapterIdentifier、notes 及未知字段。清单逐源记录转换，exclusions 明确排除项；宁可明确排除不能判定安全的自由配置，不猜测其中是否含 token。已知名称、模型、身份、状态、能力、执行选项和时间保留，不恢复这些被排除字段。
-- 不读取 Keychain、API Key/token/认证文件或整个 Application Support。用户既有 Prompt / Artifact / 学习 / 交接正文原样备份，不实施正文敏感词改写；不是加密备份。源码、正式产物、外部知识库、工具环境、Evidence/Quarantine、Word WIP 与临时数据均不包含；现有文件路径仍依赖原文件，不宣称完整换机恢复。
-
-### 格式、校验与一致性
-
-- ZIP 内 `manifest.json`：format = CosmosCoreMetadata、version = 1、ISO8601 exportedAt、exclusions、10 个固定 source 条目。每条含 ID、present / missing、包内路径、字节数、SHA-256 及 transformation；missing 无数据条目，真实空数组/空库仍 present。清单不额外记录绝对来源路径；业务内容本身原有路径引用仍保留。
-- 只支持本格式的未压缩标准 ZIP，不支持任意 ZIP、压缩方法、ZIP64、额外字段或注释。校验直接解析有界 ZIP 内存字节，不解压到磁盘；固定路径白名单、中央/本地头严格配对、CRC32、唯一条目及清单精确匹配拒绝路径穿越、符号链接、重复项、未知项、缺项及损坏。清单格式/版本、大小/SHA-256、各源 Codable/身份及已有文件文档 validate 同时检查；配置中未获准字段也拒绝。
-- 容量：每源 **16 MiB**、包 **128 MiB**（含 ZIP 结构与清单）、清单 **256 KiB**，最多 11 个条目。不截断。源读取/ZIP 操作在后台，UI 状态在主线程。
-- 复用既有安全文件模式：lstat 普通文件与父路径/符号链接拒绝、O_NOFOLLOW、限量读取、读取前后 device/inode/大小/mtime/ctime 纳秒修订比较。发布前逐源复读原字节和文件修订；不同则中止。UserDefaults 只比较当前进程可见的原始业务值，不调用 synchronize 或写入源，也不宣称持有全域/跨进程事务。
-- 一致性是检查点校验，不是全业务原子快照或跨进程事务；无法保证外部进程在最终检查后不再写入，或捕获检查点之间发生且完全回退的变化。文件检测复用现有修订语义，不创建/修改源锁或恢复主文件。
-- 同目标目录的专属临时文件，以 0600 权限、O_EXCL 写入并 fsync；先验证临时包再核对源，用 renamex_np / RENAME_EXCL 发布。即使其他进程中途建立同名目标，也拒绝覆盖。失败只清理本次临时包，不改已有目标或源数据。活动交付包服务语义未改；没有采用其 ditto 解包路径来校验未知输入，新增的 ZIP 逻辑仅限本备份格式。
-- SHA-256 / CRC32 用于意外损坏及条目完整性，不是签名、认证或加密；同时篡改内容并重算清单无法证明来源真实性。校验不引用正式源数据、不判断当前业务关联是否存在。
-
-### 本轮实测
-
-- 首轮集中检查在编译阶段停止，测试未执行：Settings 缺少 Combine 导入，另有配置初始化 actor 边界 warning。一次集中修复加入导入、主线程捕获 dataSource 后交给后台闭包；随后只运行尚未执行的新 CoreBackupTests，**12/12 通过**。未跑历史/全量测试，没有第二轮修复。
-- 覆盖 10 源和普通载荷/正文逐字节保留、敏感配置与未知字段排除、清单无额外来源绝对路径；未建立 vs 真实空库、读取不创建默认目录/数据；不可读、坏数据、错类型、缺主有备份；偏好值变化与同字节文件修订变化中止且清临时包；已有目标及发布前抢先创建目标不覆盖；篡改/缺项/多余项、重算哈希但结构损坏、重复清单、ZIP 重复/穿越/符号链接/压缩方法/条目数、未知版本及未获准配置字段；单源/包超限、源和包/父路径符号链接拒绝、隔离缺根失败关闭，以及 Settings 离屏渲染。
-- 合成数据使用 UUID 临时根。导出及独立校验前后业务源字节与主文件字节一致；操作只获指定源读取能力，无业务写接口。错类型测试用随机 UserDefaults suite，测试前后域值一致并清理；无正式业务源读取、写入或恢复。
-- **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`；签名关闭、临时 DerivedData 和隔离 Bundle。git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，无工程语义修改。新模块有一条 `ZhuowangWorkspaceSnapshot.Decodable` nonisolated 使用 warning（当前 Swift 5 可编译通过，未来 Swift 6 迁移待统一处理）；既有省份 actor / AppIntents / 历史测试编译 warnings 不扩大修复。
-- 一次后台 LaunchServices 隔离 App 启动：随机 suite + 三个明确 UUID 临时文件根，仅截目标窗口，不移动用户窗口。Settings 范围、排除、容量、一致性说明、导出/校验入口清楚呈现。三份 Campaign/Workflow/Workspace 偏好载荷逐字节不变，无新增业务键；Prompt/Learning/Handoff 三个主文件哈希不变，目录只保留原主文件、无新备份或锁。进程已结束、随机 suite 已删除，正式数据未触碰。
-- 证据：首次编译 `/private/tmp/CosmosCoreBackup-Focused.xcresult`；修复后 `/private/tmp/CosmosCoreBackup-Fixed.xcresult`、`/private/tmp/CosmosCoreBackup-fixed.log`；构建 `/private/tmp/CosmosCoreBackup-build.log`；窗口/载荷/完整性 `/private/tmp/CosmosCoreBackupUI-19db1199-0d33-4567-bf5c-bd63171c418d/`。
-
-### 缺口、待办与结论
-
-- 原生 UI 工具此前受限，本会话不重试。真实 App 未点击保存/打开面板、导出/校验反馈、重复操作或 Finder 按钮，不宣称完整端到端验收；服务风险由本轮测试覆盖。未验证真实正式数据导出、Release、任意第三方 ZIP 改写兼容、接近 128 MiB 的性能/内存峰值；不跑全量或历史测试、不安排独立复审。
-- 非阻塞：V1 未压缩 ZIP 与源载荷在内存操作，接近上限可能有内存成本；只有特定版本格式可校验，没有来源签名、加密、恢复或自动备份。配置自由字典全部排除，未来需要保留特定安全字段时应明确扩展白名单，不能放宽为全量导出。Swift 6 actor 迁移 warning 待未来统一处理。
-- 修改文件：新增 CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupArchive.swift、CoreBackupService.swift、CoreBackupSettingsView.swift、CoreBackupTests.swift；修改 DashboardView.swift、ZhuowangProtectedPersistence.swift、本文件和当日开发日志，共 10 个文件。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权以 `feat: 新增核心数据备份与完整性校验` 正常提交推送 main，仅包含报告中的 10 个文件，沿用 12/12 测试、Universal Debug 和隔离数据保护证据，不追加测试/构建/复审。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与远端 main 均为预期 parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`；实际提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`，parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`，消息 `feat: 新增核心数据备份与完整性校验`。正常推送后实测 main = origin/main = 远端 main，ahead/behind 0/0，备份收尾时工作区干净；恰好提交上述 10 个文件。随后按授权实施空环境恢复，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3、其他仓库和知识库保持不动。
-
-
-## 27. 核心数据恢复 Phase 1 — 空环境恢复 — 2026-10-10
-
-以下保留已关闭 10 源阶段的历史验收；当前 Projects 目标/空环境检查扩展见 §30，其余事务与启动保护保持。当前恢复目标新增个人笔记根（5 个文件根、12 源）见 §36。
-
-### 流程与范围
-
-- Settings → 选择备份 → 完整校验与关联检查 → 展示导出时间/格式版本/各源状态与摘要/实际恢复项及限制 → 明确确认 → 再校验包和空目标 → 后台恢复 → 提示退出并重启。确认前、取消和校验失败均不创建恢复数据。不提供覆盖、合并、强制恢复或选择性恢复。
-- 复用 §26 的固定 10 源、V1 格式与安全 ZIP 校验；单源 16 MiB、整包 128 MiB、清单 256 KiB。不从包内路径推导外部目的地。实际目标为当前安装原有 7 个业务 UserDefaults 主键及 PromptVault/templates.json、Learning/learning.json、AIWorkspace/handoffs.json；逐源位置以 §26 表为准。
-- Campaign、Workspace、Workflow、Prompt、Learning、Handoff 原字节保留，包括正文、CRLF、Unicode、UUID、历史版本、Run/Approval、采用选择与历史交接文本。Workflow→Campaign、Run/Approval→Step、Artifact 所属 Campaign 结构关联错误拒绝；历史产物 Step/Run、历史 Provider 或配置关联缺失提示限制，不补造身份。关联已删除的交接历史仍保留快照。
-- 原文件路径仅是历史引用。不读取、产生、移动或修复实体文件；不恢复认证、端点、自由配置字典或被排除字段，不执行 CLI/联网验证。
-- AI 配置恢复使用固定白名单：Provider 禁用；Connection/Tool 禁用且 needsSetup；Connection 关闭自动选择；Connection/Route 自动执行及自动返回选项关闭，Route needsSetup。历史 available 不表示当前可用，UI 提示重新设置。恢复安装跳过既有 Provider 规范化与默认连接补建，避免脱敏身份被改写或缺失配置被伪造；missing 配置源仍不存在。
-
-### 空环境与启动门控
-
-- 空不是“列表为空”：固定主键及其 .backup 必须不存在，三个业务模块不得有主文件、备份或相关写锁。有效空载荷、错类型、损坏、不可读取、状态不明均拒绝；不恢复缺失主文件、不删除默认数据来绕过检查。未知恢复控制数据也拒绝。
-- 根视图先进入数据启动保护，再决定是否构造 Dashboard/业务 Store。新安装可在初始化任何业务数据前选择恢复；“创建新环境”先持久化 started 标记，再进入工作台，之后不能再当作空环境恢复。
-- 恢复成功的当前进程保持重启提示，不构造仍持有旧状态的业务 Store；下一启动核对 complete 收据与实际数据，清暂存并转 started/restored 后才加载。inProgress/failed 或损坏标记阻止业务加载，提供明确的本次事务安全回退入口；不自动清空修复。
-
-### 发布、失败与中断保护
-
-- 独立控制目录：`~/Library/Application Support/Cosmos OS/CoreRestore/`。`state.json` 保存版本、事务 UUID、状态、恢复安装标志及逐源 planned/pending/written 收据；`.restore.lock` 为非阻塞 flock 协作锁；`payload-<sourceID>.json` 为已验证暂存。journal 临时文件 fsync 后原子 rename，目录也 fsync；不把业务旧备份或写锁恢复为正式状态。
-- 解析、结构和关联检查全部先完成。确认时重新读取有界备份，核对包 hash 与文件修订；写前复查目标、已写收据和备份/锁。UserDefaults 使用现有同进程每键锁、存在性检查、set/remove + synchronize + 读回；文件用完整暂存的 exclusive hardlink 原子发布，拒绝覆盖，核对 inode/device/字节并 fsync 目录。
-- 同卷 hardlink 是文件发布前提，当前生产位置同属 Application Support；跨卷 EXDEV 安全失败，不用非原子 copy 降级。文件收据记录修订身份；只有可确认属于本次创建且未变化的数据才能回退。并发变化、归属不明 pending 数据不删除，保留失败/未完成标记并阻止成功加载。
-- 这是带持久化收据、启动门控及协作锁的恢复协议，不是文件与 UserDefaults 的跨进程原子事务。UserDefaults 无跨进程 CAS；非协作程序在检查后写入的竞态不能完全排除。中断后新 service 可显式安全回退，无法确认时保留并阻断，不把半套数据视作成功。
-- 备份导出语义未变；仅抽出既有有界字节校验以供恢复复用。未恢复任何暂缓事项，不写其他仓库或知识库。
-
-### 本轮验证与证据边界
-
-- 一轮集中 CoreRestoreTests **14/14 通过**。随后一次集中补齐文件原子发布，仅重跑受影响的 **7/7 通过**；最终 14 项覆盖由未变化 7 项沿用首轮、文件相关 7 项修复后证据组成，未重新跑整套或历史测试，无第二轮修复。
-- 覆盖备份→恢复→新 service/新偏好 wrapper 重新加载原文、UUID、Run/Approval、V1 采用及 V3 历史；实际 WorkflowStore 重载不补建 Provider、偏好字节不变；禁用配置不补造秘密；missing 源不创建；确认前/取消零写；已有空库、损坏/错类型/不可读目标、备份/锁拒绝；坏包/结构关联错误/预览后包修订变化拒绝。
-- 覆盖写失败回退已确认前缀；目标变化保留并阻断启动；注入中断、重新创建 service 后显式回退；不确定偏好写入不删除；变化文件/符号链接保护；complete 后目标变化或损坏 marker 阻断；创建新环境后拒绝恢复。源资料与备份未修改，缺失实体不生成，恢复视图离屏渲染通过。所有目标为完整隔离临时目录及随机 suite，未操作正式 App 数据。
-- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`，隔离 Bundle ID、关闭签名、临时 DerivedData。工程自动重排经 plutil 内容相等核对后恢复，不纳入修改；git diff --check 通过。
-- 一次后台隔离真实 App 显示“数据启动保护”、选择备份及创建新环境入口；仅截图目标窗口，不激活或移动用户窗口。随机偏好域无 cosmos 业务键，Prompt/Learning/Handoff/CoreRestore 四个临时根均未创建，证明初始化门控未写业务数据。隔离进程已结束；清理随机 suite 时域已不存在，defaults 未改其他域。
-- 证据：首轮 `/private/tmp/CosmosCoreRestore-Focused.xcresult` 与 focused.log；受影响项 `/private/tmp/CosmosCoreRestore-FilePublish.xcresult` 与 file-publish.log；构建 `/private/tmp/CosmosCoreRestore-build.log`；真实窗口及 integrity.json 位于 `/private/tmp/CosmosCoreRestoreUI-d41ae7fd-6eb9-499a-90d8-b5b3e220b892/`。
-- 未覆盖：真实打开面板、确认/恢复/回退按钮及真实重启恢复完整交互；实际断电/kill 中断仅由注入模拟覆盖；未验证正式数据、Release、容量上限性能或非协作跨进程竞态，不宣称完整端到端 UI 验收。原生点击工具此前受限，本轮不重试。
-- 非阻塞待办：新模块 4 条非 Sendable 后台闭包捕获 warning（CoreRestoreStartupView 三处、CoreRestoreView 一处），当前 Swift 5 构建通过，未来 Swift 6 迁移需明确契约；既有 WorkspaceSnapshot.Decodable、省份 actor 和 AppIntents warning 沿用，不扩大修复。
-
-### 修改与结论
-
-- 新增：CoreRestoreModels.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreRestoreView.swift、CoreRestoreStartupView.swift、CoreRestoreTests.swift。
-- 修改：CoreBackupService.swift、CoreBackupSettingsView.swift、Cosmos_ToolboxApp.swift、DashboardView.swift、ZhuowangAIConnectionStore.swift、ZhuowangProtectedPersistence.swift、ZhuowangWorkflowStore.swift、本文件、当日开发日志。共 **15 个文件**，无工程语义修改或业务数据纳入。
-- **结论：用户已接受上述声明验证范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增核心数据空环境恢复` 正常提交推送，仅逐项纳入上述 15 个文件，沿用已有验证，不追加测试、构建或复审。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，实际远端 main 与预期 parent 一致。当前基线 `16dd38682e8c17ef15dc97cae2718a261db441dc`；实际提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，parent `16dd38682e8c17ef15dc97cae2718a261db441dc`，消息 `feat: 新增核心数据空环境恢复`，恰好逐项提交上述 15 个文件。正常推送后 main = origin/main = 实际远端 main，ahead/behind 0/0，恢复收尾时工作区干净。随后实施已授权 Mac 概览，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。不自动开发下一模块。
-
-
-## 28. Mac 环境概览 Phase 1 — 2026-10-10
-
-### 用户流程与来源口径
-
-- 原有“Mac 优化 / macOptimizer”导航身份保留，占位页替换为原生只读概览。首次进入后台读取一次，显示完成读取时间，可手动刷新；不持续轮询。当前进程再次进入沿用内存快照，未完成读取离开时取消，再进入可重新读取；重启无历史。
-- 系统版本使用 ProcessInfo.operatingSystemVersion；硬件型号 sysctl `hw.model`、芯片/处理器名称 `machdep.cpu.brand_string`；硬件架构先读取 `hw.optional.arm64`，支持 ARM 时显示 arm64，否则用 `hw.machine`。不读取序列号、设备 UUID、网络地址或认证信息。
-- 物理内存使用 ProcessInfo.physicalMemory，二进制格式并显示原始字节（1 GiB = 2³⁰ 字节；系统 ByteCountFormatter 可能仍将单位显示为 GB，页面明确说明口径）。没有“总量减空闲”或应用内存估计。当前系统压力没有采用可靠的同步读数，明确显示未知/本期未读取，不推算健康评分。
-- 磁盘使用用户主目录 URL 的 volumeTotalCapacity / volumeAvailableCapacity。展示该卷总量与可用容量，十进制单位（1 GB = 10⁹ 字节）；不是主目录大小，不包含可清除空间估算、不扫描目录或垃圾。
-- 电池使用 IOPSCopyPowerSourcesInfo/List 与 IOPSGetPowerSourceDescription，只处理 InternalBattery，不把 UPS 当内置电池。电量是 IOPS 当前容量 / 满充容量百分比（两者同单位）；供电用 Power Source State，充电用 Is Charging。容量字段不是电池健康最大容量，不展示循环次数/健康容量。无内置电池或系统明确未安装时为不适用；电源描述/类型/存在状态读取失败与不适用区分。电量、供电、充电各自保留未知或错误。
-- 每项独立读取或表达未知/失败，不用未知代替正常，一项失败不隐藏其他结果。没有业务 Store、设备历史、外部命令、网络、上传、系统修改或额外权限申请；不接入首页、不重复 CLI 检测。
-
-### 内存状态与验证
-
-- 服务是 nonisolated Sendable，只读调用在 detached 后台任务执行；模型主线程发布、重复刷新忽略、代次核对并检查取消，迟到结果不能覆盖较新快照。取消停止接收结果，不宣称可中断正在执行的系统同步 API；这些固定查询不执行子进程或遍历文件。
-- 首轮集中检查在编译阶段停止，测试未执行：项目默认 MainActor 令后台模型 Equatable/Sendable 隔离不兼容，沙箱另阻止既有宏工具。一次集中修复补齐新模型/服务 nonisolated 声明；在沙箱外仅执行尚未运行的新 MacEnvironmentTests，**11/11 通过**，无第二轮修复，无历史/全量测试或独立复审。
-- 覆盖容量与二进制/十进制单位、无电池/UPS、不明类型和非法容量、独立供电/充电未知、单项失败不影响其他字段、无效内存；首次读取/重入不自动刷新、重复刷新、取消保留既有快照、迟到结果不覆盖；页面离屏渲染及 UserDefaults 前后不变。
-- 本机一次对照：macOS 26.6.2、MacBookPro18,2、Apple M1 Max、arm64、34359738368 字节（32 GiB）；sysctl / sw_vers 返回相同。IOKit 与 pmset 同为 80%、外接供电、未充电。卷总量 994662584320 字节、采样可用 535377547264 字节，与同口径 URL 卷 API 一致；可用容量实时变化，自动对照允许 64 MiB 短时变化，不当作固定值。
-- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 x86_64 arm64，临时 DerivedData/隔离 Bundle/关闭签名；git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，无工程语义改动。新模块无编译 warning；既有恢复 Sendable、WorkspaceSnapshot/省份 actor 等 warning 保留，不扩大修复。
-- 一次后台隔离 App 直接打开原有 macOptimizer：窗口显示系统/内存/磁盘口径、时间和刷新入口；只截目标窗口，不激活或移动窗口。随机偏好域 Campaign 空载荷原字节不变，无新增业务键，Prompt/Learning/Handoff/CoreRestore 四个临时根均未创建；进程及随机 suite 已清理，正式数据未触碰。
-- 证据：首轮 `/private/tmp/CosmosMacEnvironment-Focused.xcresult`（编译停止）；修复后 `/private/tmp/CosmosMacEnvironment-Fixed.xcresult`、fixed.log；构建 `/private/tmp/CosmosMacEnvironment-build.log`；同口径读数 `/private/tmp/CosmosMacEnvironment-live.json`；窗口和完整性 `/private/tmp/CosmosMacEnvironmentUI-ad34ab22-15d0-4e1e-bad5-eab67d7400b8/`。
-
-### 限制、修改与结论
-
-- 真实 UI 未点击刷新或操作滚动后的电池区域，取消/迟到由自动化覆盖，不宣称完整端到端 UI 验收。无电池通过合成电源数据覆盖，未在台式 Mac 实测；未在 Intel/Rosetta 实机或 Release 验证。本期内存压力、循环次数与健康最大容量未读取；不为此增加命令或私有字段。部分 SDK/API 在受限进程中可能失败，页面按字段报告原因。
-- 新增：MacEnvironmentModels.swift、MacEnvironmentService.swift、MacEnvironmentViewModel.swift、MacEnvironmentView.swift、MacEnvironmentTests.swift。修改：DashboardView.swift、本文件、当日开发日志，共 **8 个文件**；未纳入正式数据、截图或临时证据。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权按 `feat: 新增 Mac 环境只读概览` 正常提交推送 main，仅逐项纳入上述 8 个文件；沿用 11/11 测试、Universal Debug 及本机对照证据，不追加测试、构建或复审。提交前 HEAD 与实际远端 main 均为预期 parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；实际 commit `7124c4f2c918fc39eb52ae05209898654fa24c4e`，parent `72f020b628d4ee7be3e720f1e67055686f4f55ea`，恰好提交 8 个文件；正常推送后 main/origin/main/远端一致、ahead/behind 0/0、工作区干净。随后复用双架构构建产物，以正式 Bundle ID 从临时独立副本正常启动（未重新编译、未传测试参数）；该临时副本现由 §29 的稳定 Release 部署替代。所有暂缓事项不动，不写其他知识库、不自动开发下一模块。
-
-
-## 29. 日常使用部署 — Universal Release — 2026-10-10
-
-- 用户授权本机构建、可回退部署与正常启动，未授权提交推送。开工仅查 status/HEAD，干净基线 `7124c4f2c918fc39eb52ae05209898654fa24c4e`；不调查/复审已关闭阶段，不跑历史或全量测试。
-- 稳定安装：`~/Applications/Cosmos Toolbox.app`，正式 Bundle ID `com.wangyucosmos.Cosmos-Toolbox`。本次为首次安装，该目标没有旧 App；先前 `/private/tmp/CosmosOS-Daily-7124c4f/` 的临时 App 通过 NSRunningApplication.terminate 正常退出，新 App 已从稳定路径启动，确认 PID 94945，不传任何测试/隔离/样例参数。
-- 版本 `1.0`、构建 `1`、配置 Release；部署元数据记录完整 commit `7124c4f2c918fc39eb52ae05209898654fa24c4e`，`CosmosBuildDirty=true`，如实表示基于该提交并包含本次未提交代码。沿用系统“关于”菜单和原生 About 面板，显示版本/构建/commit/源码状态；普通非部署构建没有元数据时标记未记录，不编造 commit。未递增产品版本或宣称本次源码已提交。
-- 可复用命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。脚本按自身位置定位仓库，使用 Path.home() 定位 Applications，不硬编码用户路径。固定现有 Xcode project/scheme、正式 Bundle，构建 Universal Release（arm64 x86_64），临时 DerivedData 与日志；检查两架构、正式身份及构建期间 HEAD/源码状态，注入元数据后本地 ad-hoc 签名并验证。
-- 部署有独立 flock；先准备并校验安装暂存副本，再正常请求旧 App 退出。仅关闭安装目标或已知 CosmosOS-Daily 临时位置的正式 Bundle；其他位置同身份 App、身份未知、符号链接、并发部署或拒绝/超时退出均停止，不强杀。未保存内容可通过现有退出处理保留，脚本不绕过确认。
-- 若目标已有同身份 App，移至 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app` 后，以 renamex_np/RENAME_EXCL 发布新 App，不覆盖中途出现的目标。发布失败且目标仍缺失时保留旧版本回退；目标出现时保留回退副本并停止。只清理本次唯一暂存 App，不删除旧回退版本。启动失败报告并保留安装/备份，不强杀或自动迁移数据。该位置只放 App 副本，不迁移业务文件。
-- 本轮只完成必需的 **一次 Universal Release BUILD SUCCEEDED**、lipo 双架构确认、签名/身份/元数据及稳定路径进程确认；没有新增测试、历史验收或独立复审。工程文件自动序列化变化由脚本在 plutil 内容完全一致时还原，没有工程语义改动。diff check 通过。
-- 构建/部署证据：`/private/tmp/CosmosOS-daily-deploy.log`；构建日志与 DerivedData 位于 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-62motejj/`。脚本未读写正式业务 Store、创建活动/样例、调用 AI 或恢复备份；正常启动沿用既有 App 行为，可能写入自身窗口偏好，不宣称全域 UserDefaults 零写入。
-- 验收限制：未点击关于面板做排版验收；本次首次安装，已有旧版本更新/回退及真实未保存内容阻止退出分支未实机触发。未做签名公证或第三方分发，本机 ad-hoc 签名供当前用户日常使用；没有添加自动更新、安装器或后台常驻。既有阶段待办不扩大处理。
-- 修改文件仅 **4 个**：Cosmos_ToolboxApp.swift、scripts/deploy-macos.py、本文件、当日 Development Log。安装 App、构建日志及临时证据不纳入仓库。
-- **结论：用户接受本次声明验收范围，日常部署阶段关闭，无已知阻塞。** 授权按 `feat: 支持 Cosmos OS 本机日常部署` 正常提交推送，逐项仅纳入上述 4 文件，沿用已完成构建与启动证据、不追加验证。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与实际远端 main 为预期 parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`。实际 commit `f6a1e903914f4d5d37af14d3453180206ef336ad`，parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`，恰好提交上述 4 文件；正常推送后 main/origin/main/实际远端一致、ahead/behind 0/0、工作区干净。随后直接实施已授权 Projects；全部暂缓事项及其他知识库保持不动。
-
-
-## 30. 个人项目 Projects Phase 1 — 2026-10-10
-
-### 流程与模型
-
-- 依 PRD §5.8 / Philosophy / Workspace Vision，Projects 是非卓望个人长期项目，不复制 Campaign Workflow、不做多 Workspace 重构。原侧栏 projects 从占位页接到真实列表：新建、名称/说明搜索、手动三状态筛选、当前/归档切换、真实下一步及更新时间。默认无样例，不扫描或登记源码仓库，不接入 Dashboard/知识库/AI 工作台。
-- UUID、名称、目标/说明、计划中/进行中/已完成、下一步、创建/更新时间、归档标记及内部修订号。进展按时间/原文追加；引用保留 UUID、名称、类型、路径/URL与登记时间。状态由用户设置，没有百分比、截止时间或推断完成。
-- 查看/编辑为原生独立可关闭/缩放/最小化窗口。编辑目标/下一步/状态与归档标记，新增进展、用户选取文件或 http/https 链接，在保存中一并提交。未加入的链接输入阻止误保存；保存失败保留草稿。取消/关闭及 App 退出复用既有保存/放弃/取消保护，保存失败或进行中阻止关闭；同库/同 ID 窗口复用，旧修订不能覆盖较新数据。
-- 文件只保存用户选取的路径，不复制/移动/删除实体。明确点击打开才交给 NSWorkspace，不扫描正文/抓取网页；失效/不可访问保留原引用并显示原因，链接打开失败也保留。已保存进展与引用只追加、不改写或删除，归档/恢复保留全部历史。本期没有永久删除或自动 AI 执行。
-
-### 存储与保护
-
-- 正式位置：`~/Library/Application Support/Cosmos OS/Projects/projects.json`；必要备份 `projects.backup.json`，协作锁 `.projects.lock`。独立 schemaVersion 1 项目文档，不写任何卓望或其他模块业务 Store。
-- 模块内沿用 Learning 的受控读取/串行队列/flock/原子临时 rename/写前备份及读回模式，不抽象通用框架；读取缺库不创建目录/默认数据，snapshot 区分未建立与已建立空库。损坏/未知格式/缺主有备份/符号链接锁定写入，错误不伪装空列表、不清空恢复。
-- 在最新磁盘载荷上核对项目 expectedRevision，再保存字段和追加历史；库字节变化也中止。保存失败不更新发布状态、保留输入；结果不确定时锁写，用户显式重新加载确认。每次备份保存原主文件字节；同一文档其他项目不会被旧窗口替换。协作锁不宣称排除非协作程序的最终检查后竞态。
-- 原文含 CRLF、空白及 Unicode 按字节保留，不 trim/truncate；名称必填最多 200 字符，单段目标/下一步/进展正文最多 1 MiB，整库 16 MiB，超限拒绝。引用名称 200 字符、位置 16 KiB，仅 http/https（拒绝内嵌认证）；未知 schema 拒绝。
-- DEBUG 隔离必须提供专属 UUID 根 `--cosmos-projects-fixture-root /private/tmp/CosmosProjectsPhase1-<UUID>`，同时满足现有隔离 Bundle/suite 约束；缺失即失败关闭，不回退正式位置。Release 只用正式位置。
-
-### 备份与恢复兼容
-
-- 当前导出 `CosmosCoreMetadata` **V2**：原 10 源加 `projects`，包内 `data/projects.json`，读取原文且校验 Projects 身份/结构/历史/引用字段。固定 11 源、最多 12 ZIP 条目；容量与防穿越/重复/符号链接/校验限制不变。Settings 说明项目文件引用实体不包含。
-- 校验/恢复继续接受原 V1 的精确 10 源及原 exclusions；V2 必须精确包含 11 源清单，缺项不伪造。旧 V1 在结果/恢复预览明确说明“未包含 Projects”；Projects 不建立、不恢复空库。V2 主库不存在则 missing，真实空库仍 present。
-- 恢复目标只用当前安装的 Projects 位置，与原三个 JSON 根一起受空环境检查；已存在项目主文件、备份或锁均拒绝恢复，坏/不可读状态不能绕过。事务允许第 11 源收据；原收据版本及旧 10 源事务仍可读取，配置禁用、原子防覆盖、持久化门控/中断保护不弱化。不搬迁或重写文件引用实体。
-
-### 本轮证据与边界
-
-- 一轮集中测试：新 Projects **12/12 通过**；因新增固定源，备份/恢复旧夹具计数及三文件数组尚未完整更新，首轮共有 15 项失败（含夹具越界）。一次集中修复仅补齐夹具/期望后，受影响 **15/15 通过**。最终有效覆盖 **38 项** = Projects 12 + 备份 12 + 恢复 14；未变化 23 项沿用首轮，未重跑整套。产品代码不因本次夹具修复变化，无第二次修复。
-- 覆盖创建/编辑/新实例重载、原文字节与追加历史、筛选/三状态/归档恢复、失效引用与禁止非 http(s)、追加历史不可改写、两编辑 session/两个 storage wrapper 的旧修订保护、失败保留已有原字节及草稿、损坏/缺主有备份/符号链接锁写、关闭取消/保存失败及退出冻结、缺库/真实空库/只读零初始化、超限/重复身份/隔离失败关闭、详情离屏渲染。
-- 覆盖 V2 项目备份→隔离空恢复→重载原文/历史/引用；V1 包校验、预览未包含警告与 Projects 目标不创建；已有空项目库/项目备份拒绝覆盖；既有防篡改/坏结构/源变化/事务中断/配置禁用等受影响保护通过。不创建/移动缺失实体，源主项目字节不变。
-- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 x86_64 arm64，关闭签名、临时 DerivedData、隔离 Bundle。工程自动重排经 plutil 解析相等后恢复，无工程语义改动；diff check 通过。新 Projects 模块无编译 warning，既有 actor/Sendable 等 warning 不扩大修复。
-- 一次后台隔离真实 App 的列表展示合成项目、状态、下一步、时间、筛选及新建/详情入口；仅截目标窗口，不激活/移动用户窗口。随机业务域原字节未变，projects.json 哈希未变，项目目录仅原主文件、无备份/锁；其他业务根和控制根未创建。已请求隔离窗口及残留测试宿主正常退出，随机 suite 已清理。
-- 证据：`/private/tmp/CosmosProjects-Focused.xcresult` / focused.log；受影响修复 `/private/tmp/CosmosProjects-Fixed.xcresult` / fixed.log；Debug `/private/tmp/CosmosProjects-build.log`；窗口与 integrity.json `/private/tmp/CosmosProjectsUI-77bfa7b9-a498-4b8b-bf79-9b4e5a6d963c/`。
-- 未覆盖真实新建/保存按钮、独立详情窗口关闭/退出提醒、文件选择/外部打开、完整重启交互；服务及 session 重载/保护由自动化覆盖，不宣称完整端到端 UI 验收。旧 V1 兼容用合成的严格 V1 包覆盖，未读取用户备份；未测容量上限性能或真实跨进程非协作写入。引用为路径而非安全书签，文件移动后需用户另行登记，不自动修复。
-- 修改 **19 文件**：新增 ProjectsModels.swift、ProjectsFileStorage.swift、ProjectsStore.swift、ProjectsView.swift、ProjectsEditor.swift、ProjectsTests.swift；修改 DashboardView.swift、PromptTemplateEditor.swift、CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupService.swift、CoreBackupArchive.swift、CoreBackupSettingsView.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreBackupTests.swift、CoreRestoreTests.swift、本文件及当日日志。部署脚本保持既有成果，不纳入新阶段修改。
-- 按授权复用既有部署脚本完成一次必要 **Universal Release BUILD SUCCEEDED**、双架构/签名/正式 Bundle 校验；旧日常 App 正常退出，新版本从 `~/Applications/Cosmos Toolbox.app` 启动（PID 98251），无测试参数或样例。版本 1.0（构建 1），commit `f6a1e903914f4d5d37af14d3453180206ef336ad`、dirty=true，如实显示本次未提交的 Projects 改动。
-- 实际旧版回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-154702-5e6f9985.app`。未执行回退，没有强杀或业务操作；正式启动沿用既有行为，可能写窗口偏好，不宣称正式数据全域写入审计。部署日志 `/private/tmp/CosmosProjects-deploy.log`，Release 构建证据 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-5qsm4yu0/`；部署脚本未修改。
-- **结论：用户已接受上述声明验收范围，阶段正式关闭，无已知阻塞。** 本次授权逐项提交 19 文件并正常推送，提交消息为 `feat: 新增个人项目 Projects Phase 1`。沿用已接受证据，不追加修复、测试、构建、UI 验收或部署；提交前 HEAD 与实际远端 main 均为 `f6a1e903914f4d5d37af14d3453180206ef336ad`，实际 Git 结果以收尾报告为准。所有暂缓事项保持不动，不写其他知识库，不自动开发下一模块。
-
-
-## 31. 卓望工作区入口接通 Phase 1 — 2026-10-10
-
-### 本阶段实现与边界
-
-- 开工快速 status/HEAD：工作区干净，HEAD 为已接受基线 `caf6150a8dddfe674747685994bba3a8d2c1dc89`。未 pull/fetch、未重复 Projects 构建/测试或复审；Claude 暂停，无子代理。
-- 概览顶部“新建活动”和快捷创建复用 ZhuowangCampaignCreateView / Campaign Store；省份身份来自现有配置，模块使用当前 moduleID。新增共享创建准入与成功身份投影，保存成功回调到既有原生活动详情，沿用共享 Campaign/Workflow Store；取消不调用保存，失败不回调打开。概览/列表入口及草稿保存时检查可写状态和实时停用规则。以上为源码实现，不等于本轮行为验证通过。
-- 资产目录追加非持久化 moduleID 与 stepKind 投影及筛选；当前省份 UUID / 无省份模块 moduleID 隔离；分类按关联步骤 kind，不猜文件名。卡片改为全部资产、完整策划案、产品原型、客服文档，计数使用与资产中心相同的当前采用/冲突版本规则。读取异常显示原因、加载中不显示假 0；采用冲突提示，历史版本可切换。复用同一目录模型、现有检索与独立详情，范围导航隐藏跨省份选择并限制活动选项，手动及共享 Store 变更刷新。
-- “查看客服文档”只筛选已有 customerService / Step06 产物；“提示词库”通过 Dashboard 导航到既有全局 Prompt Vault，明确全局身份；隐藏本区域弹窗快捷入口。其他分类占位页未扩展。
-- Dashboard 只传递既有隔离资产根和 Prompt Vault 导航回调。Workspace Workflow Store 显式沿用当前 persistenceConfiguration，未改持久化 schema、Workflow 执行或恢复机制。
-
-### 集中验证、追加修复与有效证据
-
-- 历史过程保留：首轮 `/private/tmp/CosmosEntry-Focused.xcresult` 因卡片多余括号编译停止；一次修复后 `/private/tmp/CosmosEntry-Fixed.xcresult` 因初始化参数顺序编译停止，测试均未执行。用户追加授权调整活动列表调用，使 `isProvinceEnabled` 位于 `canCreate` 前；Debug arm64 App / XCTest 宿主成功编译链接。
-- 上轮 `/private/tmp/CosmosEntry-Resume.xcresult`、`/private/tmp/CosmosEntry-resume.log` 实际执行 3 项，2 项通过，1 项失败。通过证据沿用：`testLiveCreationGateForProvinceModuleStoppedAndLocked`（实时省份停用、模块、无范围、Workspace/Campaign 可写门控）；`testAssetScopeStepCountsVersionConflictAndReadFailure`（省份/全国/其他模块隔离、Step06 kind、当前采用/历史数量、采用冲突版本计入、读取异常不写数据）。这两项本轮未重跑。
-- 失败定位为新测试原第 45 行，两次默认 JSONEncoder 的 602 字节结果比较。用户本轮授权先核对原始目的再最小修正：该断言验证写失败后内存活动数组未变化，不是持久化文件原字节；改为 `XCTAssertEqual(store.campaigns, memory)`。已有 Hashable/Equatable 结构比较保留数组顺序与全部字段，未排序、删字段或修改业务代码；离屏表单无操作前后 source.storage 原始 Data 比较保持不变。
-- **本轮仅该失败项 1/1 TEST SUCCEEDED**：`/private/tmp/CosmosEntry-Assertion.xcresult`、`/private/tmp/CosmosEntry-assertion.log`。覆盖无操作表单零保存、省份/全国创建身份、注入备份写失败不产生成功身份投影、失败后活动数组完整保留。并非真实取消按钮点击，也不宣称失败写入后主/备份文件原字节全面验收。
-- **本阶段最终有效 3/3 = 本轮 1 + 上轮沿用 2**，不是本轮重跑 3 项。上轮 Debug arm64 编译结果沿用；本轮测试必要增量编译与部署所需 Universal Release 构建，不重跑历史全套测试、不重复独立 Debug build 或复审。历史测试文件属于同一 target 因而可被编译，但历史测试未执行。
-- **部署必要 Universal Release BUILD SUCCEEDED**，安装产物 `lipo` 为 x86_64 arm64；签名与正式 Bundle 校验通过。构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-lpwrx1lp/build.log`。既有 actor / Sendable / AppIntents 等 warning 保留，不扩大处理。
-- 受影响 diff 检查与 git diff --check 通过；Xcode 工程仅序列化重排，经 plutil 解析相等恢复原字节，无工程语义修改。
-
-### 实际验收限制
-
-- 未覆盖真实取消/新建保存按钮、失败弹窗、成功后活动原生详情、资产卡片/独立详情及 Prompt Vault 的完整点击导航。创建表单仅内存源离屏布局且无操作；成功回调身份通过测试、导航目标由源码检查，不宣称完整端到端 UI 验收。
-- 既有 §13 指出隔离 Campaign 详情可能写正式 Workspace，本阶段未打开合成活动真实详情，未改旧风险或使用正式业务数据测试。没有为本阶段新增大型验收框架；正式启动不等于正式数据验收。
-- 本阶段复用资产中心已接受的历史版本检索、独立详情与异常提示能力，未重新验收所有媒介/正文读取或旧模块。无知识仓库导入同步，无 AI 执行、Workflow/多 Workspace 重构或旧待办修复。
-
-### 文件、日常部署与收尾判断
-
-- 当前阶段共 **10 文件**：修改 DashboardView.swift、ZhuowangWorkspaceView.swift、ZhuowangCampaignView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetCatalogReader.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangWorkspaceEntry.swift、ZhuowangWorkspaceEntryTests.swift；文档仅本文件和当日 Development Log。本轮新增修改仅测试断言与两份文档，业务代码未因测试变化。
-- 按授权复用未修改的 `/usr/bin/python3 scripts/deploy-macos.py`，先完成 Universal Release、双架构/正式身份与签名校验，再正常退出旧 App，创建可回退副本并发布新版本。脚本确认 `~/Applications/Cosmos Toolbox.app` 正常启动 **PID 4650**；没有强杀或绕过未保存保护。没有实际触发未保存阻止退出或执行回退，不宣称这些分支本轮实机覆盖。
-- 版本 1.0（构建 1）、Release、正式 Bundle `com.wangyucosmos.Cosmos-Toolbox`；元数据 commit `caf6150a8dddfe674747685994bba3a8d2c1dc89`、dirty=true，准确表示基于 Projects 收尾提交包含本阶段未提交成果。安装 Info.plist 与 lipo 已读回核对。
-- 实际回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-164055-e86ec645.app`；部署日志 `/private/tmp/CosmosEntry-deploy.log`。脚本不读写正式业务数据；正常启动沿用既有 App 行为，可能写窗口偏好，不宣称正式 UserDefaults 全域零写入。构建产物、日志与回退 App 不纳入源码。
-- **结论：用户已接受声明的测试/构建/部署验收范围，阶段正式关闭，无已知阻塞；真实按钮及详情导航缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
-- Git 收尾授权：逐项仅提交上述 10 文件，提交信息 `feat: 接通卓望工作区创建与资产入口`，正常推送 main，不强推。提交前本地 main/HEAD 与实际远端 main 均为预期 parent `caf6150a8dddfe674747685994bba3a8d2c1dc89`，origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`；工作区仅本阶段 10 文件。实际 commit、parent、refs、ahead/behind 与工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓，未读写其他知识库。
-
-
-## 32. 卓望分类页接通 Phase 1 — 2026-10-10
-
-### 分类路由与实际检索口径
-
-- 同一会话开工只核对 status/HEAD：工作区干净，HEAD 为 `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`。按需读分类配置、Workspace 分类占位、共享资产模型/视图及 §31，未重新验收上一阶段、未 fetch 或读写其他仓库/知识库。
-- 新增非持久化 ZhuowangCategoryRoute，按既有稳定 ID 映射，改名不改变含义：faq → 已关联步骤 kind customerService / Step06；prototype → 已关联步骤 kind prototype / Step05（标准 capability prototypeDesign），不同工具的产物都可检索，不绑定 Figma。
-- flow → 元数据 artifact.type == flowchart；asset → artifact.type == image。素材页面明确本期仅登记为图片的已管理产物，其他素材没有可靠归类；不按名称/扩展名猜类型、不将所有产物视作素材、不扫描或导入目录。
-- prompt → 明确说明全局身份并提供“打开全局提示词库”，沿用 Workspace → Dashboard 的既有 Prompt Vault 导航，不展示省份专属提示词假数据，不创建第二套存储。
-- popup、banner、自定义 ID 和其他未映射分类 → “该分类暂未接入”，解释缺少可靠归属、不支持检索/创建，区别真实空结果。移除分类页两条虚构工作记录与空动作“新建”；既有顶部明确“新建活动”、概览、活动列表与资产卡片产品范围保持不变。
-- 分类配置与用户数据不删除、不迁移；没有新增 schema、分类归属字段或业务实体。未关联步骤的历史产物不会被猜入 FAQ/原型，类型明确的流程图/图片仍可按类型查到。
-
-### 范围、切换与复用
-
-- 复用 §31 的省份 UUID / 无省份模块 moduleID 筛选、同一资产目录模型及既有检索和独立资产详情管理器。缺少可解析范围时明确“当前范围不可用”，不回退显示全库。
-- 分类资产视图身份由 categoryID + 范围 ID 构成；复用资产中心补充固定筛选变化响应与 scopeReady 门控，应用新范围前显示切换状态，不展示上个范围结果。筛选替换重置旧活动/查询/类型/版本选项，现有搜索取消/代次核对防旧结果迟到发布。
-- 流程图/图片固定类型选择器禁用，防用户切换“全部类型”突破分类口径；FAQ/原型仍可在固定步骤内按类型检索。省份选择在固定范围隐藏，活动选项只列当前范围。
-- 未采用组/采用冲突提示按当前范围/步骤/类型/活动筛选统计；加载或读取失败不显示误导计数。默认版本口径仍为当前采用（冲突组包含相关版本），可显式查看全部版本；正文读取与原生独立资产详情能力沿用已有证据。
-
-### 本轮验证与沿用证据
-
-- 一轮集中运行新 ZhuowangCategoryPageTests **4/4 TEST SUCCEEDED**，没有集中修复轮或第二次测试。临时 DerivedData `/private/tmp/CosmosCategoryBuild`，隔离 Bundle `com.wangyucosmos.Cosmos-Toolbox.CategoryFixture`，内存源、合成正文与临时证据根，未用正式业务数据或打开合成活动详情。
-- 覆盖稳定 ID / 改名 / 未映射不猜名称、无范围拒绝全库、四个分类的省份与全国模块隔离、图片/流程图类型限制、命名相似 PDF 不误入；固定范围同一 NSHostingView 更新后的 filter / matches、省份 FAQ → 全国原型及连续快速切换不发布旧结果；空结果与错误模型状态、未支持/Prompt 导航路由区别，内存 source 原始载荷不变、writeCount 0。
-- Debug arm64 App / 测试宿主编译链接成功并执行上述四项；历史测试文件可能因同 target 被编译，但未执行历史/全量测试。既有资产中心正文、采用版本历史与独立详情验收范围沿用 §31 及资产中心已接受证据，不重跑；导航目标由路由测试和源码检查确认，不称真实点击验收。
-- 证据 `/private/tmp/CosmosCategory-Focused.xcresult`、`/private/tmp/CosmosCategory-focused.log`。离屏 PNG 尝试 `/private/tmp/CosmosCategoryUI-31E38808-EA45-4F55-860A-2B0A63EF5E18/`，本轮查看画面未形成可靠文字证据，只记渲染尝试，不计视觉验收、不反复重试。
-- git diff --check 与受影响 diff 检查通过；工程自动序列化重排经 plutil 解析相等恢复原字节。既有 actor / Sendable / AppIntents 等 warning 保留，不扩大处理。
-
-### 日常部署与验收限制
-
-- 按授权复用未修改的 scripts/deploy-macos.py 完成必要 **Universal Release BUILD SUCCEEDED**，签名/正式 Bundle 校验及 lipo x86_64 arm64 通过；安装 Info.plist 读回确认 1.0（构建 1）、Release、`com.wangyucosmos.Cosmos-Toolbox`、commit `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`、dirty=true，准确反映本阶段未提交源码。
-- 旧日常 App 正常退出，新版从 `~/Applications/Cosmos Toolbox.app` 正常启动，部署脚本确认 PID **9066**。没有强杀或绕过未保存保护，没有实际触发未保存拒绝退出或执行回退，不宣称这些分支本轮实机覆盖。
-- 实际旧版回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-175351-2d0f3911.app`。部署日志 `/private/tmp/CosmosCategory-deploy.log`，构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-7ib6pwnm/build.log`。脚本不读写正式业务数据；正常启动可能写窗口偏好，不宣称全域 UserDefaults 零写入。
-- 未实际点击完整 Workspace 分类标签、筛选控件、全局 Prompt Vault 或独立资产详情，未做真实页面视觉验收；测试覆盖挂载资产视图的筛选状态/结果切换，不能代替完整端到端交互。既有隔离活动详情可能写正式 Workspace 风险仍暂缓，本轮未打开合成活动详情，不修复旧待办。
-
-### 文件与收尾判断
-
-- 共 **6 文件**：修改 ZhuowangWorkspaceView.swift、ZhuowangAssetCenterView.swift；新增 ZhuowangCategoryContentView.swift、ZhuowangCategoryPageTests.swift；文档只更新本文件及当日 Development Log。部署脚本、持久化模型/Store、Dashboard、Workspace 用户配置均未修改，临时证据与 App 不入库。
-- **结论：用户已接受声明验收范围，阶段正式关闭，无已知阻塞；上述视觉与真实点击缺口保留。** 沿用既有证据，不追加修复、测试、构建、UI 验收或部署，不自动开发下一模块。
-- Git 收尾授权：仅逐项提交上述 6 文件并正常推送 main，提交信息 `feat: 接通卓望工作区分类资产检索`，不强推。提交前 main/HEAD 与实际远端 main 均为预期 parent `a5294c9a0b2843b33d93a6c30e456af250f5f0fa`，origin `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，工作区只有本阶段 6 文件。实际 commit、parent、refs、ahead/behind 及工作区状态以本次提交推送后的收尾报告为准。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 全部继续暂缓，不写其他仓库或知识库。
-
-
-## 33. 活动资料与外部成果引用 Phase 1 — 2026-10-10
-
-### 实现与持久化边界
-
-- 活动概览新增「资料与外部成果」区域。用户明确选择本地文件或填写 http/https 链接；登记具有稳定 UUID、活动 UUID、名称、可选版本标签、原文备注及登记时间。可查看、显式打开和追加引用；不可编辑/删除已保存记录。错误通过追加更正说明并关联历史引用 ID 记录，不改写原记录。
-- Campaign 增加可选 externalReferences，旧载荷缺键读为 nil，投影为空数组；读取不迁移、不重新编码旧数据。复用 Campaign 受保护事务，草稿捕获追加前记录数，旧窗口修订拒绝；不同 Store 实例仍受原始主数据 baseline 保护。普通活动编辑保留实时引用数组，不能从旧副本覆写历史。保存失败保留表单输入及旧内存值。
-- 复用既有失败保护：备份写失败不写主数据；主写入校验失败不发布候选，原数据仍在前一有效备份，Store 锁定并提示不确定状态。并非保证底层写失败时主/备份均原字节不变，也不新增通用存储重构或自动修复。
-- 只保存位置，不读取正文、抓网页、扫描引用目录或自动打开；不复制/移动/删除源文件。打开前只检查路径元数据及普通文件/可读性；失效、目录或符号链接保留记录并说明原因，不自动修复路径。文件为路径引用，无安全书签；再次打开重新核验，系统打开失败提示。
-- 引用登记不创建 Artifact/Run/Approval、采用版本或落盘成果，不改变 Workflow/ZIP 资格。月度七项成品登记沿用月度清单，界面明确用途；不复制一套月度成品管理。没有 Step06、AI、分类归属、云同步或正文预览变化。
-- 核心备份沿用 campaigns 固定源，无新源或包版本；严格校验引用身份、活动关联及更正历史顺序。导出、独立包校验与空环境恢复自动携带原始 Campaign 引用字节，说明仅备份登记元数据，不包含原文件/网页。旧包无记录兼容，不恢复实体或重写路径。
-
-### 集中验证与隔离安全
-
-- 首次沙箱内 xcodebuild 被 Swift 宏服务 malformed response 阻断，未执行测试；在获准沙箱外运行同一组隔离 XCTest 后实际 **46 项：45 通过、1 测试窗口释放崩溃**。诊断为 XCTest 对象释放检查 EXC_BAD_ACCESS，未出现引用业务断言失败。
-- 一次集中修复：新测试窗口设 isReleasedWhenClosed=false，引用值模型/只读投影明确 nonisolated，消除新增 actor 警告；没有修改既有窗口管理器。仅受影响详情挂载、引用结构校验、引用备份恢复 **3/3 TEST SUCCEEDED**。最终有效 **46/46 = 本轮 3 + 首轮沿用 43**，不是修复后重跑全套。
-- 覆盖旧活动零重编码、登记与新 Store 重载、活动隔离、名称/版本/备注原文字节、历史追加与更正、缺目标/重复身份拒绝、普通编辑不覆写引用、共享 Store 旧窗口修订及第二 Store baseline 冲突、失败输入/内存与可恢复原数据保护、URL 限制、临时文件移动后失效/目录/符号链接拒绝、引用校验、备份到空环境恢复的原字节/关联/更正/无实体，以及受影响既有备份恢复保护。
-- 活动详情自动恢复/迁移链已检查：使用 Workflow Store 已有 workspaceFileManager 注入；测试把内存 Campaign/Workflow/Provider 配置和明确随机临时文件根注入真实 ZhuowangCampaignDetailView，根包含检查后挂载。有效测试确认业务载荷原字节不变、writeCount=0、无 Workflow 新建、临时根空。未用默认 shared 文件根，未调用旧 Workspace 创建/Finder/交付按钮，未用正式业务数据。既有 DEBUG App 默认详情未完整隔离问题仍暂缓，本轮没有修复或走这条启动路径。
-- Debug arm64 App 与 XCTest 宿主成功编译链接；未重新运行历史全套。证据 `/private/tmp/CosmosReferences-Validation.xcresult` / validation.log；修复证据 `/private/tmp/CosmosReferences-Fixed.xcresult` / fixed.log；首个宏服务失败 focused.log 保留。全部业务夹具为内存数据/临时文件，既有 Campaign 持久化测试使用随机隔离 suite，非正式域。
-- 未覆盖真实文件选择/保存/取消/更正按钮、系统打开/权限拒绝及真实 App 重启交互；新 Store 重载与服务层恢复已自动覆盖。挂载测试不等于视觉或完整端到端 UI 验收。未测实际跨进程非协作写入或元数据检查后文件被替换的竞争；沿用已有协作持久化保护。既有 actor/Sendable/AppIntents 警告不扩大修复。
-
-### 文件与阶段判断
-
-- 共 11 文件：新增 CampaignExternalReference.swift、CampaignReferencesView.swift、CampaignReferencesTests.swift；修改 ZhuowangCampaignModels.swift、ZhuowangCampaignStore.swift、ZhuowangCampaignDetailView.swift、CoreBackupSource.swift、CoreBackupSettingsView.swift、CoreRestoreTests.swift；正式文档只本文件和当日开发日志。
-- **用户已接受声明验收范围，阶段正式关闭，无已知阻塞；真实点击缺口保留。** 已完成授权部署，结果如下；本次仅授权提交推送指定 11 文件，不追加测试、构建、UI 验收或部署。没有子代理、独立复审、其他仓库或知识库写入，所有暂缓事项保持不动。
-
-### 已完成的日常部署
-
-- 复用未修改的 `/usr/bin/python3 scripts/deploy-macos.py`，必要 Universal Release **BUILD SUCCEEDED**，签名/正式 Bundle 校验通过；安装 lipo 读回为 x86_64 arm64。旧 App 正常退出（或原本未运行，脚本统一日志），正式安装路径启动 PID **14244**，没有强杀、绕过未保存保护或执行回退。
-- 安装 Info.plist 读回：版本 1.0（构建 1）、Release、`com.wangyucosmos.Cosmos-Toolbox`、commit `5eb45f68d0f091b5c3645a8f5c62550564210c3e`、dirty=true，准确反映基于交接提交包含本阶段未提交源码。
-- 实际回退副本 `/Users/rainiesmac-15/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-210923-b0fc3f00.app`；部署日志 `/private/tmp/CosmosReferences-deploy.log`，Release 构建日志 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-xfcyca0g/build.log`。正常正式启动可能写窗口偏好，不宣称全域正式数据零写入或正式业务端到端验收。
-- 受影响 diff 与 diff check 通过，工程无修改；用户已接受上述验收与部署范围，阶段正式关闭。仅执行下述授权 Git 收尾，不追加修复、测试、构建、UI 验收、部署或下一模块。
-
-### 验收接受与正式 Git 收尾
-
-- 用户授权仅逐项提交本阶段 11 文件并正常推送 main，提交信息 `feat: 新增活动资料与外部成果引用`，预期 parent `5eb45f68d0f091b5c3645a8f5c62550564210c3e`。
-- 提交前快速核对 main/HEAD 与实际远端 refs/heads/main 均为预期 parent，工作区仅上述 11 文件，暂存区无既有变更；origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`。按清单逐项暂存，不使用 git add .，不包含业务数据、临时证据或无关成果。
-- 沿用已接受验证、构建与部署证据，保留历史与验收限制；核心备份仅含引用登记记录，不包含文件实体或网页。实际 commit/parent、文件数量、refs、ahead/behind 与工作区状态以本次正常提交推送后的收尾报告为准。
-- 意外变化或冲突即停止集中报告，不重置、不覆盖、不强推；不自动开始下一模块，全部暂缓事项保持不动。
-
-
-## 34. 统一检索 Phase 1 — 2026-10-10（已接受并关闭）
-
-> 阶段关闭：用户已接受本节声明的验收范围与限制（主开发自查、非独立第三方复审；真实 UI 点击、系统实际打开、视觉未覆盖），并授权提交推送。关闭后不追加修复、测试、构建、UI 验收、部署或复审。下一模块需先确定范围。
-
-### 实现成果与边界
-
-- 主开发独自修改本模块，另一个开发工具暂停；未启动子代理或独立复审。第二份用户交接到达时保留已写入的查询模型/字段读取器，接续完成界面与导航，不回退已接受基线，不修改其他模块或恢复旧待办。
-- 新增首页侧栏「统一检索」入口；关键词 → 六来源结果 → 来源、归属、命中字段摘要 → 显式复用原有详情。查询结果身份为来源类型 + 稳定 UUID，不按名称关联。默认隐藏归档（Projects/Prompt/学习）；Artifact 默认当前采用，历史选项与归档分开，沿用采用冲突组保留全部版本口径并提示；无采用组默认隐藏并提示历史入口。
-- 搜索字段严格限定：活动名称/说明，Artifact 名称/类型/活动与省份或模块，外部引用名称/版本标签/备注/位置，Projects 与学习主题的名称/目标/下一步，Prompt 名称/分类。读取现有 JSON 元数据容器并按字段投影解码，不提取/解码/搜索文件正文、Prompt 正文、项目进展、学习记录、Run/Approval 等长内容；不扫描目录或读取引用文件实体，不建持久化索引/搜索历史。
-- 六来源独立状态（已读取/尚未建立/无法读取）及归属源提示；来源错误保持可见，不伪装成零结果、不隐藏其他可读来源。活动与引用分开字段解码，损坏引用字段不连带隐藏活动。稳定身份重复、schema 不支持、主缺失但有备份、类型/路径/超限问题明确错误，不恢复或重建。
-- 复用已有安全固定文件读取 primitive（16 MiB、普通文件/无符号链接/读取期间修订检查），直接读取指定偏好键/文件，不构造业务 Store；缺库零初始化。读取偏好前后核对原字节，变化时错误。统一检索缓存仅内存；空查询不全量展示、不读取业务库，首次非空查询读取，后续关键词/筛选从内存投影，手动刷新重读，离开取消；代次与取消门控阻止较早结果覆盖最新查询，不持续轮询。
-- 导航先重读元数据并按具体来源 ID/活动 ID 再核验，不跳同名对象。显式打开活动复用原生 Campaign 详情；Artifact 复用具体版本的既有资产详情；Projects/Prompt/学习复用已有原生详情编辑窗口，不新增编辑器。用户明确离开搜索打开原有详情后可读取正文及执行原模块既有行为，不视为统一搜索的字段检索；本期搜索本身不初始化 Workflow、执行恢复或采用。
-- 引用先展示所属活动、活动/引用 UUID、原文、版本标签、时间及更正对象，不自动调用系统。仅「打开原文件/链接」重新核验记录后调用系统；引用不是 Artifact、采用或交付资格，备份不包含文件实体的说明保留。
-- DEBUG 沿用各模块隔离 root resolver；文件依赖缺失失败关闭，不回退正式位置。隔离 Campaign 详情明确拒绝（既有自动恢复/迁移风险仍暂缓），测试只验证准确导航目标，不进入正式 Workspace。隔离 Artifact 缺临时根拒绝；引用文件要求位于明确临时根（该门控的历史阻塞及修复见下述「集中验证、唯一修复及阻塞」与「第二轮：打开门控修复」）。
-
-### 集中验证、唯一修复及阻塞
-
-- 首轮集中 `UnifiedSearchTests` 因两处夹具具体数据源方法为 MainActor、不能在非隔离读取闭包直接调用而编译失败，**测试未执行**。证据 `/private/tmp/CosmosUnifiedSearch-Focused.xcresult`、focused.log。
-- 一次集中修复：测试改为调用既有 nonisolated 数据源协议（保留原字节与零写入断言），活动/引用解码拆开并补充引用故障不隐藏活动断言。没有削弱有效验证、修改既有持久化 schema 或业务 Store。
-- 修复后仅运行受影响的统一检索新测试：**8 项实际执行，7 通过、1 失败，0 skipped**。Debug arm64 App/XCTest 宿主编译链接成功，不是 Universal 独立构建；没有重新执行已关闭模块或历史全套。证据 `/private/tmp/CosmosUnifiedSearch-Fixed.xcresult`、fixed.log。
-- 通过的 7 项覆盖六来源/跨来源相同 UUID 与同名对象、只搜索白名单字段（正文/历史用不兼容值证明未解码及未命中）、来源筛选/命中字段摘要、归档与历史区别/采用冲突口径、活动/引用故障隔离/其他源失败/身份重复/缺主有备份、缺库/隔离依赖/符号链接失败关闭、空查询零读取/内存筛选/手动刷新/取消/故意迟到发布拒绝、精确导航目标/删除不跳同名对象/隔离 Campaign 拒绝、搜索 UI 空查询离屏布局零业务初始化。内存源原字节与 writeCount、固定源文件原字节及无新文件检查通过。
-- 失败项 `testReferenceInspectionNeverOpensAndExplicitOpenRevalidatesTemporaryBoundary`：预期临时文件 URL 传给系统调用替身，实际收集数组为空。不能据该失败项宣称引用显式打开或整条引用交互验收通过。
-- 定位：`UnifiedSearchNavigation.openReference` 的 isolated file 门控使用 ref.location 原路径，与 assetRoot.standardizedFileURL.path 比较。只读路径诊断确认：不存在目录时 /private/tmp 字符串保持；实际存在的随机临时目录 standardization 变为 /tmp，原文件路径仍 /private/tmp，因此前缀判断 false。证据是诊断输出；未更改保存路径或进行第二次源码修复，不把这个前缀探针称作完整测试验收。
-- **最小追加范围**：UnifiedSearchNavigation.swift 的根/文件路径一致比较，保持根外拒绝和不修复原记录，并更新/验证 UnifiedSearchTests.swift 的有效临时文件打开、根外/缺根拒绝项。当前唯一修复额度已用完，遵循停止条件，不继续循环修改或测试，也未申请自动追加额度。
-- 未覆盖真实侧栏/输入/筛选/已有窗口点击、所有原生详情安全挂载、实际系统打开或视觉验收。导航目标由纯模型测试覆盖；引用替身交互项未通过。旧隔离 Campaign 风险未修复、未用正式数据测试，不要求用户逐步点击。
-
-### 第二轮：打开门控修复、验证与部署（用户明确授权的一轮集中处理）
-
-- **根因**：`openReference` 隔离门控用 `assetRoot.standardizedFileURL.path`（/tmp/...）与未标准化的 `ref.location`（/private/tmp/...）做字符串前缀比较，有效临时文件被误拒。
-- **修复**（仅 `UnifiedSearchNavigation.swift`）：新增 `UnifiedSearchNavigator.isolatedContainmentFailure(location:root:)`——先拒绝非绝对路径/NUL/含 `..` 的路径；根与目标均经 `realpath()` 规范化（/tmp 与 /private/tmp 合法别名等价，符号链接逃逸解析后落在根外）；再按**路径组件**判断严格后代（不用字符串前缀，同名前缀目录 `<root>-evil`、根本身均拒绝）。解析失败（缺失/不可访问）拒绝并给出具体原因；缺根仍拒绝。之后仍走既有 `ref.openURL()`（含祖先符号链接拒绝、普通文件/可读性检查），未扩大允许根、未关闭 DEBUG 隔离、未改保存路径、不修复原记录。非隔离路径行为未变。
-- **新增测试**（`UnifiedSearchTests.swift`，无硬编码路径、未弱化断言）：①`testIsolatedContainmentAcceptsSystemAliasButRejectsOutsideSiblingTraversalAndSymlinkEscape`——别名根/别名目标接受；根外文件、同名前缀兄弟目录、根自身、缺失文件、`..` 穿越、相对路径、文件符号链接与目录符号链接逃逸均拒绝；②`testExplicitOpenAcceptsAliasedRootButStillRefusesOutsideAndSymlinkReferences`——以 /tmp 别名作 assetRoot 时有效引用被交给系统替身；换成无关根则拒绝且不再调用。
-- **本轮实测**：`UnifiedSearchTests` 整个测试类（同一次编译）**10 项实际执行，10 通过，0 失败，0 skipped**（Debug arm64，证据 `/private/tmp/CosmosUnifiedSearch-Final.xcresult`、`CosmosUnifiedSearch-final.log`）。此前失败的 `testReferenceInspectionNeverOpensAndExplicitOpenRevalidatesTemporaryBoundary` 现通过。其余 7 项未改动代码路径，本次同批重跑亦通过；未跑全套、未重复历史构建/fetch。`git diff --check` 通过。仅用隔离临时数据与临时文件，未打开正式业务文件。
-- **部署**（复用 `scripts/deploy-macos.py`，日志 `/private/tmp/CosmosUnifiedSearch-deploy.log`）：Universal Release 构建成功；`lipo -archs` = x86_64 arm64；`codesign --verify --deep --strict` 通过；Bundle ID `com.wangyucosmos.Cosmos-Toolbox`，Info.plist 记录 Release / commit `6c86c609…` / `CosmosBuildDirty=true`（含未提交改动，符合预期）；旧 App 正常退出（未强杀、无未保存阻止）；回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-214114-20b30bac.app`（身份校验为同 Bundle ID）；新版已安装于 `~/Applications/Cosmos Toolbox.app` 并正常启动（PID 16687）。部署脚本不读写业务数据，未用正式数据测试。
-- **证据来源区分**：本轮实测 = 上述 10 项测试、diff check、Universal 构建/签名/架构/安装/启动校验；沿用证据 = 首轮 8 项中未受影响的 7 项通过结论（同批重跑也通过）、既有已接受阶段基线；**未覆盖** = 真实侧栏/输入/筛选/窗口点击、各原生详情窗口安全挂载、系统实际打开文件/链接、视觉验收（工具无法安全自动完成，不安排用户逐步点击；已启动的正式 App 未做业务操作）。
-- **验收限制**：以上为主开发自查，本工具参与修改，不能称独立第三方复审。DEBUG 隔离 Campaign 详情拒绝的既有风险按用户指示不恢复待办。
-
-### 文件、部署及实际状态（第一轮记录，部署与 Git 状态以第二轮为准）
-
-- **9 文件**：新增 UnifiedSearchModels.swift、UnifiedSearchReader.swift、UnifiedSearchViewModel.swift、UnifiedSearchNavigation.swift、UnifiedSearchView.swift、UnifiedSearchTests.swift；修改 DashboardView.swift（仅侧栏与分支接线、SidebarItem 枚举、DEBUG 初始入口白名单），本文件及当日 Development Log。部署脚本、旧 Store、业务 schema 与其他正式文档未改。
-- （第一轮当时状态）存在阻塞、未部署；已被第二轮取代：阻塞已修复，Universal Release 已部署（见上）。
-- 本地分支 main，HEAD `6c86c609337b98eb5bc660091fb875cd5e04791d` 不变；本阶段 9 文件（第二轮另修改 UnifiedSearchNavigation.swift、UnifiedSearchTests.swift，仍在这 9 文件内）经用户授权于阶段关闭时提交并推送，提交信息 `feat: 新增跨模块统一检索`；实际 commit/远端状态以 Git 为准。没有 fetch/远端查询，远端同步状态沿用已接受交接而非本轮实测；不写业务数据、其他仓库或知识库。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 均保持暂缓。
-
----
-
-## 35. 提示词版本管理 Phase 1 — 2026-10-10（已接受并关闭）
-
-基线 `16b94630530ad0c3984238c909b2088781dee420`（统一检索收尾提交），开工 HEAD/status 核对一致、工作区干净。仓库 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`。Claude 主开发，Codex 暂停；已关闭阶段沿用声明证据。
-
-### 产品流程与版本语义
-
-- 编辑并保存 → 每次名称/正文/分类**实际变化**保存一个不可变内容快照 → 详情页「版本历史」列出（当前内容 / 历史版本，显示 vN、名称、实际记录时间）→ 点选查看完整原文 → 「复制此版本正文」→ 「恢复此版本…」确认后把该版本的名称、正文、分类保存为**新的当前内容版本**（全部历史保留）。
-- 模板 UUID、createdAt 稳定；版本有独立 UUID 与连续递增的内容版本号 `number`（1…n），**与乐观锁 `revision` 分开**（revision 仍每次保存 +1，用于冲突）。快照记录名称、**完整正文原文**、分类、`recordedAt`（保存时刻）。正文及变量表达式按 UTF-8 字节保存，不规范化换行/Unicode/空白、不截断；内容是否变化按**字节**比较（`e`+U+0301 与 U+00E9 视为不同，不被 Swift `String ==` 的规范等价吞掉）。名称/分类沿用既有校验与 trim，快照记录实际保存值。
-- 收藏、归档、恢复归档只更新现有元数据（revision/updatedAt），**不产生内容版本**；内容相同的再次保存也不新增。快照不可修改、删除或自动裁剪；没有历史删除接口。
-- 新模板首次保存建立 v1。旧模板（无历史）显示单条「升级前当前内容」，**不把 revision 推断成历史版本**；其首次内容修改在**同一受保护事务**中写入 v1「升级前内容」（`isUpgradeBaseline`，`recordedAt` 沿用该模板原有 `updatedAt`，界面注明“非实际编辑时间”；元数据操作也会更新 updatedAt，因此它只代表“已有信息”，不编造历史）与 v2 新内容。
-- 恢复：快照由**磁盘最新文档**按版本 UUID 取得（不信任界面传入内容），同一事务内再次核对 `revision`；保持 UUID、createdAt、收藏、归档；所选内容与当前完全相同 → 不写盘、不新增版本（提示“完全相同”）。旧窗口/旧修订恢复 → 冲突，不覆盖。编辑窗口有**未保存草稿**时恢复被拒绝并提示（草稿不被覆盖，仍走保存/放弃/取消与退出保护）；无草稿的干净编辑窗口恢复后跟随新保存内容，脏草稿后续保存时按既有冲突流程保留。
-
-### 存储格式与兼容策略
-
-- `PromptVaultDocument.schemaVersion`：**1**（旧，无历史）与 **2**（新，模板可带 `versions`）。新版读取 1 与 2；读取**绝不写盘、不建历史、不改原文件**（测试对比目录全部字节与文件列表）；任何一次成功写入统一输出 schema 2，写前仍备份原主文件的**精确字节**（首次升级写入时，该次写入前的旧 v1 字节会进入 `templates.backup.json`，但见下条：它是滚动备份，不是永久保留）。未知 schema（如 3）、损坏、重复身份、缺主有备份：读取失败并锁定保存，不用空库覆盖。
-- 历史结构校验（读取与写入前都校验）：版本号必须为 1…n 连续、版本 UUID 全文档唯一、快照名称/正文非空白、升级前基线只能是第一条、**最新快照必须与当前内容逐字节一致**（防撕裂/手改）、`versions` 只能出现在 schema 2、每模板至多 500 个版本。
-- 当前内容与历史由同一次写入原子发布（沿用 flock、写前备份与读回校验、rename 原子替换）；失败不发布半成品。草稿传入的 `versions` 一律忽略，由存储用磁盘最新记录重建。
-- 容量：沿用整库 16 MiB 与每模板 500 版本；超限新增 `capacityExceeded`（**不锁定模块**，草稿与全部历史保留，不删除历史腾空间，仅元数据操作在上限处仍可用）。原先整库超限报 `.storage`（会锁定保存），现改为该明确错误。
-- **与旧 App 的兼容限制**：旧版（无历史）只认 schemaVersion 1，打开 schema 2 文件会得到 `unsupportedSchema` 并禁止保存，不会静默丢失历史——这是有意保护。**App 回退副本只能回退程序，不保障数据格式可降级**：一旦新版写过提示词库（schema 2），旧程序将无法编辑它。`templates.backup.json` 是**滚动备份**——每次成功保存前都会用“该次写入前的主文件字节”替换它，所以首次升级之后的任何后续保存（含收藏/归档等元数据保存）都可能把它覆盖成 schema 2 内容，**不能**视为永久的降级副本。只有用户确实另行保留的 schema 1 数据副本（例如升级前手工复制的 `templates.json`，或升级前导出且仍保存着的核心备份包——注意备份包不会被本期自动创建）才能供旧程序使用，且回退后会丢失升级后产生的全部新版本。本期未新增任何备份功能。新版备份包中的 `data/prompts.json` 同样是 schema 2，旧版校验/恢复会拒绝它；备份包清单版本未变。
-
-### 其它既有能力
-
-- 核心备份：`prompts` 载荷校验复用 `PromptVaultDocument.validate()`，新历史结构被校验，旧 v1 载荷继续接受；导出为文件原字节，校验与 `CoreRestoreService.prepare` 解析出的 prompts 载荷与源逐字节一致（含历史）。空环境恢复沿用原字节写入，无新代码路径。
-- 统一检索：`UnifiedSearchReader` 提示词 schema 门控改为接受 1 或 2（否则升级后整个提示词源会报“版本不受支持”）；字段投影未变，**仍只搜当前模板名称/分类，不搜历史**（测试：历史名称/正文不可检索）。
-- 变量使用：渲染仍只读当前已保存正文；历史版本只显示/复制原文，**本期没有历史版本变量填充**；「复制原始模板」与「复制完整结果」行为未变。收藏/归档/分类筛选/Dashboard 收藏读取兼容（`PromptTemplate` 顶层字段未变，`versions` 为新增可选字段）。
-
-### 修改文件
-
-- 代码（7）：PromptVaultModels.swift（PromptVersion/PromptVersionEntry、schema 2 校验、capacityExceeded）、PromptVaultFileStorage.swift（事务化 mutation：save/restoreVersion）、PromptVaultStore.swift（restore）、PromptVaultViewModel.swift（版本查看/复制/恢复）、PromptVaultView.swift（版本历史区与确认）、PromptTemplateEditor.swift（草稿检查与干净会话同步）、UnifiedSearchReader.swift（schema 2 接受）。
-- 测试（2）：新增 PromptVersionHistoryTests.swift（14 项）；PromptVaultPersistenceTests.swift 仅把“未知版本”夹具从 schemaVersion 2 改为 3（2 已成为受支持版本，断言目的不变）。
-- 文档：本文件、当日开发日志。部署脚本、工程文件、其它模块未改。共 11 个文件（7 代码 + 2 测试 + 2 文档）。
-
-### 验证与证据
-
-- 一轮集中验证（Debug arm64，隔离 `/private/tmp/CosmosPromptVersionTest-*` 与既有测试隔离根）：PromptVersionHistoryTests + PromptVaultPersistence/State + PromptTemplateRenderer + UnifiedSearch + CoreBackup + CoreRestore，共 **74 项执行，73 通过，1 失败**。失败项是新测试自身夹具问题（拒绝保存仍会创建空协作写锁文件，对比目录时未排除；另一处断言被批量替换误改），**非产品缺陷**；集中修复仅调整夹具（按内容文件比较，不弱化“无写入/无改动”断言），修复后 **PromptVersionHistoryTests 14/14 通过**（修复过程中还出现过一次同类夹具回归，已在同一轮修正并重跑）。其余 60 项未改动，沿用首轮通过结果。证据：`/private/tmp/CosmosPromptVersion-Focused.xcresult`（首轮）、`/private/tmp/CosmosPromptVersion-Fixed2.xcresult`（修复后）及对应 log。
-- 新测试覆盖：旧库只读加载（目录字节与文件列表不变）与旧模板“升级前当前内容”；首次编辑同事务保留旧基线（日期沿用原更新时间）与备份为旧精确字节；新模板 v1；连续修改与新存储实例重载；元数据操作/相同内容不新增版本；换行/制表/emoji/组合字符/变量表达式字节精确，Unicode 等价变化被识别，名称/分类记录实际保存值；伪造草稿历史被忽略、旧修订冲突不覆盖；复制对应界面所示版本、失败不报成功；恢复生成新版本并保持 UUID/createdAt/收藏/归档与全部历史、相同内容不写盘、旧修订与未知版本冲突、未保存草稿拒绝、干净窗口跟随/脏草稿不被替换；encode/backup/backupReadBack/replace/readBack 注入失败不留半成品；未知 schema、7 类历史损坏锁定保存且文件不变；500 版本/16 MiB 上限拒绝且不锁定、不删历史；备份导出/校验/恢复预检接受 v2 与旧 v1，篡改历史被拒；统一检索读 schema 2 且不检索历史；整页离屏挂载零写入。
-- 构建部署：复用 `scripts/deploy-macos.py`（日志 `/private/tmp/CosmosPromptVersion-deploy.log`）：Universal Release 成功，`lipo` = x86_64 arm64，`codesign --verify --deep --strict` 通过，Bundle ID `com.wangyucosmos.Cosmos-Toolbox`，Info.plist = Release / commit `16b94630…` / `CosmosBuildDirty=true`；旧 App 正常退出（无未保存阻止、未强杀）；回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-221309-76163034.app`（身份校验一致）；新版已启动（PID 18957）。未用正式业务数据测试；正式提示词库未被我读取或写入（新版启动不会改动它，首次保存才升级格式）。
-- `git diff --check` 通过。
-
-### 验收限制、缺口与结论
-
-- **本轮实测** = 上述 74 项测试（含 14 项新增）、Universal 构建/签名/部署校验；**沿用** = 已关闭阶段声明证据；**未覆盖** = 真实窗口点击（选中版本、确认弹窗、剪贴板实际写入）、原生关闭/退出提醒与恢复联动的真人操作、视觉/窄窗口检查。工具无法安全自动完成这些交互，已记录缺口，不安排用户逐步点击；离屏挂载只证明不崩溃与零写入。
-- 恢复的“草稿检查”依赖编辑窗口管理器的会话状态：它保护同一进程内的窗口，不防范外部进程并发修改（由 revision 冲突检查兜底）。恢复后若有其它已打开的**脏**编辑窗口，其后续保存会按既有冲突流程保留草稿。
-- 非阻塞待办：历史很多时详情页一次渲染全部行（上限 500）；历史差异比较、导入、历史删除、历史版本变量填充、全局历史检索均不在本期；升级前基线日期取自模板 updatedAt，可能晚于内容真实修改时间。
-- 主开发自查，参与修改，**非独立第三方复审**。结论：**可收尾，阶段已关闭**（范围如上）；用户授权提交推送，不开始下一模块。Word WIP、Step06 Harness、客服文档 V1、Evidence/Quarantine、旧 P3 保持暂缓；未写其它检出、仓库或知识库。
-
----
-
-## 36. 个人知识笔记 完整模块 — 2026-10-10（已接受并关闭）
-
-基线 `0eca18f707d5089ccc6bbe4ccec3834df997ee29`（开工 HEAD/status 核对一致、干净）。仓库 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`（会话默认工作目录是另一检出，未使用）。Claude 主开发，Codex 暂停。一个完整模块，不拆子阶段。
-
-### 用户流程与入口
-- 侧栏「知识库」→ `KnowledgeHubView` 顶部分段：**个人笔记**（默认）｜**卓望知识与资产**（原资产中心，未改检索语义）。不重构 Sidebar；个人笔记不是 Artifact，不属于卓望/省份/活动，不导入/同步外部知识仓库，不接 Workflow/Artifact。
-- 列表：新建、标题+**已保存正文**字面搜索（`localizedStandardContains`，只搜已保存正文，不含未保存草稿）、单一文本分类筛选（全部/未分类/具体分类）、仅收藏、当前/已归档切换与恢复、最近更新优先、行内收藏/归档按钮。首次进入无样例、无扫描；“尚未建立个人笔记库”（缺库，零初始化）与读取失败（橙色错误、不显示为空）分开。
-- 详情：既有独立原生窗口模式（关闭/最小化/缩放，同存储+UUID 复用窗口，已有窗口置前）。窗口内分段：正文｜版本历史｜文件与链接。保存（⌘S）、复制完整正文（仅正文原文）、重新加载保存版本（需确认）。未保存草稿有保存/放弃/取消保护，窗口关闭与 App 退出（并入 `CosmosPromptTerminationDelegate` 参与者）不丢草稿；保存失败保留输入、不提示成功、不发布失败结果；旧窗口以 `revision` 乐观锁拒绝覆盖。干净窗口自动跟随外部成功保存，有草稿时绝不替换。
-
-### 数据与存储
-- **正式数据路径**：`~/Library/Application Support/Cosmos OS/PersonalNotes/notes.json`（备份 `notes.backup.json`，写锁 `.notes.lock`），schemaVersion 1，ISO8601 日期。独立存储，不写卓望业务 Store 或知识仓库。
-- 笔记：稳定 UUID、标题（必填、trim、≤200 字符）、完整正文（可为空；不规范化/不截断，CRLF/Unicode/空白按字节保留；≤1 MiB UTF-8，不含 NUL）、可选单一文本分类（trim、≤60 字符）、收藏、归档、创建/更新时间、内部修订号 `revision`。
-- 存储事务：缺库只读零初始化；结构校验；flock 协作锁；写前备份**精确原字节**并读回；原子 rename；发布后读回校验（失败为 `uncertainWrite`，锁定保存、不发布）；写前再次比对主文件（竞态→conflict）。损坏/未知 schema/重复身份/缺主有备份/符号链接/目录占位禁止写入，不自动清空、不以新空库替换。正文、内容历史与引用**同一次写入发布**；历史与引用由锁内最新磁盘记录重建，草稿传入的 `versions/references` 一律忽略。
-- 容量：单条正文 1 MiB、单笔记 500 个内容版本、单笔记 200 条引用、整库 16 MiB（含全部历史）。超限 `capacityExceeded`：拒绝保存、**不锁定模块**、保留草稿与全部历史，不截断、不删历史腾空间；元数据操作（收藏/归档）在版本上限处仍可用。
-- DEBUG 隔离：`--cosmos-notes-fixture-root /private/tmp/CosmosPersonalNotesPhase1-<UUID>` + 既有隔离 suite/Bundle 前缀；隔离依赖缺失/无效一律失败关闭（`unsafePath`，不回退正式位置）。Release 不含测试参数。隔离启动下，文件引用只能打开位于隔离引用根内的文件（复用 `UnifiedSearchNavigator.isolatedContainmentFailure`）。
-
-### 内容版本历史
-- 内容快照（标题/正文/分类，不可变，稳定 UUID、连续版本号 `number`、实际 `recordedAt`）；内容版本号与 `revision` 分开。首次成功保存建立 v1；标题/正文/分类按 **UTF-8 字节**实际变化才新增（`e`+U+0301 与 U+00E9 视为不同）；相同内容再保存、收藏、归档、取消归档、追加引用均不新增版本。
-- 详情「版本历史」：列表（vN·当前内容、标题、时间）→ 点选查看完整原文 → 「复制此版本正文」→ 「恢复此版本…」（确认）。恢复由磁盘最新文档按版本 UUID 取快照，锁内复核 `revision`；生成新的当前内容版本，保留全部历史、笔记身份、创建时间、收藏/归档与全部引用；与当前内容逐字节相同则不写盘、不新增版本（提示“完全相同”）；窗口有未保存草稿（含待保存引用）时拒绝，草稿不被覆盖；旧修订→冲突；无历史编辑/删除/裁剪，无永久删除笔记。
-- 复用的是 Prompt Vault 已稳定的设计思路（快照、事务化存储、草稿保护），为独立代码；**未重构 Prompt Vault 或其它存储**。
-
-### 文件与链接引用
-- 用户明确选择本地文件（NSOpenPanel）或输入 http/https 链接（拒绝其它 scheme、带认证信息、空白）；引用具有稳定 UUID、显示名称、位置、登记时间（=保存提交时刻）。只保存引用：不复制/移动/删除文件，不读取文件内容，不抓取网页。保存前可从草稿移除；保存后**只追加**，不可改写/删除；登记错误通过「追加更正…」追加说明（指向更早的非更正引用，原记录不变）。引用与更正独立于内容历史：恢复正文不撤销引用/更正；复制正文不含引用位置或界面标签。
-- 明确点击「打开」才调用系统；复用 `CampaignExternalReference.openURL()` 的受控检查（http/https 校验、祖先符号链接拒绝、普通文件与可读性核验），失效/目录/符号链接保留记录并显示原因；渲染与加载从不自动打开。
-
-### 统一检索
-- 新增来源「个人笔记」（`UnifiedSearchSource.note`）：只搜**当前标题与分类**，结果标明“个人笔记 · 分类”，收藏显示星标；归档默认隐藏，沿用“包含归档”开关；不搜正文/历史/引用（读取器只解码 title/category/状态，并用不兼容类型的正文/历史/引用验证其未被解码或命中）。点击按 UUID 重读最新元数据并精确打开既有原生笔记窗口（同名不同 UUID 不串；对象消失=明确失败）。其他来源与既有采用口径、历史检索、迟到结果门控不变（来源状态由 6 增至 7）。
-
-### 核心备份与恢复（包格式 V3）
-- 备份包 **V3 = 12 个固定源**（原 11 源 + `notes` → `data/notes.json`）；`manifest.version = 3`；V1（10 源）、V2（11 源）按各自版本的固定源清单与**原排除说明**继续校验读取，不把新源硬套入旧包，也不削弱原校验；未知版本（≥4）拒绝。V3 新增排除说明：笔记引用只备份登记记录，不含文件实体或网页；笔记正文与全部历史随包保存。包条目上限 13（manifest + 12 源）。
-- 导出为文件原字节（含正文、历史、引用）；校验调用 `PersonalNotesDocument.validate()`（身份、连续版本号、最新快照=当前内容、引用格式与更正顺序），重算哈希也无法绕过。清单不含引用位置。
-- 空环境恢复：目标新增笔记根（5 个文件根）；`notes.json/notes.backup.json/.notes.lock` 任一存在即“非空环境”，沿用事务/journal/启动门控/中断保护；已有笔记库或符号链接根禁止覆盖（零写入）。旧包（V1/V2）预览/恢复时明确提示“不包含个人笔记，不会建立空的个人笔记库”，不建笔记库。恢复后字节与导出一致。不新增自动备份、云备份或数据降级。
-- **兼容限制**：旧版 App 校验/恢复 V3 包会因版本/源清单拒绝；回退副本只回退程序，不保障数据格式可降级。
-
-### 修改文件
-- 新增（6）：PersonalNotesModels.swift、PersonalNotesFileStorage.swift、PersonalNotesStore.swift、PersonalNotesEditor.swift、PersonalNotesView.swift（含 `KnowledgeHubView`）、PersonalNotesTests.swift。
-- 修改代码（13）：DashboardView.swift（路由、位置、备份源接线）、PromptTemplateEditor.swift（退出参与者）、UnifiedSearchModels/Reader/Navigation/View（4）、CoreBackupSource/Models/Service/Archive/SettingsView（5）、CoreRestoreTarget/Service（2）。
-- 修改测试（4）：CoreBackupTests、CoreRestoreTests、UnifiedSearchTests、PromptVersionHistoryTests（12 源/5 根/7 来源/V3 的既有预期与夹具；断言未削弱，`version = 3` 的“未知版本”夹具改为 4，因 3 现为受支持版本）。
-- 文档：本文件与当日开发日志。部署脚本、工程文件、其它模块未改。共 25 个文件。
-
-### 验证（本轮实测 / 沿用 / 未覆盖）
-- **测试数量（仅依据 xcresult/日志统计，未重新运行）**：①首轮集中 `Focused.xcresult`：PersonalNotesTests 24 + CoreBackupTests 12 + CoreRestoreTests 14 + PromptVersionHistoryTests 14 + UnifiedSearchTests 10 = **74 项，72 通过、2 失败、0 skipped**（曾出现的“75 项”表述无 xcresult 依据，以 74 为准）；②受影响复验 `Fixed.xcresult`：UnifiedSearchTests **10/10**；③UI 微调后 `Final.xcresult`：PersonalNotesTests **24/24**。**最终有效覆盖**：首轮其余 64 项（非统一检索部分）的通过结果沿用 + UnifiedSearchTests 复验 10 项 + PersonalNotesTests 重跑 24 项（与首轮重叠，不重复计数）；UI 微调后其余测试类未再重跑（改动仅限视图/编辑器初始化参数，不涉及其存储与格式代码）。无法从证据确认的数量不予声明。
-- **本轮实测**：一轮集中（Debug arm64，隔离 `/private/tmp/CosmosPersonalNotesTest-*` 随机 UUID 根）：共 **74 项执行：72 通过、2 失败**。2 个失败均为我新增夹具的预期问题（笔记夹具分类“笔记分类定位”意外命中既有断言“分类定位”首条应为 Prompt；既有“目录文件清单”断言未含 `notes.json`），**非产品缺陷**。一次集中修复只改夹具；仅重跑受影响的 UnifiedSearchTests **10/10 通过**，其余 64 项沿用首轮通过结果。随后微调 UI（范围选择器隐藏标签、编辑器 `initialTab` 初始化参数）后重跑 PersonalNotesTests **24/24 通过**。`git diff --check` 通过，工程文件无变化。
-- 覆盖：创建/编辑/新实例重载/原文字节精确（CRLF、组合字符、emoji、空白）；缺库零初始化 vs 损坏；非法输入（空标题/超长/NUL）；正文搜索、分类、收藏、归档与恢复、排序；内容版本规则（字节判断、元数据不产生版本、连续编号、revision 独立）；历史由磁盘重建与旧窗口冲突、伪造历史被忽略；恢复（新版本、保持身份/时间/收藏/归档/引用、相同内容零写入、旧修订/未知版本冲突）；会话复制、草稿拒绝恢复、干净窗口跟随；保存失败注入（encode/backup/backupReadBack/replace）原字节不变且不锁定、重试成功；readBack 失败→uncertainWrite 锁定；关闭三选与退出参与者；9 类损坏/未知/篡改库、缺主有备份、符号链接根、目录占位均拒绝且字节不变无附带文件；正文/版本/整库容量（拒绝、不锁定、不删历史）；引用校验/追加/更正/容量/过期窗口不能缩减；显式打开边界（缺失/目录/符号链接保留并说明、不修改文件时间、隔离根门控）；Location 失败关闭；原子发布与备份为精确旧字节；列表/编辑器/知识库入口离屏渲染零写入；统一检索身份/字段/归档/收藏/精确 UUID 窗口复用/消失失败；备份 V3 导出/校验/恢复原字节、V1/V2 兼容与提示、新源不得塞入旧包、重算哈希篡改拒绝、空库有效、已有/锁/备份/符号链接目标拒绝覆盖。
-- 编辑器三个分段已离屏渲染为位图并目视检查布局（临时测试，已移除，不在仓库）。隔离真实 App（唯一进程名拷贝）启动，截图确认「知识库」入口分段与笔记列表（当前 3 条、归档隐藏、星标、归档按钮）真实渲染；隔离环境与正式数据路径分离，运行后已清理临时根与 suite。
-- **沿用**：Prompt Vault/统一检索/备份/恢复等已关闭阶段的声明证据（相关文件改动处已由上述聚焦项重跑）。
-- **未覆盖/验收限制**：真实点击新建/保存/切换分段/确认弹窗/文件选择面板/系统打开、窗口关闭与退出提醒的真人操作、剪贴板实写、视觉与窄窗口——工具无法安全完成（尝试用 System Events/合成点击驱动隔离 App 时，窗口未成为前台、AX 树为空；因合成点击可能误落到其他应用，已停止，不再重试，不要求用户逐步点击）。未测 Release 内真实笔记数据、正式数据端到端、跨进程非协作写入、整库逼近 16 MiB 的性能。主开发自查，**非独立第三方复审**。
-
-### 部署与回退
-- 复用 `scripts/deploy-macos.py`（日志 `/private/tmp/CosmosPersonalNotes-deploy.log`）：Universal Release 成功，`lipo` = x86_64 arm64，`codesign --verify --deep --strict` 通过，Bundle ID `com.wangyucosmos.Cosmos-Toolbox`，Info.plist = commit `0eca18f7…`、`CosmosBuildDirty=true`。旧 App 正常退出（无未保存阻止、未强杀），回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-224435-906c235e.app`，新版 `~/Applications/Cosmos Toolbox.app` 正常启动（PID 22555）。未用正式数据测试；正式笔记库目录**未创建**（首次保存新建笔记才建立）。
-- **窗口误操作事件（已知事实）**：为定位 UI 自动化，我用 System Events 按进程名操作；因隔离 App 与正式 App 同名（均为“Cosmos Toolbox”，当时正式 PID 18957），操作实际作用在**正式 App 窗口**上：其位置和大小被改为（40,60，1280×900），并被切到前台。随后已按事前读取的原值（275,138，1378×803）恢复位置和大小；前台/激活状态没有也无法还原。我没有对正式 App 发出点击、输入或业务操作，但**没有对正式业务数据做全面审计**，因此不声称已证明所有业务数据绝对不变，只能说明该事件中我未主动读写业务数据。**后续不得按同名应用执行 System Events 操作**；需要 UI 自动化时只用唯一进程名的隔离拷贝。事件后另有一次针对隔离拷贝的合成点击尝试（坐标点击，未见效果），其落点无法确认，随即停止。
-
-### 非阻塞待办
-- 列表一次渲染全部笔记，预览取前 240 字符；上千条或超长正文时可能需要分页/缓存。列表搜索对已保存正文逐次线性匹配。历史多时详情一次渲染全部版本行（上限 500）。
-- 明确不做：AI 整理/执行、网页抓取、文件导入、OCR、富文本/Markdown 渲染、标签体系、文件夹树、跨笔记链接、知识图谱、语义搜索、云同步、团队协作、Workflow/Artifact 集成、全局美化。Word WIP、Step06 Harness、客服文档 V1、Evidence/Quarantine、旧 P3 保持暂缓；未写其它检出、仓库、知识库。
-
-### Git 状态
-- **阶段关闭**：用户接受声明验收范围（含上述未覆盖的真实点击缺口与 V3 备份兼容边界：旧版 App 无法读取/恢复 V3 包，回退副本不保证数据降级），授权逐项提交并正常推送本阶段 25 个文件，提交信息 `feat: 新增个人知识笔记模块`，预期 parent `0eca18f707d5089ccc6bbe4ccec3834df997ee29`；沿用已接受证据。实际 commit、parent、HEAD/main/origin/main、ahead/behind 与工作区状态以提交推送后的收尾报告和 Git 记录为准。不开始下一模块；全部暂缓事项保持不动。
-
----
-
-## 37. 个人内容导出 完整模块 — 2026-10-10（已实现并部署，待 Git 收尾授权）
-
-基线 `6272a52b62822bde2822183ca9f0d9a7cc3ed06a`（`feat: 新增个人知识笔记模块`；开工 HEAD/status 核对一致、干净）。仓库 `/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox`（会话默认工作目录是另一检出，未使用）。Claude 主开发，Codex 暂停。一个完整模块，不拆子阶段。
-
-### 流程与入口
-- 个人笔记列表、提示词库列表头部「批量导出…」→ 选择面板（两来源合并显示：名称、来源标签、分类、内容版本信息、引用数、归档状态）；默认**不选任何记录**；来源 / 当前·已归档 / 名称分类过滤；「全选当前筛选结果（N 条）」只选界面所示的 N 条，已选但不在当前筛选内的条数单独显示；归档只有切到「已归档」并明确勾选才进入。范围：仅当前内容 / 当前 + 全部历史 → 「预览导出范围…」（冻结后展示每条的版本摘要、文件数、字节数、引用数和全部说明）→ 保存面板 → 导出。
-- 单条：笔记编辑窗口（正文页底部「导出已保存正文（.md）…」、版本历史页「导出此版本（vN）为 .md…」）与提示词详情（「导出已保存正文」、版本历史区「导出此版本」）。直接进入保存面板，面板信息说明导出的是已保存正文原文。
-- 存在未保存草稿时界面明确说明：导出的是已保存版本，草稿不包含，也不会被保存、放弃或覆盖。不导出编辑草稿、变量填写结果、剪贴板内容。
-- 成功后「在 Finder 中显示」；Finder 失败只给出提示，导出结果与文件保持成功。
-
-### 输出格式
-- 单条：UTF-8 `.md`，内容就是所选**已保存版本**正文的 UTF-8 字节（CRLF / Unicode / BOM / 空白 / `{{变量}}` 原样，不加标题、front matter、换行；空正文 = 空文件）。选定历史版本导出该版本原文；当前内容导出时与界面所示版本身份核对（旧提示词无历史则为 nil），不一致即停止。仅含正文，不含引用或元数据。
-- 批量：ZIP（不压缩、UTF-8 名称、无额外字段 / 注释）：`说明.md`（简短中文说明含使用边界）、`manifest.json`、`notes|prompts/<安全显示名>--<完整小写 UUID>/current.md` 与（选择含历史时）`history/vNNN.md`。manifest：`exportFormat=CosmosContentExport`、`formatVersion=1`、`isCoreBackup=false`、导出时间、范围；每条记录含来源、稳定 ID、名称、分类、归档；每个文件含 role、版本 UUID / 编号、版本名称 / 分类、实际 `savedAt`（旧提示词无历史则版本号、日期均省略，不编造；升级前基线标 `savedAtIsInherited`）、包内相对路径、字节数、SHA-256；笔记的全部引用与更正记录按登记信息原样写入（位置随包导出，预览明确提示；不读取、复制文件实体，不抓取网页）。
-- 同名、非法字符（斜杠、反斜杠、冒号、星号、问号、引号、尖括号、竖线、控制 / 双向控制字符、前导点、保留名、超长）只清理显示名，**正文不改写**；稳定 UUID 目录消除冲突；包路径必须相对、无 `..`、无空组件、忽略大小写不重复。
-- 批量包不是 CosmosCoreMetadata 备份：路径集合与 manifest 键不同，核心备份校验和恢复准备均拒绝（测试覆盖）。
-
-### 快照、源只读与发布保护
-- 准备阶段读取并冻结所选记录与版本（正文取自磁盘，不信任界面）。导出时按指纹（UTF-8 字节；批量含名称 / 分类 / 归档 / 全部所选版本 / 笔记引用，单条仅含所选版本内容）**两次**重读核对（生成前、发布前）：所选记录内容 / 版本 / 导出相关元数据变化 → `sourceChanged`，要求重新准备，绝不换版或混合导出；收藏、updatedAt、revision、无关记录的变化被忽略。
-- 源库只读：复用各存储既有 `load()`；不建缺失库 / 锁 / 备份，不加版本，不改任何元数据；读取错误（损坏、位置不可用）如实抛出，不当作空。保存位置不允许在源库目录内。
-- 发布：先在本次专属临时目录（`CosmosContentExport-<UUID>`）生成并读回校验（ZIP 严格解析：CRC、路径、清单自洽、与冻结快照逐字节一致）；再在目标目录写本次专属 `.part`、SHA-256 核对，并以 `renamex_np(RENAME_EXCL)`（不支持时 `link()`）**原子且不覆盖**发布；发布后再核对 inode 与哈希。已有同名文件 / 目录 / 悬空符号链接、保存面板的“替换”确认、准备后出现的同名竞争，全部拒绝且不改动对方。取消 / 失败只清理本次临时目录与 `.part`，不留下伪装成功的目标。
-- 异步：重读、哈希、ZIP 构建、写入均在后台执行（`@concurrent` / GCD；测试断言检查点不在主线程）；控制器忙碌态阻止重复提交；取消只在发布前的步骤边界生效，进入发布后无法中断（界面明确说明，不宣称同步调用可即时中断）。App 退出：目标只通过原子发布出现，半成品不会被当作成功结果；强制退出最多残留隐藏的 `.part` 或系统临时目录，需用户自行清理，不自动删除。
-- 无新第三方依赖、无 shell 拼接；自带最小 ZIP 编解码（未改 `CoreBackupArchive`、交付包或核心备份服务）。不改源数据 schema、统一检索与备份 / 恢复语义。
-
-### 修改文件
-- 新增（5）：ContentExportModels.swift、ContentExportZip.swift、ContentExportService.swift、ContentExportViews.swift、ContentExportTests.swift。
-- 修改代码（5）：DashboardView.swift（把另一来源位置传入）、PersonalNotesView.swift（入口 + `KnowledgeHubView.promptLocation`）、PersonalNotesEditor.swift（单条入口）、PromptVaultView.swift（入口 + 单条入口）、PromptVaultStore.swift（`storageRoot` 只读访问器）。
-- 文档（2）：本文件与当日开发日志。工程文件（同步组自动收录）、部署脚本、其它模块未改。共 12 个文件。
-
-### 验证（本轮实测 / 沿用 / 未覆盖）
-- **本轮实测（Debug arm64，隔离 `/private/tmp/CosmosContentExportTest-*` 随机根）**：一轮集中 `Focused.xcresult`：ContentExportTests 新增 17 项 + PersonalNotesTests + PromptVersionHistoryTests（受修改视图影响的既有类）共 **55 项执行，54 通过、1 失败、0 skipped**。唯一失败是新测试夹具问题（6×约 420 KB ≈ 2.5 MB，低于我设定的“>3 MB”大小断言），非产品缺陷；集中修复仅调大夹具正文（精确性断言未弱化），受影响项重跑 **1/1 通过**（`Fixed.xcresult`）。`git diff --check` 通过。证据：`/private/tmp/CosmosContentExport-Focused.xcresult`、`-Fixed.xcresult` 与对应 log。
-- 覆盖：两来源、同名记录、分类 / 归档 / 全选口径；单条当前 / 历史正文逐字节一致与空笔记；CRLF、BOM、组合字符、emoji、变量表达式；特殊文件名（`..`、保留名、非法字符、超长）；批量包生成后用 **macOS ditto** 与 **Python zipfile（默认设置，`-I`）** 独立解包，核对 manifest 身份 / 版本 / 路径 / SHA-256 / 字节与原文；引用仅登记（哨兵文件内容不进包、文件不变）；旧提示词无历史不编造；选中记录正文 / 归档 / 引用 / 标题变化阻止导出，无关记录与收藏变化不误伤；陈旧界面版本被拒；缺库零创建、损坏库不当空、源目录逐文件（含 mtime）不变；已有目标 / 目录 / 悬空链接 / 两处发布竞争不覆盖；六个阶段注入失败与三处取消均不留文件、临时目录清空，发布后取消无法中断；保存位置限制；ZIP 篡改拒绝及核心备份 / 恢复拒绝本格式；控制器忙碌态、重复提交忽略、取消边界、保存面板取消、Finder 失败、陈旧计划丢弃；约 3.8 MB 批量包后台构建与逐字节一致；选择面板离屏挂载零写入、不创建缺库。离屏位图目视检查了选择面板布局（临时测试，已移除）。
-- **沿用**：其余历史模块声明证据（未改动文件不重跑）。
-- **未覆盖 / 验收限制**：真实窗口点击（勾选、保存面板交互、确认、Finder 实际显示）——可用工具无法安全驱动，且不得按同名 App 使用 System Events；未做，不要求用户逐步点击。未测正式数据、跨进程非协作写入、整库逼近 16 MiB 的性能、Windows / macOS 归档工具图形界面解包（实测覆盖 ditto 与 Python zipfile）。未实现且不承诺：中途即时取消、持久化导出记录、导入、历史删除。
-
-### 部署与回退
-- `scripts/deploy-macos.py`（日志 `/private/tmp/CosmosContentExport-deploy.log`）：Universal Release 成功，`lipo` = x86_64 arm64，`codesign --verify --deep --strict` 通过，Info.plist commit `6272a52b…`、含未提交改动；旧 App 正常退出（未强杀、无未保存阻止），回退副本 `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-231413-e78e7eea.app`，新版启动 PID 25559。未用正式数据测试；部署不读写业务数据。
-
-### 与恢复备份的区别
-内容导出：只含用户选择的笔记 / 提示词正文（及可选历史），Markdown + manifest，用于阅读与迁移，**不能恢复 Cosmos 数据**，核心恢复拒绝识别。核心备份（§26/27 V3）：整套核心元数据，用于空环境恢复。二者格式、路径集合、manifest 键互不兼容。
-
-### 非阻塞待办
-- 选择列表一次渲染全部记录；超大库需分页。批量包为不压缩 ZIP，体积约等于正文总和。导出不提供“排除引用位置”开关（仅预览提示）。
-
-### Git 状态
-- 未提交、未推送、未合并，等待一次 Git 收尾授权。Word WIP、Step06 Harness、客服文档 V1、Evidence/Quarantine、旧 P3 保持暂缓；未写其它检出、仓库或知识库。
+**由统筹提出范围、用户确认后开始。** 在此之前不开始任何新模块，不恢复暂缓事项，不追加已关闭模块的验收。

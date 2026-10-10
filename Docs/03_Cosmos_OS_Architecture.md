@@ -4,6 +4,20 @@
 **日期：2026-08-17**  
 **技术栈：Swift / SwiftUI / macOS**
 
+
+> **2026-10-10 状态说明**
+> 本文是立项基线（v0.1，写于 2026-08-17，正文保持原样不改写）；产品方向与原则仍然有效。**实际进度和实现以 `Docs/07_Cosmos_OS_Current_Status.md` 为准**；历史细节见 `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md`（下表“归档 §N”指该归档文件的章节号）。下表只列已在代码或归档中核实过的差异，未列出的内容不代表一致或已验证。
+>
+> | 原文表述 | 当前实际 | 依据 |
+> |---|---|---|
+> | §2 / §3 顶层 App / Core / Features / Shared 与 Feature 子目录 | 实际为 `Apps/CosmosOS/Cosmos Toolbox/` 单目录平铺 121 个 Swift 文件，以文件名前缀分模块（Zhuowang*、PromptVault*、Learning*、Projects*、AIWorkspace*、CoreBackup*、CoreRestore*、PersonalNotes*、ContentExport* 等）；仓库中未找到“不做目录重组”的书面决定，只有 AGENTS §12（不引入重型架构）与 §23（不借重构扩大当前模块范围） | 目录清单；`AGENTS.md` §12、§23 |
+> | §6 状态管理优先 `@Observable` | 实际使用 `ObservableObject` / `@Published`（31 个文件），源码中无 `@Observable` | 源码检索 |
+> | §7 业务数据使用 SwiftData | 未使用 SwiftData；见 PRD 差异表同条 | 归档 §4、§36；Current Status §4 |
+> | §8 `~/Documents/Cosmos/Zhuowang/2026/河南/…`，目录 01_策划 … 99_归档 | 实际为 `~/Documents/Cosmos OS/Workspaces/卓望/<省份>/<活动>/`，步骤目录 `01_需求整理`…`06_客服文档` 与 `Assets`；省份目录名由 `directoryName ?? name` 固定，省份改名不改路径 | `ZhuowangWorkspaceFileManager.swift`；`AGENTS.md` §9；归档 §19 |
+> | §15 备份目录 `CosmosBackup/{database,settings,manifests,metadata.json}` | 实际核心备份是单个未压缩 ZIP（`manifest.json` + `data/<源>.json`，`format=CosmosCoreMetadata`，当前 V3 共 12 源）+ 空环境恢复协议；另有与备份无关的内容导出 ZIP（`CosmosContentExport`，不能恢复） | `CoreBackupSource.swift`、`CoreBackupModels.swift`；归档 §26–§27、§30、§36–§37 |
+> | （原文未规定）通用存储事务模式 | 已形成并在 Prompt / 学习 / 交接 / Projects / 笔记中复制使用：缺库只读零初始化、flock 协作锁、锁内重读最新文档并核对修订、写前备份精确原字节并读回、同目录临时文件 + 原子 rename、发布后读回校验、读回失败 `uncertainWrite` 锁定保存、损坏 / 未知 schema 锁定不覆盖、容量超限拒绝（带历史的模块不锁定）；未抽象为通用框架 | 归档 §17、§18、§24、§30、§35、§36；`PromptVaultFileStorage.swift`、`PersonalNotesFileStorage.swift` |
+> | §10 / §11 服务层集中封装 Shell 调用 | 已按此方式：AI 工作台通过 `AIWorkspaceProcessRunner`（绝对路径、固定参数、白名单环境、超时与输出上限）执行 `--version`；View 中不直接拼接 Shell | 归档 §22；`AIWorkspaceProcessRunner.swift` |
+
 ---
 
 ## 1. 架构目标

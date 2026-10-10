@@ -1,25 +1,28 @@
-# AGENTS.md — Cosmos OS Codex Development Rules
+# AGENTS.md — Cosmos OS AI Development Rules
 
 ## 0. Purpose
 
-This file is the durable operating guide for Codex when developing Cosmos OS.
+This file is the durable operating guide for every AI development tool that works on this repository (Codex, Claude Code, and any other) when developing Cosmos OS.
 
 Cosmos OS is a long-lived native macOS personal work operating system.  
 The project is not a throwaway demo. Changes must optimize for maintainability, recoverability, real daily use, and long-term evolution.
 
-Working relationship:
+Working relationship (confirmed by the user on 2026-10-10; see `Docs/07_Cosmos_OS_Current_Status.md` §2):
 
-- **User**: Product owner and final decision maker.
-- **ChatGPT web**: Product architecture advisor / technical solution designer.
-- **Codex on the Mac**: Local development engineer responsible for reading the repository, modifying code, building, testing, reviewing diffs, and preparing commits.
+- **User**: Product owner and final decision maker; accepts work; authorizes commit / push / merge.
+- **统筹 (coordinator, a Claude session in claude.ai)**: product direction, module scope, writing complete module prompts for the development tools, judging whether a stage can close. It can read this repository on the user's Mac read-only and view the GitHub remote branch state.
+- **Development tools (Claude Code and Codex)**: whichever has quota acts as primary developer, responsible for reading the repository, modifying code, building, testing, reviewing diffs, and preparing commits. The other tool only does one concentrated read-only review when risk requires it. Two truly independent modules may proceed in parallel only on separate branches with separate worktrees of this repository; shared files are changed only by an explicit owner; integration and deployment are serial, with a single deployment owner.
+- ChatGPT web is no longer the architecture advisor (historical records are kept unchanged).
 
-Codex should absorb implementation complexity so the user does not need to manually locate fields, copy code fragments, or repeatedly replace the same file.
+Development tools should absorb implementation complexity so the user does not need to manually locate fields, copy code fragments, or repeatedly replace the same file.
 
 ---
 
 # 1. Mandatory source-of-truth documents
 
 > **Precedence (user rules, 2026-10-09):** the 统筹与推进规则 in §23 override any repeated-read / repeated-check requirement in §1, §13, §15 and §19 that conflicts with them. Required data protection and verification of affected behavior still apply.
+
+> **Baseline documents (2026-10-10):** `Docs/01`–`06` are the founding baseline written on 2026-08-17. Read the "状态说明" at the top of 01–04 first; actual progress is defined by `Docs/07_Cosmos_OS_Current_Status.md`. Within the §23 precedence, read what the task needs — there is no need to re-read every document each time.
 
 Before any architecture-level task, read these repository documents:
 
@@ -634,6 +637,8 @@ Do not turn it into a chronological diary.
 
 Keep it current.
 
+Size discipline (2026-10-10): keep this file at or under about 40 KB. When a module closes, compress it to one checklist row plus its storage / compatibility facts and open todos, and move process detail into that day's Development Log. The archive `Docs/Archive/07_Cosmos_OS_Current_Status_至2026-10-10.md` is append-only: add new archive files when needed, never edit existing ones.
+
 ## 18.2 Development logs — append-only history
 
 Directory:
@@ -687,31 +692,28 @@ Codex should:
 
 ---
 
-# 20. ChatGPT web handoff
+# 20. 统筹交接 (Coordinator handoff)
 
-The intended cross-product workflow is:
+The intended cross-session workflow is:
 
 ```text
-ChatGPT web
-Product architecture / technical solution
+统筹 (product direction, module scope, module prompt)
         ↓
-GitHub repository docs
-        ↓
-Codex
+Development tool (Claude Code or Codex)
 Local engineering / build / testing
         ↓
 Update Current Status + Development Log
         ↓
-Commit / Push
+Commit / Push (only when the user authorizes)
         ↓
-ChatGPT web reads GitHub
+统筹 reads the local repository and GitHub directly
         ↓
-Next architecture decision
+Next module scope, confirmed by the user
 ```
 
 Therefore documentation updates are part of engineering completion, not optional cleanup.
 
-When preparing a handoff to ChatGPT web, make sure `Docs/07_Cosmos_OS_Current_Status.md` is accurate enough that another session can understand the project without reading the entire chat history.
+When handing off, make sure `Docs/07_Cosmos_OS_Current_Status.md` is accurate enough that another session can understand the project without reading the entire chat history.
 
 ---
 
