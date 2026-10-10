@@ -36,6 +36,8 @@ final class UnifiedSearchTests: XCTestCase {
         let historicalID: UUID
         let referenceID: UUID
         let fileBytes: [String: Data]
+        let knowledgeSourceID: UUID
+        let knowledgeRoot: URL
     }
     private func fixture() throws -> Fixture {
         let root = try root(), shared = UUID(), other = UUID(), artifact = UUID(), history = UUID(), refID = UUID(), province = UUID()
@@ -63,19 +65,33 @@ final class UnifiedSearchTests: XCTestCase {
                 ["id": UUID().uuidString, "title": "统一 归档笔记", "isArchived": true, "isFavorite": false, "body": "归档正文"]]])]
         for (name, bytes) in files { try bytes.write(to: root.appendingPathComponent(name)) }
         try Data("禁止文件正文命中".utf8).write(to: root.appendingPathComponent("never-read.txt"))
+        // 外部知识库来源：文档正文、被排除的文件（敏感 / 隐藏 / 忽略 / 嵌套仓库）都带有“禁止命中”标记。
+        let knowledgeRoot = try self.root().appendingPathComponent("kb"), knowledgeID = UUID()
+        let fm = FileManager.default
+        try fm.createDirectory(at: knowledgeRoot.appendingPathComponent("忽略"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: knowledgeRoot.appendingPathComponent("嵌套/.git"), withIntermediateDirectories: true)
+        try Data("---\ntitle: 统一 知识库文档\ntags: [知识标签甲]\n---\n禁止知识库正文命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent("统一知识.md"))
+        try Data("---\ntype: secret\n---\n统一 禁止敏感命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent("统一机密.md"))
+        try Data("统一 禁止密钥名命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent("统一-真实密钥版.md"))
+        try Data("统一 禁止隐藏命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent(".统一隐藏.md"))
+        try Data("统一 禁止忽略命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent("忽略/统一忽略.md"))
+        try Data("统一 禁止嵌套仓库命中\n".utf8).write(to: knowledgeRoot.appendingPathComponent("嵌套/统一嵌套.md"))
+        try Data("忽略/\n".utf8).write(to: knowledgeRoot.appendingPathComponent(".gitignore"))
+        let knowledgeDocument = KnowledgeSourcesDocument(revision: 1, sources: [KnowledgeSource(id: knowledgeID, displayName: "统一测试库", path: knowledgeRoot.path)])
+        try KnowledgeSourceCoding.encoder().encode(knowledgeDocument).write(to: root.appendingPathComponent("sources.json"))
         let protocolSource: any ZhuowangPersistenceDataSource = source
-        let reader = UnifiedSearchReader(readPreference: { protocolSource.data(forKey: $0) }, roots: [.project: root, .prompt: root, .learning: root, .note: root])
-        return Fixture(reader: reader, source: source, root: root, sharedID: shared, secondCampaignID: other, artifactID: artifact, historicalID: history, referenceID: refID, fileBytes: files)
+        let reader = UnifiedSearchReader(readPreference: { protocolSource.data(forKey: $0) }, roots: [.project: root, .prompt: root, .learning: root, .note: root, .knowledgeDocument: root])
+        return Fixture(reader: reader, source: source, root: root, sharedID: shared, secondCampaignID: other, artifactID: artifact, historicalID: history, referenceID: refID, fileBytes: files, knowledgeSourceID: knowledgeID, knowledgeRoot: knowledgeRoot)
     }
-    func testSevenSourcesIdentityFieldsNoBodiesAndNoBusinessChanges() throws {
+    func testEightSourcesIdentityFieldsNoBodiesAndNoBusinessChanges() throws {
         let f = try fixture(), before = f.source.storage, snapshot = f.reader.read()
-        XCTAssertEqual(snapshot.states.count, 7)
+        XCTAssertEqual(snapshot.states.count, 8)
         XCTAssertTrue(snapshot.states.values.allSatisfy { $0 == .ready })
         let shared = snapshot.rows.filter { $0.id.objectID == f.sharedID }
         XCTAssertEqual(Set(shared.map(\.id)).count, 5) // Campaign, Project, Prompt, Learning, Note with the same UUID.
         XCTAssertEqual(Set(snapshot.rows.map(\.id)).count, snapshot.rows.count)
         let query = UnifiedSearchQuery(text: "统一")
-        XCTAssertEqual(Set(snapshot.rows.filter(query.matches).map(\.id.source)).count, 7)
+        XCTAssertEqual(Set(snapshot.rows.filter(query.matches).map(\.id.source)).count, 8)
         XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: "禁止正文命中", includeHistory: true).matches))
         for forbidden in ["禁止笔记正文命中", "禁止笔记历史命中", "禁止笔记引用命中", "归档正文"] {
             XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: forbidden, includeArchived: true, includeHistory: true).matches), forbidden)
@@ -93,7 +109,7 @@ final class UnifiedSearchTests: XCTestCase {
         XCTAssertFalse(snapshot.rows.contains(where: UnifiedSearchQuery(text: "禁止文件正文命中").matches))
         XCTAssertEqual(f.source.storage, before); XCTAssertEqual(f.source.writeCount, 0)
         for (name, bytes) in f.fileBytes { XCTAssertEqual(try Data(contentsOf: f.root.appendingPathComponent(name)), bytes) }
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: f.root.path).sorted(), ["learning.json","never-read.txt","notes.json","projects.json","templates.json"])
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: f.root.path).sorted(), ["learning.json","never-read.txt","notes.json","projects.json","sources.json","templates.json"])
         XCTAssertEqual(snapshot.rows.first { $0.id.objectID == f.artifactID }?.ownership.contains("浙江"), true)
         XCTAssertEqual(snapshot.rows.first { $0.id.objectID == f.secondCampaignID }?.ownership, "全国模块")
         let ref = try XCTUnwrap(snapshot.rows.first { $0.id.objectID == f.referenceID })
@@ -149,9 +165,9 @@ final class UnifiedSearchTests: XCTestCase {
     }
     func testMissingLibrariesAndIsolationDependenciesFailClosedWithoutInitialization() throws {
         let root = try root(), missing = root.appendingPathComponent("missing")
-        let reader = UnifiedSearchReader(readPreference: { _ in nil }, roots: [.project: missing, .prompt: missing, .learning: missing, .note: missing])
+        let reader = UnifiedSearchReader(readPreference: { _ in nil }, roots: [.project: missing, .prompt: missing, .learning: missing, .note: missing, .knowledgeDocument: missing])
         let s = reader.read()
-        XCTAssertEqual(s.states.count, 7); XCTAssertTrue(s.states.values.allSatisfy { $0 == .missing })
+        XCTAssertEqual(s.states.count, 8); XCTAssertTrue(s.states.values.allSatisfy { $0 == .missing })
         XCTAssertTrue(s.rows.isEmpty); XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
         let blocked = UnifiedSearchReader(readPreference: { _ in nil }, roots: [:], blocked: [.project: "隔离位置不可用"])
         if case .failed = blocked.read().states[.project] {} else { XCTFail("blocked must not look missing") }
@@ -266,5 +282,65 @@ final class UnifiedSearchTests: XCTestCase {
         view.frame = NSRect(x: 0, y: 0, width: 1000, height: 800); view.layoutSubtreeIfNeeded()
         XCTAssertEqual(source.storage, [:]); XCTAssertEqual(source.writeCount, 0)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), [])
+    }
+
+    func testKnowledgeDocumentsSearchOnlyTitlePathAndTagsNeverBodiesOrExcludedFiles() throws {
+        let f = try fixture(), fm = FileManager.default
+        let listingBefore = try fm.contentsOfDirectory(atPath: f.knowledgeRoot.path).sorted()
+        let docBytes = try Data(contentsOf: f.knowledgeRoot.appendingPathComponent("统一知识.md"))
+        let s = f.reader.read()
+        XCTAssertEqual(s.states[.knowledgeDocument], .ready)
+        let rows = s.rows.filter { $0.id.source == .knowledgeDocument }
+        XCTAssertEqual(rows.map(\.name), ["统一 知识库文档"], "only the visible document; hidden / gitignored / nested-repo / sensitive files are absent")
+        let row = try XCTUnwrap(rows.first)
+        XCTAssertEqual(row.ownership, "知识库 · 统一测试库"); XCTAssertEqual(row.fields.map(\.label), ["标题", "路径", "标签"])
+        XCTAssertEqual(row.knowledge, KnowledgeDocumentRef(sourceID: f.knowledgeSourceID, relativePath: "统一知识.md"))
+        XCTAssertEqual(row.id.objectID, row.knowledge?.stableID)
+        func hits(_ text: String) -> Int { s.rows.filter(UnifiedSearchQuery(text: text, source: .knowledgeDocument, includeArchived: true, includeHistory: true).matches).count }
+        XCTAssertEqual(hits("知识库文档"), 1); XCTAssertEqual(hits("知识标签甲"), 1); XCTAssertEqual(hits("统一知识.md"), 1)
+        for forbidden in ["禁止知识库正文命中", "禁止敏感命中", "禁止密钥名命中", "禁止隐藏命中", "禁止忽略命中", "禁止嵌套仓库命中", "统一机密", "真实密钥版", "统一隐藏", "统一忽略", "统一嵌套"] {
+            XCTAssertEqual(hits(forbidden), 0, forbidden)
+            XCTAssertFalse(s.rows.contains(where: UnifiedSearchQuery(text: forbidden, includeArchived: true, includeHistory: true).matches), forbidden)
+        }
+        XCTAssertEqual(try fm.contentsOfDirectory(atPath: f.knowledgeRoot.path).sorted(), listingBefore, "searching never writes into the knowledge folder")
+        XCTAssertEqual(try Data(contentsOf: f.knowledgeRoot.appendingPathComponent("统一知识.md")), docBytes)
+        XCTAssertFalse(fm.fileExists(atPath: f.root.appendingPathComponent(".sources.lock").path), "reading the registry takes no lock and creates nothing")
+        // 停用的来源不出现；缺库 = missing；损坏 = failed；缺根 / 被阻止 = failed。
+        let disabled = KnowledgeSourcesDocument(revision: 2, sources: [KnowledgeSource(id: f.knowledgeSourceID, displayName: "统一测试库", path: f.knowledgeRoot.path, isEnabled: false)])
+        try KnowledgeSourceCoding.encoder().encode(disabled).write(to: f.root.appendingPathComponent("sources.json"))
+        let off = f.reader.read(); XCTAssertEqual(off.states[.knowledgeDocument], .ready); XCTAssertTrue(off.rows.filter { $0.id.source == .knowledgeDocument }.isEmpty)
+        try Data("broken".utf8).write(to: f.root.appendingPathComponent("sources.json"))
+        if case .failed? = f.reader.read().states[.knowledgeDocument] {} else { XCTFail("corrupt registry must be an explicit failure") }
+        try fm.removeItem(at: f.root.appendingPathComponent("sources.json"))
+        XCTAssertEqual(f.reader.read().states[.knowledgeDocument], .missing)
+        let unrooted = UnifiedSearchReader(readPreference: { _ in nil }, roots: [:])
+        if case .failed? = unrooted.read().states[.knowledgeDocument] {} else { XCTFail("no explicit root must fail closed") }
+        let blocked = UnifiedSearchReader(readPreference: { _ in nil }, roots: [:], blocked: [.knowledgeDocument: "隔离位置不可用"])
+        if case .failed(let reason)? = blocked.read().states[.knowledgeDocument] { XCTAssertEqual(reason, "隔离位置不可用") } else { XCTFail() }
+    }
+
+    func testKnowledgeDocumentNavigationResolvesByStableReferenceAndPostsOneOpenRequest() async throws {
+        let f = try fixture(), s = f.reader.read()
+        let row = try XCTUnwrap(s.rows.first { $0.id.source == .knowledgeDocument })
+        let ref = try XCTUnwrap(row.knowledge)
+        XCTAssertEqual(try UnifiedSearchDestination.resolve(row, in: s, isolated: true), .knowledgeDocument(ref))
+        XCTAssertEqual(try UnifiedSearchDestination.resolve(row, in: s, isolated: false), .knowledgeDocument(ref))
+        var removed = s; removed.rows.removeAll { $0.id == row.id }
+        XCTAssertThrowsError(try UnifiedSearchDestination.resolve(row, in: removed, isolated: false))
+        var changed = s
+        if let index = changed.rows.firstIndex(where: { $0.id == row.id }) { changed.rows[index].knowledge = KnowledgeDocumentRef(sourceID: ref.sourceID, relativePath: "别的.md") }
+        XCTAssertThrowsError(try UnifiedSearchDestination.resolve(row, in: changed, isolated: false))
+        var posted: [KnowledgeSourceOpenRequest] = []
+        let navigator = UnifiedSearchNavigator(reader: f.reader, configuration: isolatedConfiguration(dataSource: f.source),
+            projects: .init(root: f.root, error: nil), prompts: .init(root: f.root, error: nil), learning: .init(root: f.root, error: nil),
+            assetRoot: f.root, systemOpen: { _ in XCTFail("nothing is opened by the system"); return false })
+        navigator.postKnowledgeRequest = { posted.append($0) }
+        await navigator.open(row)
+        XCTAssertNil(navigator.message); XCTAssertEqual(posted.map(\.document), [ref]); XCTAssertNil(navigator.referenceRow)
+        // 文件被删除后：明确提示，不打开其他同名对象。
+        try FileManager.default.removeItem(at: f.knowledgeRoot.appendingPathComponent("统一知识.md"))
+        await navigator.open(row)
+        XCTAssertNotNil(navigator.message); XCTAssertEqual(posted.count, 1)
+        XCTAssertEqual(f.source.writeCount, 0)
     }
 }

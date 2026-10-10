@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum UnifiedSearchSource: String, CaseIterable, Identifiable, Sendable {
-    case campaign, artifact, reference, project, prompt, learning, note
+    case campaign, artifact, reference, project, prompt, learning, note, knowledgeDocument
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -12,6 +12,7 @@ nonisolated enum UnifiedSearchSource: String, CaseIterable, Identifiable, Sendab
         case .prompt: return "Prompt Vault"
         case .learning: return "学习主题"
         case .note: return "个人笔记"
+        case .knowledgeDocument: return "知识库文档"
         }
     }
 }
@@ -31,6 +32,8 @@ nonisolated struct UnifiedSearchRow: Identifiable, Equatable, Sendable {
     var adoptionConflict = false
     var campaignID: UUID?
     var reference: CampaignExternalReference?
+    /// 外部知识库文档：来源 + 来源内相对路径（只用于核验与导航；检索字段仅含标题、路径、标签）。
+    var knowledge: KnowledgeDocumentRef?
 }
 nonisolated enum UnifiedSearchState: Equatable, Sendable {
     case ready, missing, failed(String)

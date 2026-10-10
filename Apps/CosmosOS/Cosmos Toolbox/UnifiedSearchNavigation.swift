@@ -4,6 +4,7 @@ import Combine
 nonisolated enum UnifiedSearchDestination: Equatable {
     case campaign(UUID), artifact(UUID, campaignID: UUID), project(UUID), prompt(UUID), learning(UUID), note(UUID)
     case reference(CampaignExternalReference)
+    case knowledgeDocument(KnowledgeDocumentRef)
 
     static func resolve(_ requested: UnifiedSearchRow, in snapshot: UnifiedSearchSnapshot,
                         isolated: Bool) throws -> Self {
@@ -22,6 +23,11 @@ nonisolated enum UnifiedSearchDestination: Equatable {
         case .prompt: return .prompt(current.id.objectID)
         case .learning: return .learning(current.id.objectID)
         case .note: return .note(current.id.objectID)
+        case .knowledgeDocument:
+            guard let ref = current.knowledge, ref == requested.knowledge else {
+                throw NavigationError.message("知识库文档已变化、被排除或来源不可读取；没有打开其他同名文件，请刷新。")
+            }
+            return .knowledgeDocument(ref)
         case .reference:
             guard let ref = current.reference, ref == requested.reference else {
                 throw NavigationError.message("引用记录已变化，请刷新后核对；没有自动打开。")
@@ -48,6 +54,8 @@ final class UnifiedSearchNavigator: ObservableObject {
     private let assetRoot: URL?
     private let systemOpen: (URL) -> Bool
     private var generation = 0
+    /// 打开知识库文档的投递口（默认投递到 `KnowledgeSourceOpenCenter`，由「我的知识库」页面消费）。
+    var postKnowledgeRequest: @MainActor (KnowledgeSourceOpenRequest) -> Void = { KnowledgeSourceOpenCenter.shared.post($0) }
     private var isolated: Bool {
 #if DEBUG
         configuration.isIsolated
@@ -73,6 +81,8 @@ final class UnifiedSearchNavigator: ObservableObject {
             switch destination {
             case .reference:
                 referenceRow = snapshot.rows.first { $0.id == row.id }
+            case .knowledgeDocument(let ref):
+                postKnowledgeRequest(KnowledgeSourceOpenRequest(document: ref))
             case .campaign(let id):
                 // Only an explicit user action constructs the existing editing Stores.
                 // The search reader never invokes these or the detail's recovery lifecycle.
