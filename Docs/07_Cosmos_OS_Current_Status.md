@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 任务上下文资料选择 Phase 1 已由用户接受声明验收范围并关闭，授权正常提交推送（见 §25）。仅当前活动已管理的文本产物，默认不选；安全读取原文、预览、复制/记录前重新校验，历史保存最终完整提示词。
+**Current stage:** 核心数据备份 Phase 1（导出与完整性校验）已由用户接受声明验收范围并关闭，授权正常提交推送（§26）。Settings 手动导出版本化元数据 ZIP，发布前校验；可独立校验已有包，不导入、不恢复、不打包产物实体。
+**Previous stage (任务资料):** 任务上下文资料选择 Phase 1 已接受并正式关闭，正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`（§25）；其历史验证及已声明限制沿用。
 **Previous stage (交接记录):** AI 工作台 Phase 3 已正式关闭并正常推送，实际 Git 收尾见 §24；独立历史、手动记录及历史原文复制能力保留。
 **Previous stage (任务准备):** Phase 2 已由用户接受验收并关闭，正式提交与正常推送已完成（见 §23）；有效收尾基线 main = origin/main = 远端 main、ahead/behind 0/0、工作区干净沿用，不重复 fetch 或历史验证。
 **Previous stage (AI 工作台):** Phase 1 已由用户接受并关闭，正式提交 `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`，消息 `feat: 新增 AI 工作台本机工具检测`。正常推送、main = origin/main、ahead/behind 0/0、工作区干净为用户提供的有效收尾基线，本轮未重复 fetch。Phase 1 历史测试与验收证据沿用；工具检测能力保留，详见 §22。
@@ -608,7 +609,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** 任务上下文资料选择 Phase 1 已接受验收并关闭（§25），本次完成授权 Git 收尾后停止；下一模块等待用户明确指定，不自动扩展开发。Phase 3 已正常提交推送并关闭（§24），Phase 1 工具检测和 Phase 2 准备能力保留；暂缓事项不动。
+**Current:** 核心数据备份 Phase 1 已接受并关闭（§26）；本次授权 Git 收尾成功后直接实施用户明确授权的“核心数据恢复 Phase 1｜空环境恢复”。恢复阶段仅开发与隔离验证，未授权正式数据操作或 Git 收尾。已关闭 AI 工作台各阶段保持现有能力；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1167,4 +1168,55 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 原生 UI 工具本会话先前已超时，不重试。真实 App 未选择活动/资料、滚动正文、点击复制/记录或体验变化后二次确认；新选择区域位于截图可见区域以下。逻辑、离屏视图与私有剪贴板测试不等于完整端到端 UI 验收。未触碰正式文件、未跑历史读取器完整测试；本轮新增路径的实际读取风险由新测试覆盖。
 - 非阻塞：大段正文/完整预览目前直接 Text 呈现，接近上限时可能有排版成本；选中资料仅页面内存，离开页面不保证保留。校验为操作前检查及既有 stat 修订检查，不承诺防止外部进程在检查结束后修改文件。无全文搜索、编辑、转换、任意目录资料或跨知识库同步。
 - 修改范围：新增 AIWorkspaceTaskReferences.swift、AIWorkspaceTaskReferencesView.swift、AIWorkspaceTaskReferencesTests.swift；修改 AIWorkspaceTaskPreparation.swift、AIWorkspaceTaskPreparationView.swift、AIWorkspaceHandoffStore.swift、AIWorkspaceView.swift、DashboardView.swift、ZhuowangAssetCatalogModels.swift、ZhuowangAssetTextReader.swift，以及本文件和当日日志，共 12 个文件。
-- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 用户授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main，仅包含报告中的 12 个文件。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`。沿用 14/14 测试、Universal Debug 构建及隔离数据保护证据，不追加测试/构建/复审；真实按钮交互未覆盖及大段正文排版成本继续作为验收限制。实际 Git 交付以仓库 refs 和收尾报告为准，完成后停止，下一模块不自动开启。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他知识库保持不动。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 用户授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main，仅包含报告中的 12 个文件。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，本地 HEAD 与远端 main 均为预期 parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`。沿用 14/14 测试、Universal Debug 构建及隔离数据保护证据，不追加测试/构建/复审；真实按钮交互未覆盖及大段正文排版成本继续作为验收限制。实际正式提交 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`，parent `bc9cb33bdf66b85e8645180b8ea8602d1c25f0af`；正常推送后 main / origin/main / 实际远端 main 一致、ahead/behind 0/0、工作区干净。下一模块仅依用户明确授权开展（本轮 §26）。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 和其他知识库保持不动。
+
+
+## 26. 核心数据备份 Phase 1 — 导出与完整性校验 — 2026-10-10
+
+### 用户流程与实际数据边界
+
+- Settings → 查看包含/不包含与安全排除 → 保存面板选择新 ZIP → 后台导出并校验 → 显示结果及逐源状态 → Finder 查看；也可选择已有 ZIP 独立校验。正在操作时停用按钮，失败明确反馈，不自动重试、不导入或恢复。
+- 开工只查 status / HEAD，实际干净基线为 `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`。沿用用户提供的有效远端收尾证据，不 fetch、不重跑历史验证、不设调查或独立复审。
+- 只读 10 个明确主数据源；不初始化 Store、不扫描目录/偏好域、不读产物实体、不刷新业务备份、不创建缺失默认数据。配置读取经现有 dataSource；UserDefaults 已有非 Data 值明确报错，不能伪装缺失。缺失主数据但已有对应备份时拒绝，不自动恢复或重建。
+
+| 包内源 ID | 实际持久化来源 | 包内路径（存在时） |
+| --- | --- | --- |
+| campaigns | `cosmos.zhuowang.campaigns.v1` | `data/campaigns.json` |
+| workspace | `cosmos.zhuowang.workspace.v1`（包含省份配置） | `data/workspace.json` |
+| workflows | `cosmos.zhuowang.workflows.v1`（内嵌 Artifact、Run、Approval） | `data/workflows.json` |
+| providers | `cosmos.zhuowang.ai.providers.v1` | `data/providers.json` |
+| connections | `cosmos.zhuowang.ai.connections.v1` | `data/connections.json` |
+| tools | `cosmos.zhuowang.ai.toolIntegrations.v1` | `data/tools.json` |
+| routes | `cosmos.zhuowang.ai.agentToolRoutes.v1` | `data/routes.json` |
+| prompts | Application Support / Cosmos OS / PromptVault / templates.json | `data/prompts.json` |
+| learning | Application Support / Cosmos OS / Learning / learning.json（主题+记录） | `data/learning.json` |
+| handoffs | Application Support / Cosmos OS / AIWorkspace / handoffs.json | `data/handoffs.json` |
+
+- 普通业务 JSON 原字节保留（包括正文、空白、CRLF、Unicode、登记路径引用）；配置先解析验证，再按固定白名单输出已知非敏感字段。Provider 排除 configurationIdentifier 和未知字段；Connection / Tool / Route 排除整份自由 configuration 字典、endpointOrPath、adapterIdentifier、notes 及未知字段。清单逐源记录转换，exclusions 明确排除项；宁可明确排除不能判定安全的自由配置，不猜测其中是否含 token。已知名称、模型、身份、状态、能力、执行选项和时间保留，不恢复这些被排除字段。
+- 不读取 Keychain、API Key/token/认证文件或整个 Application Support。用户既有 Prompt / Artifact / 学习 / 交接正文原样备份，不实施正文敏感词改写；不是加密备份。源码、正式产物、外部知识库、工具环境、Evidence/Quarantine、Word WIP 与临时数据均不包含；现有文件路径仍依赖原文件，不宣称完整换机恢复。
+
+### 格式、校验与一致性
+
+- ZIP 内 `manifest.json`：format = CosmosCoreMetadata、version = 1、ISO8601 exportedAt、exclusions、10 个固定 source 条目。每条含 ID、present / missing、包内路径、字节数、SHA-256 及 transformation；missing 无数据条目，真实空数组/空库仍 present。清单不额外记录绝对来源路径；业务内容本身原有路径引用仍保留。
+- 只支持本格式的未压缩标准 ZIP，不支持任意 ZIP、压缩方法、ZIP64、额外字段或注释。校验直接解析有界 ZIP 内存字节，不解压到磁盘；固定路径白名单、中央/本地头严格配对、CRC32、唯一条目及清单精确匹配拒绝路径穿越、符号链接、重复项、未知项、缺项及损坏。清单格式/版本、大小/SHA-256、各源 Codable/身份及已有文件文档 validate 同时检查；配置中未获准字段也拒绝。
+- 容量：每源 **16 MiB**、包 **128 MiB**（含 ZIP 结构与清单）、清单 **256 KiB**，最多 11 个条目。不截断。源读取/ZIP 操作在后台，UI 状态在主线程。
+- 复用既有安全文件模式：lstat 普通文件与父路径/符号链接拒绝、O_NOFOLLOW、限量读取、读取前后 device/inode/大小/mtime/ctime 纳秒修订比较。发布前逐源复读原字节和文件修订；不同则中止。UserDefaults 只比较当前进程可见的原始业务值，不调用 synchronize 或写入源，也不宣称持有全域/跨进程事务。
+- 一致性是检查点校验，不是全业务原子快照或跨进程事务；无法保证外部进程在最终检查后不再写入，或捕获检查点之间发生且完全回退的变化。文件检测复用现有修订语义，不创建/修改源锁或恢复主文件。
+- 同目标目录的专属临时文件，以 0600 权限、O_EXCL 写入并 fsync；先验证临时包再核对源，用 renamex_np / RENAME_EXCL 发布。即使其他进程中途建立同名目标，也拒绝覆盖。失败只清理本次临时包，不改已有目标或源数据。活动交付包服务语义未改；没有采用其 ditto 解包路径来校验未知输入，新增的 ZIP 逻辑仅限本备份格式。
+- SHA-256 / CRC32 用于意外损坏及条目完整性，不是签名、认证或加密；同时篡改内容并重算清单无法证明来源真实性。校验不引用正式源数据、不判断当前业务关联是否存在。
+
+### 本轮实测
+
+- 首轮集中检查在编译阶段停止，测试未执行：Settings 缺少 Combine 导入，另有配置初始化 actor 边界 warning。一次集中修复加入导入、主线程捕获 dataSource 后交给后台闭包；随后只运行尚未执行的新 CoreBackupTests，**12/12 通过**。未跑历史/全量测试，没有第二轮修复。
+- 覆盖 10 源和普通载荷/正文逐字节保留、敏感配置与未知字段排除、清单无额外来源绝对路径；未建立 vs 真实空库、读取不创建默认目录/数据；不可读、坏数据、错类型、缺主有备份；偏好值变化与同字节文件修订变化中止且清临时包；已有目标及发布前抢先创建目标不覆盖；篡改/缺项/多余项、重算哈希但结构损坏、重复清单、ZIP 重复/穿越/符号链接/压缩方法/条目数、未知版本及未获准配置字段；单源/包超限、源和包/父路径符号链接拒绝、隔离缺根失败关闭，以及 Settings 离屏渲染。
+- 合成数据使用 UUID 临时根。导出及独立校验前后业务源字节与主文件字节一致；操作只获指定源读取能力，无业务写接口。错类型测试用随机 UserDefaults suite，测试前后域值一致并清理；无正式业务源读取、写入或恢复。
+- **Universal Debug BUILD SUCCEEDED**，lipo 确认 `x86_64 arm64`；签名关闭、临时 DerivedData 和隔离 Bundle。git diff --check 通过。工程自动重排经 plutil 解析内容相等后恢复，无工程语义修改。新模块有一条 `ZhuowangWorkspaceSnapshot.Decodable` nonisolated 使用 warning（当前 Swift 5 可编译通过，未来 Swift 6 迁移待统一处理）；既有省份 actor / AppIntents / 历史测试编译 warnings 不扩大修复。
+- 一次后台 LaunchServices 隔离 App 启动：随机 suite + 三个明确 UUID 临时文件根，仅截目标窗口，不移动用户窗口。Settings 范围、排除、容量、一致性说明、导出/校验入口清楚呈现。三份 Campaign/Workflow/Workspace 偏好载荷逐字节不变，无新增业务键；Prompt/Learning/Handoff 三个主文件哈希不变，目录只保留原主文件、无新备份或锁。进程已结束、随机 suite 已删除，正式数据未触碰。
+- 证据：首次编译 `/private/tmp/CosmosCoreBackup-Focused.xcresult`；修复后 `/private/tmp/CosmosCoreBackup-Fixed.xcresult`、`/private/tmp/CosmosCoreBackup-fixed.log`；构建 `/private/tmp/CosmosCoreBackup-build.log`；窗口/载荷/完整性 `/private/tmp/CosmosCoreBackupUI-19db1199-0d33-4567-bf5c-bd63171c418d/`。
+
+### 缺口、待办与结论
+
+- 原生 UI 工具此前受限，本会话不重试。真实 App 未点击保存/打开面板、导出/校验反馈、重复操作或 Finder 按钮，不宣称完整端到端验收；服务风险由本轮测试覆盖。未验证真实正式数据导出、Release、任意第三方 ZIP 改写兼容、接近 128 MiB 的性能/内存峰值；不跑全量或历史测试、不安排独立复审。
+- 非阻塞：V1 未压缩 ZIP 与源载荷在内存操作，接近上限可能有内存成本；只有特定版本格式可校验，没有来源签名、加密、恢复或自动备份。配置自由字典全部排除，未来需要保留特定安全字段时应明确扩展白名单，不能放宽为全量导出。Swift 6 actor 迁移 warning 待未来统一处理。
+- 修改文件：新增 CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupArchive.swift、CoreBackupService.swift、CoreBackupSettingsView.swift、CoreBackupTests.swift；修改 DashboardView.swift、ZhuowangProtectedPersistence.swift、本文件和当日开发日志，共 10 个文件。
+- **结论：用户已接受上述声明验收范围，阶段关闭，无已知阻塞。** 授权以 `feat: 新增核心数据备份与完整性校验` 正常提交推送 main，仅包含报告中的 10 个文件，沿用 12/12 测试、Universal Debug 和隔离数据保护证据，不追加测试/构建/复审。提交前实际 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与远端 main 均为预期 parent `3024ceb6b9a501d19ef37002bdb108c3e63c27d8`；实际交付以 Git refs 和收尾报告为准。收尾成功后按用户明确授权实施空环境恢复，不操作正式数据。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3、其他仓库和知识库保持不动。

@@ -74,3 +74,25 @@ Phase 3 收尾成功：origin https://github.com/wangyucosmos/Cosmos-Toolbox.git
 用户接受声明验收范围，阶段关闭，授权按 `feat: 支持 AI 任务选择产物正文作为上下文` 提交并正常推送 main。沿用 14/14 测试、Universal Debug 构建及隔离保护证据，不追加测试、构建或复审。真实按钮交互未覆盖、大段正文排版成本保留为限制，不阻止收尾。
 
 提交前核对：实际 origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git；本地 main / HEAD 与实际远端 main 均为预期 parent bc9cb33bdf66b85e8645180b8ea8602d1c25f0af。工作区仅报告中的 12 个文件，逐项暂存，不纳入正式业务数据、源资料、个人交接记录、截图或隔离数据。实际提交和推送结果以 Git refs 及最终收尾报告为准。完成后停止，不自动开发下一模块，所有暂缓事项保持不动。
+
+
+## 核心数据备份 Phase 1：导出与完整性校验
+
+用户授权直接开发，不授权 Git 收尾。实际开工 HEAD 为 3024ceb6b9a501d19ef37002bdb108c3e63c27d8、工作区干净；前阶段正式推送与历史验证沿用，不 fetch、不设调查/复审阶段。
+
+按实际代码识别 7 个主业务偏好键和 3 个主 JSON 文件，接入 Settings 范围展示、保存位置、后台导出/验证、结果与 Finder 入口。普通载荷保留原字节；AI 配置白名单排除自由字典/端点/配置标识/notes/未知字段并在清单说明。不初始化 Store、不恢复主文件、不刷新源备份，不整域导出或打包产物实体。
+
+V1 为不压缩 ZIP，固定源清单及 SHA-256；仅本格式可直接读取校验，不解压到磁盘。安全父路径、普通文件/符号链接拒绝、源文件修订及发布前原字节复读、临时包验证、renamex_np / RENAME_EXCL 防覆盖。单源 16 MiB、整包 128 MiB、清单 256 KiB；没有跨进程事务、签名、加密或恢复能力，不宣称换机恢复。
+
+新增 CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupArchive.swift、CoreBackupService.swift、CoreBackupSettingsView.swift、CoreBackupTests.swift；修改 DashboardView.swift、ZhuowangProtectedPersistence.swift、Current Status、本日志，共 10 文件。工程文件自动重排经解析相等后恢复，不纳入成果。
+
+一轮集中检查：首轮编译失败、测试未执行（Combine 导入缺失及初始化 actor 边界 warning）。一次集中修复后，新测试 12/12 通过；覆盖源范围、原文保留、敏感配置排除、读取/解析/变化失败、安全 ZIP/清单、容量及目标不覆盖/临时清理/零源写入。一次 Universal Debug 构建成功（x86_64 arm64），diff check 通过。Swift 5 当前允许的 WorkspaceSnapshot.Decodable actor warning 保留为未来 Swift 6 迁移待办，不自行追加修复轮次。
+
+一次后台隔离真实 App 显示 Settings 新入口与范围/限制。三份业务偏好字节和三个主 JSON 文件哈希未变，无新增业务键、锁、备份；结束进程并清理随机 suite。真实面板及按钮/Finder 交互未操作，不宣称端到端 UI 验收。完整当前证据、10 源映射及一致性边界统一见 Current Status §26，不在多处重复维护。
+
+结论：按声明验证范围可收尾，无已知阻塞。未提交/推送/合并，等待收尾授权；不自动开发下一模块、不处理暂缓事项或写其他知识库。
+
+
+## 核心数据备份 Phase 1 验收与 Git 收尾授权
+
+用户接受声明验收范围，阶段关闭，授权提交 `feat: 新增核心数据备份与完整性校验` 并正常推送 main。仅逐项暂存报告中的 10 个文件，不纳入业务数据、备份包或临时证据。沿用已通过验证与覆盖缺口，不追加测试/构建/复审。提交前实际 origin 为 https://github.com/wangyucosmos/Cosmos-Toolbox.git，HEAD 与实际远端 main 均为预期 parent 3024ceb6b9a501d19ef37002bdb108c3e63c27d8，实际交付以 Git refs / 收尾报告为准。成功后直接开发用户明确授权的空环境恢复；恢复阶段仅开发与隔离验证，不操作正式数据、不提交推送。

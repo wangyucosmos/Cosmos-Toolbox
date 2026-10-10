@@ -140,6 +140,13 @@ nonisolated final class ZhuowangUserDefaultsDataSource:
         defaults.data(forKey: key)
     }
 
+    /// Backup reads distinguish an absent key from a stored value of the wrong type.
+    func coreBackupData(forKey key: String) throws -> Data? {
+        guard let value = defaults.object(forKey: key) else { return nil }
+        guard let data = value as? Data else { throw CoreBackupError.invalid("业务数据源类型无效；未以空数据替代。") }
+        return data
+    }
+
     func set(
         _ data: Data,
         forKey key: String

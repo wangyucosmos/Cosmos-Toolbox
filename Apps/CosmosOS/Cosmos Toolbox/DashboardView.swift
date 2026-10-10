@@ -26,7 +26,7 @@ struct DashboardView: View {
         if storePersistenceConfiguration.isIsolated,
            let index = arguments.firstIndex(of: "--cosmos-initial-sidebar"),
            index + 1 < arguments.count,
-           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace"].contains(arguments[index + 1]) {
+           ["zhuowang", "knowledgeBase", "promptVault", "learningCenter", "aiWorkspace", "settings"].contains(arguments[index + 1]) {
             _selection = State(initialValue: SidebarItem(rawValue: arguments[index + 1]))
         }
 #endif
@@ -74,6 +74,17 @@ struct DashboardView: View {
 #else
         LearningLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
 #endif
+    }
+
+    private var coreBackupSource: CoreBackupSource {
+#if DEBUG
+        let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolated,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+#else
+        let handoff = AIWorkspaceHandoffLocation.resolve(isIsolated: false, bundleIdentifier: nil, arguments: [])
+#endif
+        return CoreBackupSource(configuration: storePersistenceConfiguration,
+            promptRoot: promptVaultLocation.root, learningRoot: learningLocation.root, handoffRoot: handoff.root)
     }
 
     /// Isolated UI acceptance only: run the AI 工作台 detection on arrival.
@@ -212,6 +223,10 @@ struct DashboardView: View {
                 } else if selection == .aiWorkspace {
                     AIWorkspaceView(cache: aiWorkspaceCache, configuration: storePersistenceConfiguration, referenceRoot: isolatedAssetRoot, autoDetect: aiWorkspaceAutoDetect)
                         .id(SidebarItem.aiWorkspace)
+
+                } else if selection == .settings {
+                    CoreBackupSettingsView(source: coreBackupSource)
+                        .id(SidebarItem.settings)
 
                 } else if let selection {
 
