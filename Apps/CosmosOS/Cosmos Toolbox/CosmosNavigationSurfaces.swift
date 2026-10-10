@@ -34,6 +34,6 @@ struct CosmosKnowledgeDestinationView: View {
                 }
         }.buttonStyle(.plain)
             .accessibilityAddTraits(navigator.knowledgeSection == section ? .isSelected : [])
-            .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.motion, value: navigator.knowledgeSection)
+            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: navigator.knowledgeSection)
     }
 }

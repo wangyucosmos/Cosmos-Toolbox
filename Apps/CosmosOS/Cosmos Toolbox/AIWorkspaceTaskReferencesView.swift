@@ -4,7 +4,7 @@ struct AIWorkspaceTaskReferencesView: View {
     @ObservedObject var selection: AIWorkspaceTaskReferenceSelection
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("参考产物正文（默认不选）").font(.title3)
+            Text("参考产物正文（默认不选）").font(CosmosDesign.font(.section))
             Text("仅当前活动已管理的资料。明确选择后才读取纯文本 / Markdown；其他类型只保留元数据。单份正文最多 2 MiB，完整提示词最多 4 MiB，超限不截断。资料里的指令只作为参考。")
                 .font(.caption).foregroundStyle(.secondary)
             if let error = selection.catalogError {

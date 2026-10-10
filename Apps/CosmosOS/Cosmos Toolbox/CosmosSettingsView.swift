@@ -16,7 +16,7 @@ struct CosmosSettingsView: View {
                 .tabItem { Label("数据与备份", systemImage: "externaldrive") }.tag(CosmosSettingsTab.data)
             about.tabItem { Label("关于", systemImage: "info.circle") }.tag(CosmosSettingsTab.about)
         }.padding(16).frame(width: 720, height: navigator.settingsTab == .data ? 660 : navigator.settingsTab == .about ? 400 : 460)
-            .animation(preferences.reducesMotion(system: systemMotion) ? nil : .smooth(duration: 0.2), value: navigator.settingsTab)
+            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: navigator.settingsTab)
             .modifier(CosmosMotionPolicy())
     }
     private var general: some View {

@@ -159,5 +159,16 @@ struct CosmosChartCard<Content: View>: View {
 
 struct CosmosGlassToolbarGroup<Content: View>: View {
     @ViewBuilder let content: Content
-    var body: some View { GlassEffectContainer(spacing: 8) { HStack(spacing: 8) { content }.buttonStyle(.glass).foregroundStyle(.primary) } }
+    var id = "page-actions"
+    @Namespace private var localGlass
+    @Environment(\.cosmosGlassNamespace) private var sharedGlass
+    var body: some View {
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 10) { content }.buttonStyle(.borderless).foregroundStyle(.primary)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+                .glassEffectID(id, in: sharedGlass ?? localGlass)
+                .glassEffectTransition(.matchedGeometry)
+        }
+    }
 }

@@ -3,24 +3,19 @@ import SwiftUI
 struct LearningCenterView: View {
     @StateObject private var store: LearningStore
     @StateObject private var model = LearningViewModel()
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
 
     init(location: LearningLocation) {
         _store = StateObject(wrappedValue: LearningStore(root: location.root, startupError: location.error))
     }
 
+    init(store: LearningStore, model: LearningViewModel) { _store = StateObject(wrappedValue: store); _model = StateObject(wrappedValue: model) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("学习中心").font(.largeTitle)
-                Spacer()
-                Button("新建主题", systemImage: "plus") {
-                    LearningEditorWindowManager.shared.openTopic(store: store, topic: nil)
-                }.disabled(!store.canSave).accessibilityIdentifier("learning-new-topic")
-                Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }
-                    .disabled(store.saving)
-            }
-            Text("正在学什么、想达到什么、上次学了什么、下一步从哪里继续。内容由你填写，不推断进度。")
-                .foregroundStyle(.secondary).font(.callout)
+            CosmosPageHeader("学习中心", subtitle: "记录学习目标、每次收获和下一步。",
+                info: "状态由你手动选择：计划中、学习中、已完成。不推断百分比进度。先创建主题，再记录每次学习；归档保留主题与历史。")
             if let error = store.error {
                 Text(error.localizedDescription).foregroundStyle(.orange).textSelection(.enabled)
             }
@@ -42,7 +37,11 @@ struct LearningCenterView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .task { await store.reload() }
+        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+            Button("新建主题", systemImage: "plus") { LearningEditorWindowManager.shared.openTopic(store: store, topic: nil) }.disabled(!store.canSave).accessibilityIdentifier("learning-new-topic")
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
+        } } }
+        .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload(); model.reconcileSelection(store.topics) } }
         .onChange(of: store.topics) { _, topics in model.reconcileSelection(topics) }
     }
 
@@ -50,15 +49,14 @@ struct LearningCenterView: View {
         let summaries = model.summaries(topics: store.topics, entries: store.entries)
         return VStack {
             if summaries.isEmpty {
-                ContentUnavailableView(store.topics.isEmpty ? "创建第一个学习主题" : "没有匹配的主题",
-                    systemImage: "graduationcap",
-                    description: Text(store.topics.isEmpty
-                        ? "写下想学的内容和目标，再记录每一次学习。"
-                        : "可调整搜索、状态、下一步或归档筛选。"))
+                CosmosEmptyState(icon: "graduationcap", title: store.topics.isEmpty ? "从一个想学的主题开始" : "没有匹配的主题",
+                    detail: store.topics.isEmpty ? "例如 SwiftUI 或 AI 产品研究。写下目标，再记录每一次学习与下一步。" : "调整搜索、状态或归档筛选。",
+                    actionTitle: store.topics.isEmpty ? "新建主题" : nil,
+                    action: store.topics.isEmpty ? { LearningEditorWindowManager.shared.openTopic(store: store, topic: nil) } : nil).disabled(!store.canSave)
             } else {
                 List(selection: $model.selectedID) {
                     ForEach(summaries) { summary in
-                        LearningTopicRow(summary: summary).tag(summary.id)
+                        LearningTopicRow(summary: summary).cosmosRowFeedback().tag(summary.id)
                             .accessibilityIdentifier("learning-topic-" + summary.id.uuidString)
                     }
                 }
@@ -71,8 +69,7 @@ struct LearningCenterView: View {
             LearningTopicDetailView(topic: topic, history: model.history(topicID: topic.id, entries: store.entries),
                 store: store, model: model)
         } else {
-            ContentUnavailableView("选择一个主题", systemImage: "text.book.closed",
-                description: Text("查看目标、下一步和学习历史。"))
+            CosmosEmptyState(icon: "text.book.closed", title: "选择一个主题", detail: "查看目标、下一步和学习历史。")
         }
     }
 }

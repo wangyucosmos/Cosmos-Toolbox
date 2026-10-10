@@ -114,19 +114,19 @@ final class ProjectsTests: XCTestCase {
         func restoreInsert(_ data: Data, key: String) throws { guard values[key] == nil else { throw CoreRestoreError.invalid("occupied") }; values[key] = data }
         func restoreRemoveOwned(_ data: Data, key: String) throws -> Bool { guard values[key] == data else { return false }; values.removeValue(forKey: key); return true }
     }
-    private func backupSource(_ root: URL) -> CoreBackupSource { .init(readPreference: { _ in nil }, fileRoots: ["p", "l", "h", "j"].map { root.appendingPathComponent($0) }) }
-    private func restoreTarget(_ root: URL) -> CoreRestoreTarget { .init(preferences: Prefs(), roots: ["p", "l", "h", "j"].map { root.appendingPathComponent($0) }, transactionRoot: root.appendingPathComponent("control")) }
+    private func backupSource(_ root: URL) -> CoreBackupSource { .init(readPreference: { _ in nil }, fileRoots: ["p", "l", "h", "j", "n"].map { root.appendingPathComponent($0) }) }
+    private func restoreTarget(_ root: URL) -> CoreRestoreTarget { .init(preferences: Prefs(), roots: ["p", "l", "h", "j", "n"].map { root.appendingPathComponent($0) }, transactionRoot: root.appendingPathComponent("control")) }
     func testBackupRestoreProjectsExactBytesAndOldV1NotIncluded() async throws {
         let root = try root(), source = backupSource(root)
         let storage = ProjectsFileStorage(root: source.fileRoots[3]); _ = try await storage.apply(.save(project(), expectedRevision: nil))
-        let original = try Data(contentsOf: storage.primaryURL), package = root.appendingPathComponent("v2.zip")
-        let result = try CoreBackupService(source: source).export(to: package); XCTAssertEqual(result.manifest.version, 2)
+        let original = try Data(contentsOf: storage.primaryURL), package = root.appendingPathComponent("v3.zip")
+        let result = try CoreBackupService(source: source).export(to: package); XCTAssertEqual(result.manifest.version, 3)
         let target = restoreTarget(try self.root()); try CoreRestoreService(target: target).restore(CoreRestoreService.prepare(package))
-        XCTAssertEqual(try Data(contentsOf: target.fileURL(id: "projects")!), original)
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(target.fileURL(id: "projects"))), original)
         let loaded = try await ProjectsFileStorage(root: target.roots[3]).load(); XCTAssertEqual(loaded.projects[0].progress.count, 1)
         XCTAssertEqual(loaded.projects[0].references.count, 2)
-        var entries = try CoreBackupArchive.decode(Data(contentsOf: package)); entries.removeValue(forKey: "data/projects.json")
-        var manifest = result.manifest; manifest.version = 1; manifest.sources.removeAll { $0.id == "projects" }
+        var entries = try CoreBackupArchive.decode(Data(contentsOf: package)); entries.removeValue(forKey: "data/projects.json"); entries.removeValue(forKey: "data/notes.json")
+        var manifest = result.manifest; manifest.version = 1; manifest.exclusions = CoreBackupSource.exclusions(forVersion: 1); manifest.sources = manifest.sources.filter { CoreBackupSource.ids(forVersion: 1).contains($0.id) }
         // A V1 valid empty Learning payload ensures the old package has one restore item.
         let body = Data("{\"schemaVersion\":1,\"topics\":[],\"entries\":[]}".utf8)
         entries["data/learning.json"] = body
@@ -143,9 +143,9 @@ final class ProjectsTests: XCTestCase {
     func testProjectsOccupiedTargetsAndCorruptBackupRejected() async throws {
         let root = try root(), target = restoreTarget(root)
         try FileManager.default.createDirectory(at: target.roots[3], withIntermediateDirectories: true)
-        try ProjectsCoding.encoder().encode(ProjectsDocument()).write(to: target.fileURL(id: "projects")!)
+        try ProjectsCoding.encoder().encode(ProjectsDocument()).write(to: XCTUnwrap(target.fileURL(id: "projects")))
         XCTAssertThrowsError(try target.requireEmpty())
-        try FileManager.default.removeItem(at: target.fileURL(id: "projects")!)
+        try FileManager.default.removeItem(at: XCTUnwrap(target.fileURL(id: "projects")))
         try Data("corrupt".utf8).write(to: target.roots[3].appendingPathComponent("projects.backup.json"))
         XCTAssertThrowsError(try target.requireEmpty()); XCTAssertThrowsError(try CoreBackupService(source: backupSource(root)).export(to: root.appendingPathComponent("refused.zip")))
         XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("refused.zip").path))

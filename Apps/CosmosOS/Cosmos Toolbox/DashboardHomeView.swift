@@ -108,7 +108,10 @@ struct DashboardHomeView: View {
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth)
         }.background(Color(nsColor: .windowBackgroundColor))
             .toolbar { ToolbarItem { Button("刷新", systemImage: "arrow.clockwise") { model.refresh(); mac.refresh() }.buttonStyle(.glass).disabled(model.loading).accessibilityIdentifier("dashboard-refresh") } }
-            .task { if autoRefresh { model.refresh(); mac.loadIfNeeded() }; appeared = true }
+             .task {
+                appeared = true
+                if autoRefresh, await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { model.refresh(); mac.loadIfNeeded() }
+            }
             .animation(preferences.reducesMotion(system: systemMotion) ? nil : .smooth(duration: 0.35), value: appeared)
             .animation(preferences.reducesMotion(system: systemMotion) ? nil : .smooth(duration: 0.35), value: data.readAt)
             .onDisappear { model.cancel() }

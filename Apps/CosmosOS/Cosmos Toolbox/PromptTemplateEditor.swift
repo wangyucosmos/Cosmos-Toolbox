@@ -10,9 +10,9 @@ final class PromptTemplateEditSession: ObservableObject {
     @Published private(set) var saving = false
     @Published var terminationPending = false
     let store: PromptVaultStore
-    init(store: PromptVaultStore, template: PromptTemplate?) {
+    init(store: PromptVaultStore, template: PromptTemplate?, prefill: PromptTemplate? = nil) {
         self.store = store; baseline = template
-        draft = template ?? PromptTemplate(name: "", body: "")
+        draft = template ?? prefill ?? PromptTemplate(name: "", body: "")
     }
     var isDirty: Bool {
         guard let baseline else { return !draft.name.isEmpty || !draft.body.isEmpty || draft.category != nil }
@@ -133,9 +133,9 @@ final class PromptTemplateWindowManager: NSObject, NSWindowDelegate {
     func syncCleanSession(store: PromptVaultStore, saved: PromptTemplate) {
         entries[keyPrefix(store) + saved.id.uuidString]?.session.adoptSavedIfClean(saved)
     }
-    func open(store: PromptVaultStore, template: PromptTemplate?) {
+    func open(store: PromptVaultStore, template: PromptTemplate?, prefill: PromptTemplate? = nil) {
         guard !terminationPending else { return }
-        let session = PromptTemplateEditSession(store: store, template: template)
+        let session = PromptTemplateEditSession(store: store, template: template, prefill: prefill)
         let key = store.storageIdentity + "::" + session.draft.id.uuidString
         if let entry = entries[key] { entry.controller.window?.makeKeyAndOrderFront(nil); return }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 700),

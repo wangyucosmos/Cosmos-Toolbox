@@ -5,6 +5,7 @@ struct AIWorkspaceView: View {
 
     @StateObject private var model: AIWorkspaceViewModel
     private let autoDetect: Bool
+    private let initialStage: Int
     @StateObject private var preparation: AIWorkspaceTaskPreparation
     @StateObject private var history: AIWorkspaceHandoffStore
     @State private var showsHistory = false
@@ -29,109 +30,68 @@ struct AIWorkspaceView: View {
         _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { try reader.read() },
             referenceReader: ZhuowangAssetTextReader(allowedRoot: referenceRoot), referenceIsolationError: referenceError))
         _model = StateObject(wrappedValue: AIWorkspaceViewModel(cache: cache))
-        self.autoDetect = autoDetect
+        self.autoDetect = autoDetect; initialStage = 1
     }
 
     /// Injectable model, for offscreen rendering and tests.
-    init(model: AIWorkspaceViewModel, autoDetect: Bool = false) {
-        _preparation = StateObject(wrappedValue: AIWorkspaceTaskPreparation(read: { AIWorkspaceTaskContext() }))
-        _history = StateObject(wrappedValue: AIWorkspaceHandoffStore(location: .init(root: nil, error: .unsafePath)))
+    init(model: AIWorkspaceViewModel, autoDetect: Bool = false, preparation: AIWorkspaceTaskPreparation? = nil, history: AIWorkspaceHandoffStore? = nil, initialStage: Int = 1) {
+        _preparation = StateObject(wrappedValue: preparation ?? AIWorkspaceTaskPreparation(read: { AIWorkspaceTaskContext() }))
+        _history = StateObject(wrappedValue: history ?? AIWorkspaceHandoffStore(location: .init(root: nil, error: .unsafePath)))
         _model = StateObject(wrappedValue: model)
-        self.autoDetect = autoDetect
+        self.autoDetect = autoDetect; self.initialStage = initialStage
     }
 
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CosmosDesign.spacingXL) {
-                header
-                Picker("工作台", selection: $showsHistory) {
-                    Text("准备任务").tag(false)
-                    Text("交接记录").tag(true)
-                }.pickerStyle(.segmented).frame(maxWidth: 360)
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 20) {
+                CosmosPageHeader("AI 工作台", subtitle: "把卓望活动的上下文整理成一段提示词，交给 Claude 或 Codex 去执行。",
+                    info: "选择活动与步骤，填写本次目标，预览后手动复制。草稿仅在页面内存中。CLI 检测只证明本机入口与 --version 可运行，不证明登录、额度、网络或模型可用；不会安装、更新、读取密钥或调用 AI 服务。")
+                toolStatus.cosmosEntrance()
+                CosmosSegmentedControl(title: "工作台", options: [(false, "准备任务"), (true, "交接记录")], selection: $showsHistory)
                     .accessibilityIdentifier("ai-workspace-section")
-                if showsHistory {
-                    AIWorkspaceHandoffHistoryView(history: history, preparation: preparation)
-                } else {
-                    AIWorkspaceTaskPreparationView(model: preparation, history: history)
-                }
-                Divider()
-                Text("本机工具与运行环境").font(.title2)
-                notice
-                VStack(spacing: CosmosDesign.spacingM) {
+                if showsHistory { AIWorkspaceHandoffHistoryView(history: history, preparation: preparation).cosmosEntrance(1) }
+                else { AIWorkspaceTaskPreparationView(model: preparation, history: history, initialStage: initialStage).cosmosEntrance(1) }
+            }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
+        }.background(Color(nsColor: .windowBackgroundColor))
+            .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+                Button(model.isDetecting ? "正在检测…" : "开始检测", systemImage: "terminal") { model.refresh() }
+                    .disabled(model.isDetecting).accessibilityIdentifier("ai-workspace-detect")
+                Button("刷新活动上下文", systemImage: "arrow.clockwise") { preparation.refresh() }
+            } } }
+            .task {
+                guard await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) else { return }
+                preparation.refresh(); await history.reload()
+                if autoDetect, model.snapshot == nil { model.refresh() }
+            }.onDisappear { model.cancel() }
+    }
+    private func statusText(_ result: AIWorkspaceToolResult?) -> String {
+        guard let result else { return model.isDetecting ? "检测中" : "未检测" }
+        switch result.status {
+        case .ready: return result.version.map { "可运行 · " + $0 } ?? "可运行"
+        case .missing: return "未找到"
+        case .warning: return "无法运行"
+        }
+    }
+    private var toolStatus: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if model.snapshot == nil { Text("检测本机是否已安装这些 AI 工具").font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
                     ForEach(AIWorkspaceToolID.allCases) { tool in
-                        AIWorkspaceToolRow(
-                            tool: tool,
-                            result: model.snapshot?.results.first { $0.tool == tool },
-                            isDetecting: model.isDetecting
-                        )
+                        let result = model.snapshot?.results.first { $0.tool == tool }
+                        HStack(spacing: 6) {
+                            Circle().fill(result?.status == .ready ? Color.green : result?.status == .warning ? Color.orange : Color.secondary).frame(width: 6, height: 6)
+                            Text(tool.title).font(CosmosDesign.font(.body))
+                            Text(statusText(result)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                            if let result { CosmosInfoButton(text: [result.versionLine, result.path, result.resolvedPath.map { "实际位置：" + $0 }, result.source.map { "来源：" + $0.title }, result.isSystemShim ? "系统自带入口" : nil, result.failure?.message, result.failure?.hint].compactMap { $0 }.joined(separator: "\n")) }
+                        }.padding(.horizontal, 12).padding(.vertical, 8).background(.quaternary, in: Capsule())
                     }
                 }
             }
-            .padding(.horizontal, CosmosDesign.pagePadding)
-            .padding(.vertical, CosmosDesign.spacingXXL)
-            .frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
+            if let snapshot = model.snapshot { Text("最近检测：" + snapshot.completedAt.formatted(date: .abbreviated, time: .standard)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary).accessibilityIdentifier("ai-workspace-time") }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .task {
-            preparation.refresh()
-            await history.reload()
-            if autoDetect, model.snapshot == nil { model.refresh() }
-        }
-        .onDisappear { model.cancel() }
-    }
-
-    private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
-                Text("AI 工作台")
-                    .font(.system(size: 32, weight: .semibold))
-                Text("任务准备与提示词交接")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                Button {
-                    model.refresh()
-                } label: {
-                    if model.isDetecting {
-                        Label {
-                            Text("正在检测…")
-                        } icon: {
-                            ProgressView().controlSize(.small)
-                        }
-                    } else {
-                        Label(model.snapshot == nil ? "开始检测" : "重新检测", systemImage: "arrow.clockwise")
-                    }
-                }
-                .disabled(model.isDetecting)
-                .accessibilityIdentifier("ai-workspace-detect")
-
-                Text(timeText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("ai-workspace-time")
-            }
-        }
-    }
-
-    private var timeText: String {
-        guard let completed = model.snapshot?.completedAt else { return "尚未检测" }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "M月d日 HH:mm:ss"
-        return "最近检测：" + formatter.string(from: completed)
-    }
-
-    private var notice: some View {
-        Label {
-            Text("检测只说明这台 Mac 上有没有这个工具，并且 --version 能运行。它不代表已经登录、有额度、网络通畅或模型可用。Cosmos OS 不会安装、更新、登录，也不会读取密钥或调用 AI 服务。")
-        } icon: {
-            Image(systemName: "info.circle")
-        }
-        .font(.callout)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

@@ -3,6 +3,8 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(\.cosmosNavigator) private var navigator
     @Environment(\.cosmosPreferences) private var preferences
+    @Namespace private var pageGlass
+    @State private var sidebarPulse: [SidebarItem: Int] = [:]
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     @Environment(\.openSettings) private var openSettings
     @State private var didRestoreNavigation = false
@@ -173,6 +175,7 @@ struct DashboardView: View {
         } detail: {
 
             ZStack {
+                Group {
                 if selection == .dashboard {
 
                     DashboardHomeView(
@@ -193,20 +196,6 @@ struct DashboardView: View {
                         open: { selection = $0 }
                     )
                         .id(SidebarItem.dashboard)
-                        .transition(
-                            .asymmetric(
-                                insertion:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: 18, y: 0)
-                                    ),
-                                removal:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: -8, y: 0)
-                                    )
-                            )
-                        )
 
                 } else if selection == .zhuowang {
 
@@ -217,20 +206,6 @@ struct DashboardView: View {
                         openPromptVault: { selection = .promptVault }
                     )
                         .id(SidebarItem.zhuowang)
-                        .transition(
-                            .asymmetric(
-                                insertion:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: 18, y: 0)
-                                    ),
-                                removal:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: -8, y: 0)
-                                    )
-                            )
-                        )
 
                 } else if selection == .unifiedSearch {
                     UnifiedSearchView(configuration: storePersistenceConfiguration,
@@ -271,30 +246,18 @@ struct DashboardView: View {
 
                     PlaceholderView(item: selection)
                         .id(selection)
-                        .transition(
-                            .asymmetric(
-                                insertion:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: 18, y: 0)
-                                    ),
-                                removal:
-                                    .opacity
-                                    .combined(
-                                        with: .offset(x: -8, y: 0)
-                                    )
-                            )
-                        )
                 }
+                }
+                .id(selection)
+                .transition(CosmosDesign.pageTransition(reduced: preferences.reducesMotion(system: systemMotion)))
             }
-            .id(selection)
-            .transition(preferences.reducesMotion(system: systemMotion) ? .opacity : .opacity.combined(with: .offset(x: 8)))
-            .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.motion, value: selection)
+            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: selection)
         }
+        .environment(\.cosmosGlassNamespace, pageGlass)
         .modifier(CosmosMotionPolicy())
         .task { restoreNavigationOnce() }
         .onChange(of: selection) { _, value in
-            if let value, value != .settings { preferences.lastPage = value.rawValue }
+            if let value, value != .settings { preferences.lastPage = value.rawValue; sidebarPulse[value, default: 0] += 1 }
         }
         .onChange(of: navigator.settingsRequest) { _, _ in openSettings() }
         .onChange(of: navigator.newRecordRequest) { _, source in
@@ -430,6 +393,8 @@ struct DashboardView: View {
         } icon: {
 
             Image(systemName: item.icon)
+                .symbolEffect(.bounce, options: .nonRepeating, value: sidebarPulse[item, default: 0])
+                .symbolEffectsRemoved(preferences.reducesMotion(system: systemMotion))
         }
         .frame(minHeight: 30)
         .tag(item)

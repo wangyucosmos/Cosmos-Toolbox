@@ -37,13 +37,13 @@ struct AIWorkspaceHandoffHistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("交接记录").font(.title2)
+                Text("交接记录").font(CosmosDesign.font(.section))
                 Spacer()
                 Button("刷新记录", systemImage: "arrow.clockwise") { Task { await history.reload() } }
                     .disabled(history.loading || history.saving)
             }
-            Text("手动保存的提示词快照，不代表 AI 已执行或任务完成。历史名称与文本保持保存时的内容。")
-                .font(.callout).foregroundStyle(.secondary)
+            Text("保存交接时的提示词快照，继续追踪每次任务。").font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
+            CosmosInfoButton(text: "手动保存不代表 AI 已执行或完成；名称与文本保持保存时的内容，不使用当前资料替换历史。")
             Picker("活动", selection: $campaignID) {
                 Text("全部活动").tag(Optional<UUID>.none)
                 ForEach(history.campaignFilters, id: \.id) { filter in
@@ -55,7 +55,7 @@ struct AIWorkspaceHandoffHistoryView: View {
             } else if let error = history.loadError {
                 ContentUnavailableView("交接记录读取失败", systemImage: "exclamationmark.triangle", description: Text(error))
             } else if history.loaded && filtered.isEmpty {
-                ContentUnavailableView("暂无交接记录", systemImage: "tray", description: Text("准备任务后手动记录；复制不会自动保存。"))
+                CosmosEmptyState(icon: "tray", title: "暂无交接记录", detail: "复制提示词并记录交接后会出现在这里；复制不会自动保存。")
             } else {
                 ForEach(filtered) { record in
                     Button {
@@ -75,7 +75,7 @@ struct AIWorkspaceHandoffHistoryView: View {
                         }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
                             .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(CosmosInteractiveCardStyle())
                 }
             }
             if let root = history.location.root {

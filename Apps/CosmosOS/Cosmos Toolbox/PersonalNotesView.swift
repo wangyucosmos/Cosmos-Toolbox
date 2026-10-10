@@ -36,6 +36,8 @@ struct PersonalNotesView: View {
     @State private var favoritesOnly = false
     @State private var archived = false
     @State private var showExport = false
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
     private let promptLocation: PromptVaultLocation?
 
     init(location: PersonalNotesLocation, promptLocation: PromptVaultLocation? = nil) {
@@ -47,19 +49,8 @@ struct PersonalNotesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("个人笔记").font(.system(size: 32, weight: .semibold))
-                        Text("个人经验、操作说明与研究笔记 · 纯文本 / Markdown 源文，不渲染、不联网").foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }
-                        .disabled(!store.canSave).accessibilityIdentifier("notes-new")
-                    Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }
-                        .accessibilityIdentifier("notes-export-batch")
-                    Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }
-                        .disabled(store.loading || store.saving)
-                }
+                CosmosPageHeader("个人笔记", subtitle: "保存经验、操作说明与研究笔记。",
+                    info: "保存纯文本 / Markdown 源文，不渲染、不联网。笔记属于个人，不属于卓望活动；文件与链接仅登记引用，归档保留内容与全部历史。")
                 HStack {
                     TextField("搜索标题或已保存正文", text: $search).accessibilityIdentifier("notes-search")
                     Picker("分类", selection: $category) {
@@ -86,7 +77,12 @@ struct PersonalNotesView: View {
             .frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .task { await store.reload() }
+        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+            Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }.disabled(!store.canSave).accessibilityIdentifier("notes-new")
+            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("notes-export-batch")
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving)
+        } } }
+        .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload() } }
         .sheet(isPresented: $showExport) {
             ContentExportBatchSheet(libraries: ContentExportLibraries(notesLocation: store.location, promptLocation: promptLocation),
                 initialSource: .personalNote)
@@ -97,14 +93,13 @@ struct PersonalNotesView: View {
         let visible = PersonalNotesQuery.filter(store.notes, search: search, category: category,
             favoritesOnly: favoritesOnly, archived: archived)
         if visible.isEmpty {
-            ContentUnavailableView(store.established ? "没有符合条件的笔记" : "尚未建立个人笔记库",
-                systemImage: "note.text",
-                description: Text(store.established
-                    ? "笔记库中没有符合当前搜索、分类、收藏或归档筛选的笔记。"
-                    : "新建第一条笔记并保存后才会建立笔记库；不会预置示例或扫描任何文件。"))
+            CosmosEmptyState(icon: "note.text", title: store.established ? "没有符合条件的笔记" : "写下第一条值得留下的经验",
+                detail: store.established ? "调整搜索、分类、收藏或归档筛选。" : "从一次操作说明、一个研究结论，或一段工作经验开始。",
+                actionTitle: store.established ? nil : "新建笔记",
+                action: store.established ? nil : { PersonalNoteWindowManager.shared.open(store: store, note: nil) }).disabled(!store.canSave)
         } else {
             Text("\(visible.count) 条笔记").font(.caption).foregroundStyle(.secondary)
-            ForEach(visible) { note in
+            ForEach(Array(visible.enumerated()), id: \.element.id) { index, note in
                 HStack(alignment: .top) {
                     Button { PersonalNoteWindowManager.shared.open(store: store, note: note) } label: {
                         VStack(alignment: .leading, spacing: 6) {
@@ -116,15 +111,14 @@ struct PersonalNotesView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(Self.preview(note.body)).lineLimit(2).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityIdentifier("note-row-" + note.id.uuidString)
+                    }.buttonStyle(CosmosInteractiveCardStyle()).accessibilityIdentifier("note-row-" + note.id.uuidString)
                     Button { Task { await store.setFavorite(note) } } label: {
                         Image(systemName: note.isFavorite ? "star.fill" : "star").foregroundStyle(note.isFavorite ? .yellow : .secondary)
                     }.buttonStyle(.plain).help(note.isFavorite ? "取消收藏" : "收藏").disabled(!store.canSave)
                         .accessibilityIdentifier("note-favorite-" + note.id.uuidString)
                     Button(note.isArchived ? "恢复" : "归档") { Task { await store.setArchived(note) } }
                         .disabled(!store.canSave).accessibilityIdentifier("note-archive-" + note.id.uuidString)
-                }.padding(.vertical, 8)
-                Divider()
+                }.padding(.vertical, 4).cosmosEntrance(index)
             }
         }
     }

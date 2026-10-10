@@ -13,8 +13,8 @@ final class ProjectsEditSession: ObservableObject, LearningEditSession {
     @Published private(set) var baseline: PersonalProject?
     @Published private(set) var saving = false
     @Published var terminationPending = false
-    init(store: ProjectsStore, project: PersonalProject?) {
-        self.store = store; baseline = project; draft = project ?? PersonalProject(name: "")
+    init(store: ProjectsStore, project: PersonalProject?, prefill: PersonalProject? = nil) {
+        self.store = store; baseline = project; draft = project ?? prefill ?? PersonalProject(name: "")
     }
     var isDirty: Bool {
         if !progressText.isEmpty || !linkText.isEmpty || !referenceName.isEmpty { return true }
@@ -122,9 +122,9 @@ final class ProjectsWindowManager: NSObject, NSWindowDelegate, CosmosTermination
         alert.addButton(withTitle: "保存"); alert.addButton(withTitle: "放弃"); alert.addButton(withTitle: "取消")
         switch alert.runModal() { case .alertFirstButtonReturn: return .save; case .alertSecondButtonReturn: return .discard; default: return .cancel }
     }
-    func open(store: ProjectsStore, project: PersonalProject?) {
+    func open(store: ProjectsStore, project: PersonalProject?, prefill: PersonalProject? = nil) {
         guard !pending else { return }
-        let session = ProjectsEditSession(store: store, project: project)
+        let session = ProjectsEditSession(store: store, project: project, prefill: prefill)
         let key = store.storageIdentity + "::project::" + session.draft.id.uuidString
         if let old = entries[key] { old.controller.window?.makeKeyAndOrderFront(nil); return }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 780), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)

@@ -5,11 +5,17 @@ struct PromptVaultView: View {
     @StateObject private var model = PromptVaultViewModel()
     @State private var pendingRestore: PromptVersionEntry?
     @State private var showExport = false
+    @Environment(\.cosmosPreferences) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var systemMotion
     private let location: PromptVaultLocation
     private let notesLocation: PersonalNotesLocation?
     init(location: PromptVaultLocation, notesLocation: PersonalNotesLocation? = nil) {
         self.location = location; self.notesLocation = notesLocation
         _store = StateObject(wrappedValue: PromptVaultStore(root: location.root, startupError: location.error))
+    }
+    init(store: PromptVaultStore, model: PromptVaultViewModel) {
+        location = .init(root: store.storageRoot, error: nil); notesLocation = nil
+        _store = StateObject(wrappedValue: store); _model = StateObject(wrappedValue: model)
     }
     private var singleExportLibraries: ContentExportLibraries {
         ContentExportLibraries(notes: nil, prompts: store.storageRoot.map { PromptVaultFileStorage(root: $0) },
@@ -17,17 +23,8 @@ struct PromptVaultView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("提示词库").font(.largeTitle)
-                Spacer()
-                Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }
-                    .disabled(!store.canSave).accessibilityIdentifier("prompt-new")
-                Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }
-                    .accessibilityIdentifier("prompt-export-batch")
-                Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-            }
-            Text("个人模板 · 填写变量不会修改原始模板，也不会保存变量值。")
-                .foregroundStyle(.secondary).font(.callout)
+            CosmosPageHeader("提示词库", subtitle: "保存常用提示词，填写变量后复制完整结果。",
+                info: "模板由你创建；变量使用 {{变量名}} 写法。填写变量只在内存中，不修改原模板、不保存变量值。内容版本与历史语义保持不变。")
             if let error = store.error {
                 Text(error.localizedDescription).foregroundStyle(.orange).textSelection(.enabled)
             }
@@ -37,22 +34,31 @@ struct PromptVaultView: View {
                 Toggle("仅收藏", isOn: $model.favoritesOnly)
                 Toggle("查看归档", isOn: $model.showArchived)
             }
-            ViewThatFits(in: .horizontal) {
-                HSplitView {
-                    categories.frame(minWidth: 120, idealWidth: 140, maxWidth: 180)
-                    content.frame(minWidth: 660)
-                }.frame(minWidth: 820)
-                VStack(alignment: .leading) {
-                    Picker("分类", selection: $model.category) {
-                        Text("全部分类").tag("")
-                        ForEach(categoryNames, id: \.self) { Text($0).tag($0) }
-                    }.frame(maxWidth: 240)
-                    content
+            if store.loaded && store.templates.isEmpty && store.error == nil {
+                ScrollView(.vertical, showsIndicators: true) { starters }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HSplitView {
+                        categories.frame(minWidth: 120, idealWidth: 145, maxWidth: 180)
+                        content.frame(minWidth: 580)
+                    }.frame(minWidth: 730)
+                    VStack(alignment: .leading) {
+                        Picker("分类", selection: $model.category) {
+                            Text("全部分类").tag("")
+                            ForEach(categoryNames, id: \.self) { Text($0).tag($0) }
+                        }.frame(maxWidth: 220)
+                        content
+                    }
                 }
             }
         }
         .padding(24)
-        .task { await store.reload() }
+        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+            Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }.disabled(!store.canSave).accessibilityIdentifier("prompt-new")
+            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("prompt-export-batch")
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
+        } } }
+        .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload(); model.reconcile(store.templates) } }
         .onChange(of: store.templates) { _, templates in model.reconcile(templates) }
         .onDisappear { model.clearSession() }
         .sheet(isPresented: $showExport) {
@@ -60,14 +66,30 @@ struct PromptVaultView: View {
                 initialSource: .promptTemplate)
         }
     }
+    private var starters: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            CosmosEmptyState(icon: "text.badge.plus", title: "把常用任务保存为模板", detail: "用 {{变量}} 留出每次需要替换的内容，填写后复制即可。")
+            Text("从模板开始").font(CosmosDesign.font(.section))
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 14)], spacing: 14) {
+                ForEach(Array(CosmosPromptStarter.allCases.enumerated()), id: \.element.id) { index, starter in
+                    CosmosCard(icon: "text.book.closed", title: starter.title, action: {
+                        PromptTemplateWindowManager.shared.open(store: store, template: nil, prefill: starter.draft)
+                    }) {
+                        Text(starter.draft.body).font(CosmosDesign.font(.body)).foregroundStyle(.secondary).lineLimit(4)
+                        Text("预填编辑器 · 保存后才创建").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                    }.disabled(!store.canSave).cosmosEntrance(index)
+                }
+            }
+        }.padding(.vertical, 12)
+    }
     private var categoryNames: [String] {
         Array(Set(store.templates.map { $0.category ?? "未分类" })).sorted()
     }
     private var categories: some View {
         List(selection: $model.category) {
-            Text("全部分类").tag("")
-            ForEach(categoryNames, id: \.self) { Text($0).tag($0) }
-        }
+            Label("全部分类", systemImage: "square.grid.2x2").tag("")
+            ForEach(categoryNames, id: \.self) { Label($0, systemImage: "folder").tag($0) }
+        }.listStyle(.sidebar)
     }
     private var content: some View {
         HSplitView {
@@ -83,18 +105,19 @@ struct PromptVaultView: View {
                                     Text(template.name).fontWeight(.medium)
                                     if template.isFavorite { Image(systemName: "star.fill").foregroundStyle(.yellow) }
                                 }
-                                Text(template.category ?? "未分类").font(.caption).foregroundStyle(.secondary)
-                            }.tag(template.id).accessibilityIdentifier("prompt-template-" + template.id.uuidString)
+                                Text(template.category ?? "未分类").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                                Text(template.updatedAt, format: .dateTime.month().day().hour().minute()).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary)
+                            }.padding(.vertical, 7).cosmosRowFeedback().tag(template.id).accessibilityIdentifier("prompt-template-" + template.id.uuidString)
                         }
                     }
                 }
-            }.frame(minWidth: 180, idealWidth: 230, maxWidth: 300)
+            }.frame(minWidth: 180, idealWidth: 210, maxWidth: 280)
             if let template = store.templates.first(where: { $0.id == model.selectedID }) {
-                detail(template).frame(minWidth: 360, maxWidth: .infinity)
+                detail(template).frame(minWidth: 330, maxWidth: .infinity)
             } else {
                 ContentUnavailableView("选择一个模板开始使用", systemImage: "text.cursor",
                     description: Text("填写变量 → 完整预览 → 复制。"))
-                    .frame(minWidth: 360, maxWidth: .infinity)
+                    .frame(minWidth: 330, maxWidth: .infinity)
             }
         }
     }
@@ -103,7 +126,7 @@ struct PromptVaultView: View {
         let result = model.rendered(template)
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text(template.name).font(.title2)
+                Text(template.name).font(CosmosDesign.font(.section))
                 Text("\(template.category ?? "未分类") · 已保存 r\(template.revision)\(template.contentVersion.map { " · 内容 v\($0)" } ?? "")\(template.isArchived ? " · 已归档" : "")")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
@@ -130,7 +153,8 @@ struct PromptVaultView: View {
                 ForEach(Array(result.warnings.enumerated()), id: \.offset) { _, warning in
                     Text(warning).font(.caption).foregroundStyle(.orange)
                 }
-                Text("完整提示词预览").font(.headline)
+                Divider()
+                Text("完整提示词预览").font(CosmosDesign.font(.section))
                 Text(result.text).font(.system(.body, design: .monospaced)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(12)
                     .background(.background).accessibilityIdentifier("prompt-preview")
