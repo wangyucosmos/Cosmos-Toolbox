@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-10
 **Project:** Cosmos OS / Cosmos-Toolbox  
-**Current stage:** 日常使用部署已完成（§29）：正式 Bundle ID 的 Universal Release 安装于 `~/Applications/Cosmos Toolbox.app` 并正常启动，临时 App 正常退出；关于菜单显示版本/构建 commit/未提交标记。用户已接受声明范围并授权正常提交推送，阶段关闭。
+**Current stage:** 个人项目 Projects Phase 1 已完成实现、集中隔离验证及可回退日常部署（§30），用户已接受声明验收范围，阶段关闭，已授权本次正常提交推送；保留既有验证边界。独立个人项目列表/原生详情、原文进展与引用、归档恢复，核心备份导出扩展 V2 并兼容 V1。
+**Previous stage (部署):** 日常使用部署已接受并正式关闭，提交 `f6a1e903914f4d5d37af14d3453180206ef336ad`、正常推送与同步核对完成（§29）。
 **Previous stage (Mac 概览):** Mac 环境概览 Phase 1 已接受并正式关闭，提交 `7124c4f2c918fc39eb52ae05209898654fa24c4e`、正常推送与同步核对完成（§28）；既有验证边界保留。
 **Previous stage (恢复):** 核心数据恢复 Phase 1 已接受并正式关闭，提交 `72f020b628d4ee7be3e720f1e67055686f4f55ea`，正常推送与同步核对完成（§27）；既有验证边界和待办保留。
 **Previous stage (备份):** 核心数据备份 Phase 1 已接受并正式关闭，提交 `16dd38682e8c17ef15dc97cae2718a261db441dc`、正常推送与同步核对完成（§26）。导出与独立校验语义保持。
@@ -612,7 +613,7 @@ Then ChatGPT web can read GitHub and continue from the latest repository state.
 
 ## 13. Next priority
 
-**Current:** 日常使用部署已接受并关闭（§29）；本次正常 Git 收尾成功后直接实施用户授权的个人项目 Projects Phase 1（含必要备份兼容与可回退部署），新阶段未授权提交推送。Mac 概览、恢复与备份均已正式关闭（§28 / §27 / §26）；暂缓事项不动。
+**Current:** Projects Phase 1 已完成开发、验证与可回退部署（§30），用户已接受声明验收范围并关闭阶段；本次仅完成已授权 Git 收尾，下一模块等待明确指令。Mac 概览、恢复与备份均已正式关闭（§28 / §27 / §26）；暂缓事项不动。
 
 AI 工作台 Phase 1/2、Dashboard、月度会员促活、省份配置、学习中心、Prompt Vault、知识与资产中心均已关闭；不恢复其历史验收或旧调查候选项。Word WIP、Step06 Harness、客服文档 V1 重新采用、Evidence/Quarantine、旧 P3 保持暂缓。
 
@@ -1176,6 +1177,8 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 ## 26. 核心数据备份 Phase 1 — 导出与完整性校验 — 2026-10-10
 
+以下保留已关闭 V1 阶段的历史验收；当前 Projects 第 11 源与 V2/V1 兼容扩展见 §30。
+
 ### 用户流程与实际数据边界
 
 - Settings → 查看包含/不包含与安全排除 → 保存面板选择新 ZIP → 后台导出并校验 → 显示结果及逐源状态 → Finder 查看；也可选择已有 ZIP 独立校验。正在操作时停用按钮，失败明确反馈，不自动重试、不导入或恢复。
@@ -1226,6 +1229,8 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 
 
 ## 27. 核心数据恢复 Phase 1 — 空环境恢复 — 2026-10-10
+
+以下保留已关闭 10 源阶段的历史验收；当前 Projects 目标/空环境检查扩展见 §30，其余事务与启动保护保持。
 
 ### 流程与范围
 
@@ -1307,4 +1312,42 @@ Phase 1 closed at formal commit `6639e431fa9f1d6f8ba7664069ad18fed1b1f41b`. Hist
 - 构建/部署证据：`/private/tmp/CosmosOS-daily-deploy.log`；构建日志与 DerivedData 位于 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-62motejj/`。脚本未读写正式业务 Store、创建活动/样例、调用 AI 或恢复备份；正常启动沿用既有 App 行为，可能写入自身窗口偏好，不宣称全域 UserDefaults 零写入。
 - 验收限制：未点击关于面板做排版验收；本次首次安装，已有旧版本更新/回退及真实未保存内容阻止退出分支未实机触发。未做签名公证或第三方分发，本机 ad-hoc 签名供当前用户日常使用；没有添加自动更新、安装器或后台常驻。既有阶段待办不扩大处理。
 - 修改文件仅 **4 个**：Cosmos_ToolboxApp.swift、scripts/deploy-macos.py、本文件、当日 Development Log。安装 App、构建日志及临时证据不纳入仓库。
-- **结论：用户接受本次声明验收范围，日常部署阶段关闭，无已知阻塞。** 授权按 `feat: 支持 Cosmos OS 本机日常部署` 正常提交推送，逐项仅纳入上述 4 文件，沿用已完成构建与启动证据、不追加验证。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与实际远端 main 为预期 parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`。实际交付以 Git refs / 收尾报告为准。随后直接实施已授权 Projects；全部暂缓事项及其他知识库保持不动。
+- **结论：用户接受本次声明验收范围，日常部署阶段关闭，无已知阻塞。** 授权按 `feat: 支持 Cosmos OS 本机日常部署` 正常提交推送，逐项仅纳入上述 4 文件，沿用已完成构建与启动证据、不追加验证。提交前 origin 为 `https://github.com/wangyucosmos/Cosmos-Toolbox.git`，HEAD 与实际远端 main 为预期 parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`。实际 commit `f6a1e903914f4d5d37af14d3453180206ef336ad`，parent `7124c4f2c918fc39eb52ae05209898654fa24c4e`，恰好提交上述 4 文件；正常推送后 main/origin/main/实际远端一致、ahead/behind 0/0、工作区干净。随后直接实施已授权 Projects；全部暂缓事项及其他知识库保持不动。
+
+
+## 30. 个人项目 Projects Phase 1 — 2026-10-10
+
+### 流程与模型
+
+- 依 PRD §5.8 / Philosophy / Workspace Vision，Projects 是非卓望个人长期项目，不复制 Campaign Workflow、不做多 Workspace 重构。原侧栏 projects 从占位页接到真实列表：新建、名称/说明搜索、手动三状态筛选、当前/归档切换、真实下一步及更新时间。默认无样例，不扫描或登记源码仓库，不接入 Dashboard/知识库/AI 工作台。
+- UUID、名称、目标/说明、计划中/进行中/已完成、下一步、创建/更新时间、归档标记及内部修订号。进展按时间/原文追加；引用保留 UUID、名称、类型、路径/URL与登记时间。状态由用户设置，没有百分比、截止时间或推断完成。
+- 查看/编辑为原生独立可关闭/缩放/最小化窗口。编辑目标/下一步/状态与归档标记，新增进展、用户选取文件或 http/https 链接，在保存中一并提交。未加入的链接输入阻止误保存；保存失败保留草稿。取消/关闭及 App 退出复用既有保存/放弃/取消保护，保存失败或进行中阻止关闭；同库/同 ID 窗口复用，旧修订不能覆盖较新数据。
+- 文件只保存用户选取的路径，不复制/移动/删除实体。明确点击打开才交给 NSWorkspace，不扫描正文/抓取网页；失效/不可访问保留原引用并显示原因，链接打开失败也保留。已保存进展与引用只追加、不改写或删除，归档/恢复保留全部历史。本期没有永久删除或自动 AI 执行。
+
+### 存储与保护
+
+- 正式位置：`~/Library/Application Support/Cosmos OS/Projects/projects.json`；必要备份 `projects.backup.json`，协作锁 `.projects.lock`。独立 schemaVersion 1 项目文档，不写任何卓望或其他模块业务 Store。
+- 模块内沿用 Learning 的受控读取/串行队列/flock/原子临时 rename/写前备份及读回模式，不抽象通用框架；读取缺库不创建目录/默认数据，snapshot 区分未建立与已建立空库。损坏/未知格式/缺主有备份/符号链接锁定写入，错误不伪装空列表、不清空恢复。
+- 在最新磁盘载荷上核对项目 expectedRevision，再保存字段和追加历史；库字节变化也中止。保存失败不更新发布状态、保留输入；结果不确定时锁写，用户显式重新加载确认。每次备份保存原主文件字节；同一文档其他项目不会被旧窗口替换。协作锁不宣称排除非协作程序的最终检查后竞态。
+- 原文含 CRLF、空白及 Unicode 按字节保留，不 trim/truncate；名称必填最多 200 字符，单段目标/下一步/进展正文最多 1 MiB，整库 16 MiB，超限拒绝。引用名称 200 字符、位置 16 KiB，仅 http/https（拒绝内嵌认证）；未知 schema 拒绝。
+- DEBUG 隔离必须提供专属 UUID 根 `--cosmos-projects-fixture-root /private/tmp/CosmosProjectsPhase1-<UUID>`，同时满足现有隔离 Bundle/suite 约束；缺失即失败关闭，不回退正式位置。Release 只用正式位置。
+
+### 备份与恢复兼容
+
+- 当前导出 `CosmosCoreMetadata` **V2**：原 10 源加 `projects`，包内 `data/projects.json`，读取原文且校验 Projects 身份/结构/历史/引用字段。固定 11 源、最多 12 ZIP 条目；容量与防穿越/重复/符号链接/校验限制不变。Settings 说明项目文件引用实体不包含。
+- 校验/恢复继续接受原 V1 的精确 10 源及原 exclusions；V2 必须精确包含 11 源清单，缺项不伪造。旧 V1 在结果/恢复预览明确说明“未包含 Projects”；Projects 不建立、不恢复空库。V2 主库不存在则 missing，真实空库仍 present。
+- 恢复目标只用当前安装的 Projects 位置，与原三个 JSON 根一起受空环境检查；已存在项目主文件、备份或锁均拒绝恢复，坏/不可读状态不能绕过。事务允许第 11 源收据；原收据版本及旧 10 源事务仍可读取，配置禁用、原子防覆盖、持久化门控/中断保护不弱化。不搬迁或重写文件引用实体。
+
+### 本轮证据与边界
+
+- 一轮集中测试：新 Projects **12/12 通过**；因新增固定源，备份/恢复旧夹具计数及三文件数组尚未完整更新，首轮共有 15 项失败（含夹具越界）。一次集中修复仅补齐夹具/期望后，受影响 **15/15 通过**。最终有效覆盖 **38 项** = Projects 12 + 备份 12 + 恢复 14；未变化 23 项沿用首轮，未重跑整套。产品代码不因本次夹具修复变化，无第二次修复。
+- 覆盖创建/编辑/新实例重载、原文字节与追加历史、筛选/三状态/归档恢复、失效引用与禁止非 http(s)、追加历史不可改写、两编辑 session/两个 storage wrapper 的旧修订保护、失败保留已有原字节及草稿、损坏/缺主有备份/符号链接锁写、关闭取消/保存失败及退出冻结、缺库/真实空库/只读零初始化、超限/重复身份/隔离失败关闭、详情离屏渲染。
+- 覆盖 V2 项目备份→隔离空恢复→重载原文/历史/引用；V1 包校验、预览未包含警告与 Projects 目标不创建；已有空项目库/项目备份拒绝覆盖；既有防篡改/坏结构/源变化/事务中断/配置禁用等受影响保护通过。不创建/移动缺失实体，源主项目字节不变。
+- 一次 **Universal Debug BUILD SUCCEEDED**，lipo 确认 x86_64 arm64，关闭签名、临时 DerivedData、隔离 Bundle。工程自动重排经 plutil 解析相等后恢复，无工程语义改动；diff check 通过。新 Projects 模块无编译 warning，既有 actor/Sendable 等 warning 不扩大修复。
+- 一次后台隔离真实 App 的列表展示合成项目、状态、下一步、时间、筛选及新建/详情入口；仅截目标窗口，不激活/移动用户窗口。随机业务域原字节未变，projects.json 哈希未变，项目目录仅原主文件、无备份/锁；其他业务根和控制根未创建。已请求隔离窗口及残留测试宿主正常退出，随机 suite 已清理。
+- 证据：`/private/tmp/CosmosProjects-Focused.xcresult` / focused.log；受影响修复 `/private/tmp/CosmosProjects-Fixed.xcresult` / fixed.log；Debug `/private/tmp/CosmosProjects-build.log`；窗口与 integrity.json `/private/tmp/CosmosProjectsUI-77bfa7b9-a498-4b8b-bf79-9b4e5a6d963c/`。
+- 未覆盖真实新建/保存按钮、独立详情窗口关闭/退出提醒、文件选择/外部打开、完整重启交互；服务及 session 重载/保护由自动化覆盖，不宣称完整端到端 UI 验收。旧 V1 兼容用合成的严格 V1 包覆盖，未读取用户备份；未测容量上限性能或真实跨进程非协作写入。引用为路径而非安全书签，文件移动后需用户另行登记，不自动修复。
+- 修改 **19 文件**：新增 ProjectsModels.swift、ProjectsFileStorage.swift、ProjectsStore.swift、ProjectsView.swift、ProjectsEditor.swift、ProjectsTests.swift；修改 DashboardView.swift、PromptTemplateEditor.swift、CoreBackupModels.swift、CoreBackupSource.swift、CoreBackupService.swift、CoreBackupArchive.swift、CoreBackupSettingsView.swift、CoreRestoreTarget.swift、CoreRestoreService.swift、CoreBackupTests.swift、CoreRestoreTests.swift、本文件及当日日志。部署脚本保持既有成果，不纳入新阶段修改。
+- 按授权复用既有部署脚本完成一次必要 **Universal Release BUILD SUCCEEDED**、双架构/签名/正式 Bundle 校验；旧日常 App 正常退出，新版本从 `~/Applications/Cosmos Toolbox.app` 启动（PID 98251），无测试参数或样例。版本 1.0（构建 1），commit `f6a1e903914f4d5d37af14d3453180206ef336ad`、dirty=true，如实显示本次未提交的 Projects 改动。
+- 实际旧版回退副本：`~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261010-154702-5e6f9985.app`。未执行回退，没有强杀或业务操作；正式启动沿用既有行为，可能写窗口偏好，不宣称正式数据全域写入审计。部署日志 `/private/tmp/CosmosProjects-deploy.log`，Release 构建证据 `/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-5qsm4yu0/`；部署脚本未修改。
+- **结论：用户已接受上述声明验收范围，阶段正式关闭，无已知阻塞。** 本次授权逐项提交 19 文件并正常推送，提交消息为 `feat: 新增个人项目 Projects Phase 1`。沿用已接受证据，不追加修复、测试、构建、UI 验收或部署；提交前 HEAD 与实际远端 main 均为 `f6a1e903914f4d5d37af14d3453180206ef336ad`，实际 Git 结果以收尾报告为准。所有暂缓事项保持不动，不写其他知识库，不自动开发下一模块。

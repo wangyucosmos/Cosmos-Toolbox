@@ -18,7 +18,7 @@ final class CoreBackupTests: XCTestCase {
     }
     private func source(_ bytes: Bytes, _ root: URL) -> CoreBackupSource {
         CoreBackupSource(readPreference: { key in bytes.reads.append(key); return bytes.values[key] },
-            fileRoots: [root.appendingPathComponent("prompts"), root.appendingPathComponent("learning"), root.appendingPathComponent("handoffs")])
+            fileRoots: [root.appendingPathComponent("prompts"), root.appendingPathComponent("learning"), root.appendingPathComponent("handoffs"), root.appendingPathComponent("projects")])
     }
     private func write(_ data: Data, root: URL, path: String) throws {
         let url = root.appendingPathComponent(path)
@@ -43,6 +43,7 @@ final class CoreBackupTests: XCTestCase {
         var connectionJSON = try JSONSerialization.jsonObject(with: bytes.values[CoreBackupSource.keys[4]]!) as! [[String: Any]]
         connectionJSON[0]["futureSecret"] = "excluded-unknown-secret"
         bytes.values[CoreBackupSource.keys[4]] = try JSONSerialization.data(withJSONObject: connectionJSON)
+        try write(ProjectsCoding.encoder().encode(ProjectsDocument()), root: root, path: "projects/projects.json")
         try write(encoder.encode(PromptVaultDocument(templates: [.init(name: "Prompt", body: "  提示词 e\u{301}\r\n  ")])), root: root, path: "prompts/templates.json")
         try write(Data("{\"schemaVersion\":1,\"topics\":[],\"entries\":[]}".utf8), root: root, path: "learning/learning.json")
         let record = AIWorkspaceHandoffRecord(id: UUID(), recordedAt: Date(), campaignID: campaign.id, campaignName: campaign.name,
@@ -72,7 +73,7 @@ final class CoreBackupTests: XCTestCase {
         let files = try filePaths.map { try Data(contentsOf: root.appendingPathComponent($0)) }
         let target = root.appendingPathComponent("backup.zip")
         let result = try CoreBackupService(source: source(bytes,root)).export(to: target)
-        XCTAssertEqual(result.manifest.sources.count, 10)
+        XCTAssertEqual(result.manifest.sources.count, 11)
         XCTAssertTrue(result.manifest.sources.allSatisfy { $0.status == "present" })
         let items = try entries(target)
         for index in 0..<3 { XCTAssertEqual(items["data/\(CoreBackupSource.ids[index]).json"], before[CoreBackupSource.keys[index]]) }
@@ -93,7 +94,7 @@ final class CoreBackupTests: XCTestCase {
         let root = try root(), bytes = Bytes(); bytes.values[CoreBackupSource.keys[0]] = Data("[]".utf8)
         let result = try CoreBackupService(source: source(bytes,root)).export(to: root.appendingPathComponent("backup.zip"))
         XCTAssertEqual(result.manifest.sources[0].status,"present")
-        XCTAssertEqual(result.manifest.sources.filter { $0.status == "missing" }.count,9)
+        XCTAssertEqual(result.manifest.sources.filter { $0.status == "missing" }.count,10)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path),["backup.zip"])
     }
 
@@ -106,7 +107,7 @@ final class CoreBackupTests: XCTestCase {
         bytes.values = [:]
         try write(Data("{}".utf8), root:root,path:"learning/learning.backup.json")
         XCTAssertThrowsError(try CoreBackupService(source: source(bytes,root)).export(to:target))
-        let denied = CoreBackupSource(readPreference: { _ in throw CoreBackupError.invalid("不可读取") },fileRoots:[root,root,root])
+        let denied = CoreBackupSource(readPreference: { _ in throw CoreBackupError.invalid("不可读取") },fileRoots:[root,root,root,root])
         XCTAssertThrowsError(try CoreBackupService(source:denied).export(to:target))
         XCTAssertFalse(FileManager.default.fileExists(atPath:target.path)); try noTemporary(root)
     }
@@ -215,7 +216,7 @@ final class CoreBackupTests: XCTestCase {
         let root = try root(),bytes = Bytes();try fixture(bytes,root)
         let target = root.appendingPathComponent("backup.zip");_ = try CoreBackupService(source:source(bytes,root)).export(to:target)
         let valid = try Data(contentsOf:target)
-        try rewritten(target) { items in try manifest(&items) { $0.version = 2 } };XCTAssertThrowsError(try CoreBackupService.verify(target))
+        try rewritten(target) { items in try manifest(&items) { $0.version = 3 } };XCTAssertThrowsError(try CoreBackupService.verify(target))
         try valid.write(to:target)
         try rewritten(target) { items in
             var values = try JSONSerialization.jsonObject(with:items["data/connections.json"]!) as! [[String:Any]]

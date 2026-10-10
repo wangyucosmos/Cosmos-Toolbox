@@ -3,7 +3,8 @@ import Darwin
 
 /// Explicit source list: never initializes a Store or scans a preference domain.
 nonisolated struct CoreBackupSource {
-    static let ids = ["campaigns", "workspace", "workflows", "providers", "connections", "tools", "routes", "prompts", "learning", "handoffs"]
+    static let legacyIDs = ["campaigns", "workspace", "workflows", "providers", "connections", "tools", "routes", "prompts", "learning", "handoffs"]
+    static let ids = legacyIDs + ["projects"]
     static let keys = ["cosmos.zhuowang.campaigns.v1", "cosmos.zhuowang.workspace.v1", "cosmos.zhuowang.workflows.v1",
         "cosmos.zhuowang.ai.providers.v1", "cosmos.zhuowang.ai.connections.v1", "cosmos.zhuowang.ai.toolIntegrations.v1", "cosmos.zhuowang.ai.agentToolRoutes.v1"]
     static let exclusions = ["产物实体文件、外部知识库、源码仓库、Evidence/Quarantine、Word WIP、系统/工具环境不包含；登记路径仍依赖原文件。",
@@ -13,19 +14,19 @@ nonisolated struct CoreBackupSource {
     let fileRoots: [URL]
     let isolationError: String?
 
-    @MainActor init(configuration: ZhuowangStorePersistenceConfiguration, promptRoot: URL?, learningRoot: URL?, handoffRoot: URL?) {
+    @MainActor init(configuration: ZhuowangStorePersistenceConfiguration, promptRoot: URL?, learningRoot: URL?, handoffRoot: URL?, projectsRoot: URL?) {
         let dataSource = configuration.dataSource
         readPreference = { key in
             if let source = dataSource as? ZhuowangUserDefaultsDataSource { return try source.coreBackupData(forKey: key) }
             return dataSource.data(forKey: key)
         }
-        fileRoots = [promptRoot, learningRoot, handoffRoot].compactMap { $0 }
-        isolationError = fileRoots.count == 3 ? nil : "文件存储位置或隔离配置不可用；导出已停止，不回退正式目录。"
+        fileRoots = [promptRoot, learningRoot, handoffRoot, projectsRoot].compactMap { $0 }
+        isolationError = fileRoots.count == 4 ? nil : "文件存储位置或隔离配置不可用；导出已停止，不回退正式目录。"
     }
 
     init(readPreference: @escaping (String) throws -> Data?, fileRoots: [URL]) {
         self.readPreference = readPreference; self.fileRoots = fileRoots
-        isolationError = fileRoots.count == 3 ? nil : "缺少明确存储根。"
+        isolationError = fileRoots.count == 4 ? nil : "缺少明确存储根。"
     }
 
     struct Snapshot: Equatable {
@@ -44,7 +45,7 @@ nonisolated struct CoreBackupSource {
             if let raw, raw.count > CoreBackupService.sourceLimit { throw CoreBackupError.invalid("数据源超过 16 MiB。") }
             data.append(raw); revisions.append(nil)
         }
-        let names = ["templates", "learning", "handoffs"]
+        let names = ["templates", "learning", "handoffs", "projects"]
         for (index, root) in fileRoots.enumerated() {
             let file = root.appendingPathComponent(names[index] + ".json")
             let value = try CoreBackupService.readFile(file, limit: CoreBackupService.sourceLimit)
@@ -88,6 +89,7 @@ nonisolated struct CoreBackupSource {
                     return date
                 }
                 try decoder.decode(LearningDocument.self, from: data).validate()
+            case "projects": try ProjectsCoding.decoder().decode(ProjectsDocument.self, from: data).validate()
             case "handoffs": try decoder.decode(AIWorkspaceHandoffDocument.self, from: data).validate()
             default: throw CoreBackupError.invalid("未知数据源。")
             }

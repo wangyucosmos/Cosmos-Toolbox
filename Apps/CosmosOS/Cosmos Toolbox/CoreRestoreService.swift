@@ -13,6 +13,7 @@ nonisolated struct CoreRestoreService {
         var payloads = [String: Data](), summaries = [String: String]()
         var warnings = ["仅恢复元数据。产物实体、外部资料及认证信息未包含；原文件路径只作历史引用，未检查或移动实体。",
             "Provider、Connection、Tool、Route 恢复为禁用/待配置；排除的端点、适配器及自由配置需重新设置，未进行联网或 CLI 验证。"]
+        if checked.manifest.version == 1 { warnings.append("旧备份版本未包含 Projects，不恢复或生成个人项目数据。") }
         for item in checked.manifest.sources where item.status == "present" {
             let raw = entries[item.path!]!
             var safe = raw
@@ -95,7 +96,7 @@ nonisolated struct CoreRestoreService {
         do { value = try JSONDecoder().decode(CoreRestoreJournal.self, from: raw) }
         catch { throw CoreRestoreError.invalid("恢复事务标记无法解析，业务加载已阻止。") }
         guard value.version == 1, ["inProgress","failed","complete","started"].contains(value.state),
-              value.receipts.count <= 10, Set(value.receipts.map(\.sourceID)).count == value.receipts.count,
+              value.receipts.count <= CoreBackupSource.ids.count, Set(value.receipts.map(\.sourceID)).count == value.receipts.count,
               value.receipts.allSatisfy({ CoreBackupSource.ids.contains($0.sourceID) && ["planned","pending","written"].contains($0.phase)
                   && $0.hash.count == 64 && $0.hash.allSatisfy({ "0123456789abcdef".contains($0) }) }) else {
             throw CoreRestoreError.invalid("恢复事务标记结构无效，业务加载已阻止。")
