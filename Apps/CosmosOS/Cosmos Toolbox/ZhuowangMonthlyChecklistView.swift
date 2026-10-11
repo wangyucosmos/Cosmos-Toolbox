@@ -20,20 +20,24 @@ struct ZhuowangMonthlyChecklistView: View {
     var body: some View {
         if let campaign, let plan = campaign.monthly {
             let workflow = workflowStore.workflow(forCampaignID: campaign.id)
-            VStack(alignment: .leading, spacing: CosmosDesign.spacingXL) {
+            VStack(alignment: .leading, spacing: CosmosDesign.spacingL) {
                 header(campaign, plan)
+                    .campaignUIEntrance(0)
                 if !message.isEmpty {
-                    Label(message, systemImage: "exclamationmark.triangle")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                        .textSelection(.enabled)
+                    CampaignUINotice(text: message, icon: "exclamationmark.triangle", tone: .warning)
                 }
                 periodAndReference(campaign, plan)
+                    .campaignUIEntrance(1)
                 inputsSection(plan)
+                    .campaignUIEntrance(2)
                 outputsSection(campaign, plan, workflow)
-                Text("登记只记录位置：不会打开链接，不会读取、复制或检查文件，也不会把它变成工作产物或可交付文件。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .campaignUIEntrance(3)
+                HStack(spacing: 6) {
+                    Label("登记不是采用，也不进交付包。", systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    CosmosInfoButton(text: "登记只记录位置：不会打开链接，不会读取、复制或检查文件，也不会把它变成工作产物或可交付文件。")
+                }
             }
             .onAppear { syncMonthDraft(plan) }
             .onChange(of: plan.activityMonth) { _, _ in syncMonthDraft(plan) }
@@ -46,25 +50,47 @@ struct ZhuowangMonthlyChecklistView: View {
     // MARK: Header
 
     private func header(_ campaign: ZhuowangCampaign, _ plan: ZhuowangMonthlyPlan) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("月度会员促活 · \(plan.activityMonth)").font(.title2)
-            Text("月度成品已确认 \(ZhuowangMonthlyRules.confirmedOutputCount(plan))/\(ZhuowangMonthlyDefinition.outputs.count)")
-                .font(.headline)
-            Text("业务输入已齐备 \(ZhuowangMonthlyRules.settledInputCount(plan))/\(ZhuowangMonthlyDefinition.inputs.count)")
-            Text("这两项只是你手动登记的清单状态；它们与 Workflow 进度、步骤采用情况和现有 ZIP 交付状态互不替代，也不会修改它们。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(ZhuowangMonthlyDefinition.suggestedDatesNote)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: CosmosDesign.spacingXL) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text("月度会员促活 · \(plan.activityMonth)").font(CosmosDesign.font(.title))
+                    CosmosInfoButton(text: "月度成品和业务输入只是你手动登记的清单状态；它们与 Workflow 进度、步骤采用情况和现有 ZIP 交付状态互不替代，也不会修改它们。")
+                }
+                Text(ZhuowangMonthlyDefinition.suggestedDatesNote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            monthlyMetric(
+                title: "月度成品已确认",
+                done: ZhuowangMonthlyRules.confirmedOutputCount(plan),
+                total: ZhuowangMonthlyDefinition.outputs.count
+            )
+            monthlyMetric(
+                title: "业务输入已齐备",
+                done: ZhuowangMonthlyRules.settledInputCount(plan),
+                total: ZhuowangMonthlyDefinition.inputs.count
+            )
         }
+        .campaignUICardSurface()
+    }
+
+    private func monthlyMetric(title: String, done: Int, total: Int) -> some View {
+        HStack(spacing: 10) {
+            CampaignUIProgressRing(completed: done, total: total, size: 46)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.callout).fontWeight(.medium)
+                Text("\(done)/\(total)").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) \(done)/\(total)")
     }
 
     // MARK: Month and reference
 
     private func periodAndReference(_ campaign: ZhuowangCampaign, _ plan: ZhuowangMonthlyPlan) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("月份与上期参考").font(.headline)
+        CampaignUICard(title: "月份与上期参考", icon: "calendar.badge.clock") {
             HStack {
                 TextField("YYYY-MM", text: $monthDraft).frame(maxWidth: 120)
                     .accessibilityIdentifier("monthly-month")
@@ -136,10 +162,11 @@ struct ZhuowangMonthlyChecklistView: View {
     // MARK: Inputs
 
     private func inputsSection(_ plan: ZhuowangMonthlyPlan) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("向业务方要的输入").font(.headline)
-            Text("流程文档的参考：从 T−14 起开始要，最晚 T−8 前到。联系人只记录是否已拿到，不在这里保存联系方式。")
-                .font(.caption).foregroundStyle(.secondary)
+        CampaignUICard(
+            title: "向业务方要的输入",
+            icon: "tray.and.arrow.down",
+            info: "流程文档的参考：从 T−14 起开始要，最晚 T−8 前到。联系人只记录是否已拿到，不在这里保存联系方式。"
+        ) {
             ForEach(ZhuowangMonthlyDefinition.inputs) { definition in
                 ZhuowangMonthlyInputRow(definition: definition, plan: plan,
                     canMutate: store.persistenceState.allowsMutations,
@@ -159,7 +186,7 @@ struct ZhuowangMonthlyChecklistView: View {
             return nil
         }()
         return VStack(alignment: .leading, spacing: 12) {
-            Text("7 项产出").font(.headline)
+            CampaignUISectionTitle("7 项产出", count: ZhuowangMonthlyDefinition.outputs.count)
             ForEach(ZhuowangMonthlyDefinition.outputs) { definition in
                 ZhuowangMonthlyOutputRow(
                     definition: definition,
@@ -240,9 +267,7 @@ private struct ZhuowangMonthlyInputRow: View {
                     .disabled(note == storedNote || !canMutate)
             }
         }
-        .padding(10)
-        .background(.background.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .campaignUIRowSurface()
         .onAppear { syncNote() }
         .onChange(of: storedNote) { _, _ in syncNote() }
     }
@@ -284,9 +309,11 @@ private struct ZhuowangMonthlyOutputRow: View {
                 Text(definition.title).fontWeight(.medium)
                 Text(definition.formText).font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Text(record?.isConfirmed == true ? "已确认定稿" : "未确认")
-                    .font(.caption)
-                    .foregroundStyle(record?.isConfirmed == true ? .green : .secondary)
+                CampaignUIStatusPill(
+                    text: record?.isConfirmed == true ? "已确认定稿" : "未确认",
+                    icon: record?.isConfirmed == true ? "checkmark.seal.fill" : nil,
+                    tone: record?.isConfirmed == true ? .success : .neutral
+                )
             }
             if let suggestedDay {
                 Text("流程参考日：\(Self.dayText(suggestedDay))（T\(definition.suggestedOffsetDays > 0 ? "+" : "")\(definition.suggestedOffsetDays)，初版约定，非截止日期）")
@@ -314,9 +341,7 @@ private struct ZhuowangMonthlyOutputRow: View {
             if showRegisterForm { registerForm }
             if showHistory, let record { historyView(record) }
         }
-        .padding(10)
-        .background(.background.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .campaignUIRowSurface()
     }
 
     private var hintText: String {
@@ -408,5 +433,20 @@ private struct ZhuowangMonthlyOutputRow: View {
         formatter.timeZone = ZhuowangMonthlyRules.shanghai
         formatter.dateFormat = "M月d日"
         return formatter.string(from: date)
+    }
+}
+
+
+// MARK: - Row surface
+
+private extension View {
+    func campaignUIRowSurface() -> some View {
+        self.padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusMedium, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusMedium, style: .continuous)
+                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+            }
     }
 }

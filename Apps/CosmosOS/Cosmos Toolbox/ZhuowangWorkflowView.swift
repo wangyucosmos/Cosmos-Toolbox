@@ -24,6 +24,36 @@ private struct ZhuowangTaskPreviewContext:
     let stepID: UUID
 }
 
+/// A request from outside the Workflow tab to select one step.
+/// `serial` makes two requests for the same step distinguishable.
+struct ZhuowangWorkflowFocusRequest: Equatable {
+    let stepID: UUID
+    let serial: Int
+}
+
+/// Read-only lookups into the AI connection / tool registry. The live view
+/// reads them from `ZhuowangAIConnectionStore`; tests and fixtures pass
+/// synthetic values so rendering never touches the production registry.
+struct ZhuowangWorkflowConnections {
+    var recommendedConnection: (UUID) -> ZhuowangAIConnection?
+    var route: (UUID, UUID) -> ZhuowangAgentToolRoute?
+    var availableTools: (ZhuowangWorkflowCapability) -> [ZhuowangExternalToolIntegration]
+    var toolIntegration: (UUID) -> ZhuowangExternalToolIntegration?
+
+    static func live(
+        _ store: ZhuowangAIConnectionStore
+    ) -> ZhuowangWorkflowConnections {
+        ZhuowangWorkflowConnections(
+            recommendedConnection: { store.recommendedConnection(forProviderID: $0) },
+            route: { store.route(connectionID: $0, toolIntegrationID: $1) },
+            availableTools: { store.availableTools(for: $0) },
+            toolIntegration: { store.toolIntegration(id: $0) }
+        )
+    }
+}
+
+/// The Workflow tab. Without injected `connections` it owns the live
+/// `ZhuowangAIConnectionStore`, exactly as before.
 struct ZhuowangWorkflowView: View {
 
     @ObservedObject var store: ZhuowangWorkflowStore
@@ -32,11 +62,65 @@ struct ZhuowangWorkflowView: View {
     let province: ZhuowangProvince?
     let module: ZhuowangModule?
 
+    /// Selects a step when the tab opens from the overview "下一步" button.
+    var focusRequest: ZhuowangWorkflowFocusRequest?
+
+    /// Opens the artifact window owned by the Campaign window.
+    var onOpenArtifact: (ZhuowangArtifact) -> Void = { _ in }
+
+    /// Synthetic registry for tests / fixtures; `nil` uses the live store.
+    var connections: ZhuowangWorkflowConnections?
+
+    var body: some View {
+        if let connections {
+            ZhuowangWorkflowContent(
+                store: store, campaign: campaign, province: province, module: module,
+                focusRequest: focusRequest, onOpenArtifact: onOpenArtifact,
+                connections: connections
+            )
+        } else {
+            ZhuowangWorkflowLiveHost(
+                store: store, campaign: campaign, province: province, module: module,
+                focusRequest: focusRequest, onOpenArtifact: onOpenArtifact
+            )
+        }
+    }
+}
+
+private struct ZhuowangWorkflowLiveHost: View {
+
+    @ObservedObject var store: ZhuowangWorkflowStore
+    let campaign: ZhuowangCampaign
+    let province: ZhuowangProvince?
+    let module: ZhuowangModule?
+    let focusRequest: ZhuowangWorkflowFocusRequest?
+    let onOpenArtifact: (ZhuowangArtifact) -> Void
+
     @StateObject
     private var connectionStore =
         ZhuowangAIConnectionStore()
 
-    @State private var expandedStepID: UUID?
+    var body: some View {
+        ZhuowangWorkflowContent(
+            store: store, campaign: campaign, province: province, module: module,
+            focusRequest: focusRequest, onOpenArtifact: onOpenArtifact,
+            connections: .live(connectionStore)
+        )
+    }
+}
+
+struct ZhuowangWorkflowContent: View {
+
+    @ObservedObject var store: ZhuowangWorkflowStore
+
+    let campaign: ZhuowangCampaign
+    let province: ZhuowangProvince?
+    let module: ZhuowangModule?
+    let focusRequest: ZhuowangWorkflowFocusRequest?
+    let onOpenArtifact: (ZhuowangArtifact) -> Void
+    let connections: ZhuowangWorkflowConnections
+
+    @State private var selectedStepID: UUID?
 
     @State
     private var previewContext:
@@ -48,15 +132,37 @@ struct ZhuowangWorkflowView: View {
     var body: some View {
         VStack(
             alignment: .leading,
-            spacing: CosmosDesign.spacingXL
+            spacing: CosmosDesign.spacingL
         ) {
 
-            workflowHeader
-
             if let workflow {
-                workflowOverview(workflow)
 
-                workflowSteps(workflow)
+                let steps = ZhuowangWorkflowUIModel.enabledSteps(in: workflow)
+
+                workflowHeader(workflow, steps)
+
+                ViewThatFits(in: .horizontal) {
+
+                    HStack(
+                        alignment: .top,
+                        spacing: CosmosDesign.spacingXL
+                    ) {
+                        timelineColumn(workflow, steps)
+                            .frame(width: 372)
+
+                        detailColumn(workflow, steps)
+                            .frame(minWidth: 430, maxWidth: .infinity)
+                    }
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: CosmosDesign.spacingXL
+                    ) {
+                        timelineColumn(workflow, steps)
+
+                        detailColumn(workflow, steps)
+                    }
+                }
 
             } else {
                 loadingState
@@ -64,6 +170,10 @@ struct ZhuowangWorkflowView: View {
         }
         .onAppear {
             ensureWorkflowExists()
+            applyFocus()
+        }
+        .onChange(of: focusRequest) {
+            applyFocus()
         }
         .sheet(item: $previewContext) {
             context in
@@ -97,606 +207,283 @@ struct ZhuowangWorkflowView: View {
     }
 
 
+    private func applyFocus() {
+        if let focusRequest {
+            selectedStepID = focusRequest.stepID
+        }
+    }
+
+    /// The explicit selection, else the next open step, else the first step.
+    private func effectiveStep(
+        in steps: [ZhuowangWorkflowStep]
+    ) -> ZhuowangWorkflowStep? {
+        ZhuowangWorkflowUIModel.effectiveStep(selectedID: selectedStepID, in: steps)
+    }
+
+
     // MARK: - Header
 
-    private var workflowHeader: some View {
+    private func workflowHeader(
+        _ workflow: ZhuowangCampaignWorkflow,
+        _ steps: [ZhuowangWorkflowStep]
+    ) -> some View {
 
         HStack(
-            alignment: .top,
-            spacing: CosmosDesign.spacingXL
+            alignment: .center,
+            spacing: CosmosDesign.spacingM
         ) {
 
             VStack(
                 alignment: .leading,
-                spacing: 6
+                spacing: 4
             ) {
 
-                HStack(spacing: 9) {
-
-                    Image(
-                        systemName: "sparkles.rectangle.stack"
-                    )
-                    .font(
-                        .system(
-                            size: 19,
-                            weight: .medium
-                        )
-                    )
-                    .foregroundStyle(.tint)
+                HStack(spacing: 6) {
 
                     Text("AI Workflow")
-                        .font(
-                            .system(
-                                size: 25,
-                                weight: .semibold
-                            )
-                        )
+                        .font(CosmosDesign.font(.section))
+
+                    CosmosInfoButton(
+                        text: "为每一个工作步骤选择不同的 AI，并由你决定什么时候生成、修改和确认。AI 不会自动进入下一步；确认一步后才会解锁后续步骤。"
+                    )
                 }
 
-                Text("AI 工作流中控台")
-                    .font(.title3)
+                Text("为每一步选择 AI，由你决定何时生成、修改和确认")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-
-                Text(
-                    "为每一个工作步骤选择不同的 AI，并由你决定什么时候生成、修改和确认。"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if let workflow {
-
-                workflowProgressBadge(
-                    workflow
-                )
-            }
-        }
-    }
-
-
-    // MARK: - Overview
-
-    private func workflowOverview(
-        _ workflow: ZhuowangCampaignWorkflow
-    ) -> some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            workflowMetric(
-                value:
-                    "\(enabledSteps(in: workflow).count)",
-                title: "工作步骤",
-                subtitle: "Workflow Steps",
-                icon: "list.number"
-            )
-
-            workflowMetric(
-                value:
-                    "\(approvedStepCount(in: workflow))",
-                title: "已确认",
-                subtitle: "Approved",
-                icon: "checkmark.circle"
-            )
-
-            workflowMetric(
-                value:
-                    "\(configuredProviderCount(in: workflow))",
-                title: "已选择 AI",
-                subtitle: "AI Assigned",
+            CampaignUIChip(
+                caption: "已选择 AI",
+                value: "\(configuredProviderCount(in: workflow)) / \(steps.count)",
                 icon: "sparkles"
             )
 
-            workflowMetric(
-                value:
-                    "\(workflow.artifacts.count)",
-                title: "工作产物",
-                subtitle: "Artifacts",
+            CampaignUIChip(
+                caption: "工作产物",
+                value: "\(workflow.artifacts.count)",
                 icon: "doc.on.doc"
             )
         }
     }
 
 
-    // MARK: - Metric
+    // MARK: - Timeline
 
-    private func workflowMetric(
-        value: String,
-        title: String,
-        subtitle: String,
-        icon: String
+    private func timelineColumn(
+        _ workflow: ZhuowangCampaignWorkflow,
+        _ steps: [ZhuowangWorkflowStep]
     ) -> some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            HStack {
-
-                Image(systemName: icon)
-                    .font(
-                        .system(
-                            size: 15,
-                            weight: .medium
-                        )
+        let items = ZhuowangWorkflowUIModel.timelineItems(
+            steps: steps,
+            artifacts: workflow.artifacts,
+            providerName: { selectedProvider(for: $0)?.name },
+            toolName: { selectedTool(for: $0)?.name },
+            canAct: { step in
+                isDone(step)
+                    ? ZhuowangWorkflowUIModel.adoptedArtifact(
+                        for: step,
+                        in: workflow.artifacts
+                    ) != nil
+                    : canPrepareTask(
+                        workflowID: workflow.id,
+                        step: step
                     )
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Text(value)
-                    .font(
-                        .system(
-                            size: 24,
-                            weight: .semibold,
-                            design: .rounded
-                        )
-                    )
+            },
+            actionTitle: { step in
+                switch step.status {
+                case .ready, .needsRevision, .failed, .waitingForApproval:
+                    return "准备任务"
+                case .approved, .completed, .skipped:
+                    return ZhuowangWorkflowUIModel.adoptedArtifact(
+                        for: step,
+                        in: workflow.artifacts
+                    ) == nil ? nil : "查看产物"
+                case .notStarted, .running:
+                    return nil
+                }
             }
+        )
+
+        return CampaignUITimeline(
+            items: items,
+            selection: Binding(
+                get: { effectiveStep(in: steps)?.id },
+                set: { newValue in
+                    withAnimation(CosmosDesign.motion) {
+                        selectedStepID = newValue
+                    }
+                }
+            ),
+            onAction: { stepID in
+                guard let step = steps.first(where: { $0.id == stepID }) else {
+                    return
+                }
+
+                selectedStepID = stepID
+
+                if isDone(step) {
+                    if let artifact = ZhuowangWorkflowUIModel.adoptedArtifact(
+                        for: step,
+                        in: workflow.artifacts
+                    ) {
+                        onOpenArtifact(artifact)
+                    }
+                } else {
+                    prepareTask(workflow: workflow, step: step)
+                }
+            }
+        )
+    }
+
+    private func isDone(_ step: ZhuowangWorkflowStep) -> Bool {
+        ZhuowangWorkflowUIModel.doneStatuses.contains(step.status)
+    }
+
+
+    // MARK: - Step Detail
+
+    @ViewBuilder
+    private func detailColumn(
+        _ workflow: ZhuowangCampaignWorkflow,
+        _ steps: [ZhuowangWorkflowStep]
+    ) -> some View {
+
+        if let step = effectiveStep(in: steps) {
 
             VStack(
                 alignment: .leading,
-                spacing: 2
+                spacing: CosmosDesign.spacingM
             ) {
 
-                Text(title)
-                    .fontWeight(.medium)
+                stepHeaderCard(step, steps)
 
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                executionCard(workflow: workflow, step: step)
+
+                adoptedArtifactCard(workflow: workflow, step: step)
             }
-        }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: 92,
-            alignment: .topLeading
-        )
-        .padding(
-            CosmosDesign.spacingM
-        )
-        .background(
-            Color.primary.opacity(0.018)
-        )
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusMedium,
-                style: .continuous
-            )
-        )
-        .overlay {
+            .id(step.id)
+            .transition(.opacity)
 
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusMedium,
-                style: .continuous
+        } else {
+
+            CosmosEmptyState(
+                icon: "list.number",
+                title: "没有已启用的步骤"
             )
-            .stroke(
-                Color.primary.opacity(0.055),
-                lineWidth: 1
-            )
+            .campaignUICardSurface()
         }
     }
 
-
-    // MARK: - Steps
-
-    private func workflowSteps(
-        _ workflow: ZhuowangCampaignWorkflow
+    private func stepHeaderCard(
+        _ step: ZhuowangWorkflowStep,
+        _ steps: [ZhuowangWorkflowStep]
     ) -> some View {
 
-        VStack(
+        let look = ZhuowangWorkflowUIModel.presentation(for: step.status)
+        let position = (steps.firstIndex { $0.id == step.id } ?? 0) + 1
+
+        return VStack(
             alignment: .leading,
             spacing: CosmosDesign.spacingM
         ) {
 
-            HStack {
+            HStack(spacing: CosmosDesign.spacingM) {
 
-                CosmosSectionTitle(
-                    title: "工作流程",
-                    subtitle: "Workflow"
+                Text(String(format: "%02d", position))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(look.tone.color)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        look.tone.color.opacity(0.13),
+                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(step.title)
+                        .font(.system(size: 18, weight: .semibold))
+
+                    if !step.englishTitle.isEmpty {
+                        Text(step.englishTitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                CampaignUIStatusPill(
+                    text: step.status.title,
+                    icon: look.icon,
+                    tone: look.tone
                 )
+            }
 
-                Spacer()
-
-                Text(
-                    "你可以为每一步单独选择 AI"
-                )
-                .font(.caption)
+            Text(stepDescription(step))
+                .font(CosmosDesign.font(.body))
                 .foregroundStyle(.secondary)
-            }
 
-            VStack(spacing: 0) {
-
-                let steps =
-                    enabledSteps(
-                        in: workflow
-                    )
-
-                ForEach(
-                    Array(
-                        steps.enumerated()
-                    ),
-                    id: \.element.id
-                ) { index, step in
-
-                    workflowStepRow(
-                        workflow: workflow,
-                        step: step,
-                        index: index
-                    )
-
-                    if index
-                        < steps.count - 1 {
-
-                        Divider()
-                            .padding(
-                                .leading,
-                                72
-                            )
-                    }
-                }
-            }
-            .background(.thinMaterial)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
-            .overlay {
-
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary.opacity(0.06),
-                    lineWidth: 1
+            if let reason = ZhuowangWorkflowUIModel.lockedReason(for: step, in: steps) {
+                CampaignUINotice(
+                    text: reason + "。上一步确认后会自动解锁。",
+                    icon: "lock"
                 )
             }
         }
+        .campaignUICardSurface()
     }
 
 
-    // MARK: - Step Row
+    // MARK: Execution card
 
-    private func workflowStepRow(
-        workflow: ZhuowangCampaignWorkflow,
-        step: ZhuowangWorkflowStep,
-        index: Int
-    ) -> some View {
-
-        VStack(spacing: 0) {
-
-            Button {
-
-                withAnimation(
-                    .easeInOut(
-                        duration:
-                            CosmosDesign.animationFast
-                    )
-                ) {
-
-                    if expandedStepID
-                        == step.id {
-
-                        expandedStepID = nil
-
-                    } else {
-
-                        expandedStepID =
-                            step.id
-                    }
-                }
-
-            } label: {
-
-                HStack(
-                    spacing:
-                        CosmosDesign.spacingM
-                ) {
-
-                    stepNumber(
-                        index: index,
-                        step: step
-                    )
-
-                    VStack(
-                        alignment: .leading,
-                        spacing: 4
-                    ) {
-
-                        HStack(spacing: 7) {
-
-                            Text(step.title)
-                                .fontWeight(.medium)
-
-                            if !step
-                                .englishTitle
-                                .isEmpty {
-
-                                Text(
-                                    step.englishTitle
-                                )
-                                .font(.caption)
-                                .foregroundStyle(
-                                    .secondary
-                                )
-                            }
-                        }
-
-                        Text(
-                            stepDescription(
-                                step
-                            )
-                        )
-                        .font(.caption)
-                        .foregroundStyle(
-                            .secondary
-                        )
-                        .lineLimit(1)
-                    }
-
-                    Spacer()
-
-                    providerSummary(
-                        step: step
-                    )
-
-                    workflowStatusBadge(
-                        step.status
-                    )
-
-                    Image(
-                        systemName:
-                            expandedStepID
-                            == step.id
-                            ? "chevron.up"
-                            : "chevron.down"
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(
-                        .tertiary
-                    )
-                    .frame(width: 16)
-                }
-                .padding(
-                    .horizontal,
-                    CosmosDesign.spacingL
-                )
-                .padding(
-                    .vertical,
-                    CosmosDesign.spacingM
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expandedStepID
-                == step.id {
-
-                stepExpandedContent(
-                    workflow: workflow,
-                    step: step
-                )
-                .transition(
-                    .opacity
-                    .combined(
-                        with:
-                            .move(
-                                edge: .top
-                            )
-                    )
-                )
-            }
-        }
-    }
-
-
-    // MARK: - Step Number
-
-    private func stepNumber(
-        index: Int,
-        step: ZhuowangWorkflowStep
-    ) -> some View {
-
-        ZStack {
-
-            Circle()
-                .fill(
-                    stepCircleColor(
-                        step.status
-                    )
-                )
-                .frame(
-                    width: 38,
-                    height: 38
-                )
-
-            if step.status
-                == .approved
-                || step.status
-                == .completed {
-
-                Image(
-                    systemName:
-                        "checkmark"
-                )
-                .font(
-                    .system(
-                        size: 13,
-                        weight: .bold
-                    )
-                )
-                .foregroundStyle(
-                    Color.accentColor
-                )
-
-            } else {
-
-                Text(
-                    String(
-                        format:
-                            "%02d",
-                        index + 1
-                    )
-                )
-                .font(
-                    .system(
-                        size: 11,
-                        weight: .semibold,
-                        design: .rounded
-                    )
-                )
-                .foregroundStyle(
-                    step.status
-                    == .ready
-                    ? Color.accentColor
-                    : Color.secondary
-                )
-            }
-        }
-    }
-
-
-    // MARK: - Expanded Step
-
-    private func stepExpandedContent(
+    private func executionCard(
         workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep
     ) -> some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingL
+        CampaignUICard(
+            title: "执行配置",
+            icon: "slider.horizontal.3",
+            info: "AI Provider 负责推理与生成；Tool 负责产出或操作外部成果（例如 HTML 原型、Figma）。两者独立选择，原型步骤不绑定具体工具。"
         ) {
 
-            Divider()
+            VStack(alignment: .leading, spacing: 10) {
 
-            HStack(
-                alignment: .top,
-                spacing:
-                    CosmosDesign.spacingXL
-            ) {
+                configRow("执行 AI") {
+                    HStack(spacing: 6) {
+                        providerPicker(workflow: workflow, step: step)
 
-                VStack(
-                    alignment: .leading,
-                    spacing:
-                        CosmosDesign.spacingS
-                ) {
-
-                    Text("执行 AI")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-
-                    providerPicker(
-                        workflow: workflow,
-                        step: step
-                    )
-                }
-                .frame(
-                    maxWidth: 270,
-                    alignment: .leading
-                )
-
-                VStack(
-                    alignment: .leading,
-                    spacing:
-                        CosmosDesign.spacingS
-                ) {
-
-                    Text("所需能力")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-
-                    Text(
-                        capabilitySummary(
-                            for: step
-                        )
-                    )
-                    .font(.callout)
-                }
-                .frame(
-                    maxWidth: 220,
-                    alignment: .leading
-                )
-
-                VStack(
-                    alignment: .leading,
-                    spacing:
-                        CosmosDesign.spacingS
-                ) {
-
-                    Text("使用工具")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-
-                    Text(
-                        selectedToolSummary(
-                            for: step
-                        )
-                    )
-                    .font(.callout)
-
-                    if !step.requiredCapabilities.isEmpty {
-
-                        toolPicker(
-                            workflow: workflow,
-                            step: step
-                        )
+                        if step.kind == .customerService {
+                            CosmosInfoButton(
+                                text: "本步骤的 AI 选择在采用结果之前只在本次会话内有效，不会写入 Workflow；采用结果时才会记录所用的 AI。"
+                            )
+                        }
                     }
                 }
-                .frame(
-                    maxWidth: 220,
-                    alignment: .leading
-                )
 
-                VStack(
-                    alignment: .leading,
-                    spacing:
-                        CosmosDesign.spacingS
-                ) {
-
-                    Text("执行方式")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-
-                    Text(
-                        executionModeText(
-                            for: step
-                        )
-                    )
-                    .font(.callout)
+                configRow("使用工具") {
+                    if step.requiredCapabilities.isEmpty {
+                        Text(selectedToolSummary(for: step))
+                            .font(.callout)
+                    } else {
+                        toolPicker(workflow: workflow, step: step)
+                    }
                 }
-                .frame(
-                    maxWidth: 220,
-                    alignment: .leading
-                )
 
-                VStack(
-                    alignment: .leading,
-                    spacing:
-                        CosmosDesign.spacingS
-                ) {
+                configRow("所需能力") {
+                    Text(capabilitySummary(for: step))
+                        .font(.callout)
+                }
 
-                    Text("人工确认")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                configRow("执行方式") {
+                    Text(executionModeText(for: step))
+                        .font(.callout)
+                }
 
+                configRow("人工确认") {
                     Label(
                         step.requiresApproval
                         ? "需要你的确认"
@@ -709,17 +496,17 @@ struct ZhuowangWorkflowView: View {
                     .font(.callout)
                 }
 
-                Spacer()
+                if step.requiredCapabilities.contains(.prototypeDesign) {
+                    prototypeExecutionProfileControls(
+                        workflow: workflow,
+                        step: step
+                    )
+                }
             }
 
-            if step.requiredCapabilities.contains(.prototypeDesign) {
-                prototypeExecutionProfileControls(
-                    workflow: workflow,
-                    step: step
-                )
-            }
+            Divider()
 
-            HStack {
+            HStack(spacing: CosmosDesign.spacingM) {
 
                 if selectedProvider(for: step) == nil {
 
@@ -742,7 +529,7 @@ struct ZhuowangWorkflowView: View {
                     .foregroundStyle(.secondary)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Button {
 
@@ -759,7 +546,7 @@ struct ZhuowangWorkflowView: View {
                             "arrow.right.circle"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glassProminent)
                 .disabled(
                     !canPrepareTask(
                         workflowID: workflow.id,
@@ -768,20 +555,123 @@ struct ZhuowangWorkflowView: View {
                 )
             }
         }
-        .padding(
-            .leading,
-            72
-        )
-        .padding(
-            .trailing,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .bottom,
-            CosmosDesign.spacingL
-        )
     }
 
+    private func configRow<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+
+        HStack(alignment: .center, spacing: CosmosDesign.spacingM) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .frame(width: 64, alignment: .leading)
+
+            content()
+
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 26)
+    }
+
+
+    // MARK: Adopted artifact card
+
+    private func adoptedArtifactCard(
+        workflow: ZhuowangCampaignWorkflow,
+        step: ZhuowangWorkflowStep
+    ) -> some View {
+
+        let adopted = workflow.artifacts
+            .filter { $0.stepID == step.id && $0.isApprovedVersion }
+            .sorted { $0.updatedAt > $1.updatedAt }
+
+        return CampaignUICard(
+            title: "当前采用产物",
+            icon: "checkmark.seal"
+        ) {
+
+            if adopted.isEmpty {
+
+                Text("这一步还没有采用的产物。采用 AI 结果后会出现在这里，并解锁下一步。")
+                    .font(CosmosDesign.font(.body))
+                    .foregroundStyle(.secondary)
+
+            } else {
+
+                VStack(spacing: 0) {
+
+                    ForEach(Array(adopted.enumerated()), id: \.element.id) { index, artifact in
+
+                        let versionCount = workflow.artifacts
+                            .filter { $0.versionGroupKey == artifact.versionGroupKey }
+                            .count
+
+                        Button {
+                            onOpenArtifact(artifact)
+                        } label: {
+                            HStack(spacing: 10) {
+
+                                Image(systemName: CampaignUIFormat.artifactIcon(artifact.type))
+                                    .frame(width: 22)
+                                    .foregroundStyle(.tint)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(artifact.name).lineLimit(1)
+                                    Text(
+                                        versionCount > 1
+                                        ? "\(artifact.type.title) · 共 \(versionCount) 个版本"
+                                        : artifact.type.title
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+
+                                Spacer(minLength: 6)
+
+                                CampaignUIVersionBadge(
+                                    version: artifact.version,
+                                    isCurrent: true
+                                )
+
+                                CampaignUIFilePill(
+                                    state: artifactFileExists(artifact) ? .present : .missing
+                                )
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("查看工作产物")
+
+                        if index < adopted.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func artifactFileExists(
+        _ artifact: ZhuowangArtifact
+    ) -> Bool {
+
+        let path = artifact.location
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !path.isEmpty else {
+            return false
+        }
+
+        return store.workspaceFileManager.fileExists(atPath: path)
+    }
 
 
     // MARK: - Prototype Execution Profile
@@ -792,13 +682,8 @@ struct ZhuowangWorkflowView: View {
     ) -> some View {
         let profile = step.prototypeExecutionProfile.normalized
 
-        return HStack(alignment: .top, spacing: CosmosDesign.spacingXL) {
-            VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
-                Text("原型保真度")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-
+        return VStack(alignment: .leading, spacing: 10) {
+            configRow("原型保真度") {
                 Menu(profile.fidelity.title) {
                     ForEach(ZhuowangPrototypeFidelity.allCases) { fidelity in
                         Button(fidelity.title) {
@@ -822,15 +707,10 @@ struct ZhuowangWorkflowView: View {
                     }
                 }
                 .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .frame(maxWidth: 220, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
-                Text("原型风格")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-
+            configRow("原型风格") {
                 Menu(profile.style.title) {
                     ForEach(
                         ZhuowangPrototypeExecutionProfile
@@ -849,100 +729,99 @@ struct ZhuowangWorkflowView: View {
                     }
                 }
                 .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .frame(maxWidth: 220, alignment: .leading)
-
-            Spacer()
         }
     }
 
 
-    // MARK: - Tool Picker
+    // MARK: - Pickers
+
+    private func pickerLabel(
+        icon: String,
+        title: String,
+        detail: String? = nil
+    ) -> some View {
+
+        HStack(spacing: 8) {
+
+            Image(systemName: icon)
+
+            Text(title)
+                .lineLimit(1)
+
+            if let detail {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .font(.callout)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+        .background(
+            Color.primary.opacity(0.04),
+            in: RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusSmall,
+                style: .continuous
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusSmall,
+                style: .continuous
+            )
+            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
 
     private func toolPicker(
         workflow: ZhuowangCampaignWorkflow,
         step: ZhuowangWorkflowStep
     ) -> some View {
 
-        VStack(
-            alignment: .leading,
-            spacing: 8
-        ) {
+        Menu {
 
-            Text("选择工具")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // 下一阶段直接读取 AIConnectionStore 的 Tool Registry。
+            // 当前先使用已注册工具作为展示入口。
+            ForEach(
+                availableTools(
+                    for: step
+                )
+            ) { tool in
 
-            Menu {
+                Button {
 
-                // 下一阶段直接读取 AIConnectionStore 的 Tool Registry。
-                // 当前先使用已注册工具作为展示入口。
-                ForEach(
-                    availableTools(
-                        for: step
+                    store.selectTools(
+                        workflowID: workflow.id,
+                        stepID: step.id,
+                        toolIDs: [tool.id]
                     )
-                ) { tool in
 
-                    Button {
+                } label: {
 
-                        store.selectTools(
-                            workflowID: workflow.id,
-                            stepID: step.id,
-                            toolIDs: [tool.id]
-                        )
-
-                    } label: {
-
-                        Label(
-                            tool.name,
-                            systemImage:
-                                "wrench.and.screwdriver"
-                        )
-                    }
-                }
-
-            } label: {
-
-                HStack(spacing: 8) {
-
-                    Image(
-                        systemName:
+                    Label(
+                        tool.name,
+                        systemImage:
                             "wrench.and.screwdriver"
                     )
-
-                    Text(
-                        selectedToolSummary(
-                            for: step
-                        )
-                    )
-                    .lineLimit(1)
-
-                    Spacer()
-
-                    Image(
-                        systemName:
-                            "chevron.down"
-                    )
-                    .font(.caption2)
                 }
-                .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(
-                    Color.primary.opacity(0.035)
-                )
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: 8,
-                        style: .continuous
-                    )
-                )
             }
+
+        } label: {
+
+            pickerLabel(
+                icon: "wrench.and.screwdriver",
+                title: selectedToolSummary(for: step)
+            )
         }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
-
-
-    // MARK: - Provider Picker
 
     private func providerPicker(
         workflow: ZhuowangCampaignWorkflow,
@@ -1011,232 +890,34 @@ struct ZhuowangWorkflowView: View {
 
         } label: {
 
-            HStack(spacing: 8) {
+            if let provider =
+                selectedProvider(
+                    workflowID:
+                        workflow.id,
+                    stepID:
+                        step.id,
+                    fallback:
+                        step
+                ) {
 
-                if let provider =
-                    selectedProvider(
-                        workflowID:
-                            workflow.id,
-                        stepID:
-                            step.id,
-                        fallback:
-                            step
-                    ) {
-
-                    Image(
-                        systemName:
-                            provider
-                            .kind
-                            .systemImage
-                    )
-
-                    Text(
-                        provider.name
-                    )
-
-                    if !provider
-                        .isEnabled {
-
-                        Text("未启用")
-                            .font(.caption2)
-                            .foregroundStyle(
-                                .secondary
-                            )
-                    }
-
-                } else {
-
-                    Image(
-                        systemName:
-                            "sparkles"
-                    )
-
-                    Text("选择 AI")
-                }
-
-                Spacer()
-
-                Image(
-                    systemName:
-                        "chevron.up.chevron.down"
+                pickerLabel(
+                    icon: provider.kind.systemImage,
+                    title: provider.name,
+                    detail: provider.isEnabled ? nil : "未启用"
                 )
-                .font(.caption2)
-                .foregroundStyle(
-                    .secondary
-                )
-            }
-            .padding(
-                .horizontal,
-                11
-            )
-            .padding(
-                .vertical,
-                8
-            )
-            .background(
-                Color.primary
-                    .opacity(0.025)
-            )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusSmall,
-                    style:
-                        .continuous
-                )
-            )
-            .overlay {
 
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign
-                        .cornerRadiusSmall,
-                    style:
-                        .continuous
-                )
-                .stroke(
-                    Color.primary
-                        .opacity(0.07),
-                    lineWidth: 1
+            } else {
+
+                pickerLabel(
+                    icon: "sparkles",
+                    title: "选择 AI"
                 )
             }
         }
         .menuStyle(
             .borderlessButton
         )
-    }
-
-
-    // MARK: - Provider Summary
-
-    @ViewBuilder
-    private func providerSummary(
-        step: ZhuowangWorkflowStep
-    ) -> some View {
-
-        if let provider =
-            selectedProvider(
-                for: step
-            ) {
-
-            HStack(spacing: 6) {
-
-                Image(
-                    systemName:
-                        provider
-                        .kind
-                        .systemImage
-                )
-
-                Text(
-                    provider.name
-                )
-                .lineLimit(1)
-            }
-            .font(.caption)
-            .foregroundStyle(
-                .secondary
-            )
-            .frame(
-                maxWidth: 130
-            )
-
-        } else {
-
-            Text("未选择 AI")
-                .font(.caption)
-                .foregroundStyle(
-                    .tertiary
-                )
-                .frame(
-                    maxWidth: 130
-                )
-        }
-    }
-
-
-    // MARK: - Status Badge
-
-    private func workflowStatusBadge(
-        _ status:
-            ZhuowangWorkflowStepStatus
-    ) -> some View {
-
-        HStack(spacing: 6) {
-
-            Circle()
-                .fill(
-                    statusColor(
-                        status
-                    )
-                )
-                .frame(
-                    width: 6,
-                    height: 6
-                )
-
-            Text(status.title)
-                .font(.caption)
-                .fontWeight(.medium)
-        }
-        .padding(
-            .horizontal,
-            9
-        )
-        .padding(
-            .vertical,
-            5
-        )
-        .background(
-            statusColor(
-                status
-            )
-            .opacity(0.08)
-        )
-        .clipShape(Capsule())
-    }
-
-
-    // MARK: - Workflow Progress
-
-    private func workflowProgressBadge(
-        _ workflow:
-            ZhuowangCampaignWorkflow
-    ) -> some View {
-
-        let steps =
-            enabledSteps(
-                in: workflow
-            )
-
-        let completed =
-            steps.filter {
-                $0.status == .approved
-                || $0.status == .completed
-            }
-            .count
-
-        return VStack(
-            alignment: .trailing,
-            spacing: 5
-        ) {
-
-            Text(
-                "\(completed) / \(steps.count)"
-            )
-            .font(
-                .system(
-                    size: 18,
-                    weight: .semibold,
-                    design: .rounded
-                )
-            )
-
-            Text("Workflow Progress")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
+        .fixedSize()
     }
 
 
@@ -1280,8 +961,8 @@ struct ZhuowangWorkflowView: View {
             )
 
         let connection = provider.flatMap {
-            connectionStore.recommendedConnection(
-                forProviderID: $0.id
+            connections.recommendedConnection(
+                $0.id
             )
         }
 
@@ -1291,9 +972,9 @@ struct ZhuowangWorkflowView: View {
 
         let route = connection.flatMap { connection in
             tool.flatMap { tool in
-                connectionStore.route(
-                    connectionID: connection.id,
-                    toolIntegrationID: tool.id
+                connections.route(
+                    connection.id,
+                    tool.id
                 )
             }
         }
@@ -1493,7 +1174,7 @@ struct ZhuowangWorkflowView: View {
         }
 
         if adoptionResult.succeeded {
-            expandedStepID =
+            selectedStepID =
                 context.stepID
         }
 
@@ -1520,30 +1201,6 @@ struct ZhuowangWorkflowView: View {
                 forCampaignID:
                     campaign.id
             )
-    }
-
-
-    private func enabledSteps(
-        in workflow:
-            ZhuowangCampaignWorkflow
-    ) -> [ZhuowangWorkflowStep] {
-
-        workflow.steps
-            .filter {
-                $0.isEnabled
-            }
-            .sorted {
-
-                if $0.sortOrder
-                    != $1.sortOrder {
-
-                    return $0.sortOrder
-                        < $1.sortOrder
-                }
-
-                return $0.createdAt
-                    < $1.createdAt
-            }
     }
 
 
@@ -1605,114 +1262,18 @@ struct ZhuowangWorkflowView: View {
 
     // MARK: - Counts
 
-    private func approvedStepCount(
-        in workflow:
-            ZhuowangCampaignWorkflow
-    ) -> Int {
-
-        enabledSteps(
-            in: workflow
-        )
-        .filter {
-
-            $0.status == .approved
-            || $0.status == .completed
-        }
-        .count
-    }
-
-
     private func configuredProviderCount(
         in workflow:
             ZhuowangCampaignWorkflow
     ) -> Int {
 
-        enabledSteps(
+        ZhuowangWorkflowUIModel.enabledSteps(
             in: workflow
         )
         .filter {
             selectedProvider(for: $0) != nil
         }
         .count
-    }
-
-
-    // MARK: - Status Color
-
-    private func statusColor(
-        _ status:
-            ZhuowangWorkflowStepStatus
-    ) -> Color {
-
-        switch status {
-
-        case .notStarted:
-            return .secondary
-
-        case .ready:
-            return .blue
-
-        case .running:
-            return .orange
-
-        case .waitingForApproval:
-            return .purple
-
-        case .approved:
-            return .green
-
-        case .needsRevision:
-            return .orange
-
-        case .completed:
-            return .green
-
-        case .failed:
-            return .red
-
-        case .skipped:
-            return .secondary
-        }
-    }
-
-
-    private func stepCircleColor(
-        _ status:
-            ZhuowangWorkflowStepStatus
-    ) -> Color {
-
-        switch status {
-
-        case .ready:
-            return Color.accentColor
-                .opacity(0.11)
-
-        case .running:
-            return Color.orange
-                .opacity(0.11)
-
-        case .waitingForApproval:
-            return Color.purple
-                .opacity(0.11)
-
-        case .approved,
-             .completed:
-            return Color.green
-                .opacity(0.11)
-
-        case .needsRevision:
-            return Color.orange
-                .opacity(0.11)
-
-        case .failed:
-            return Color.red
-                .opacity(0.11)
-
-        case .notStarted,
-             .skipped:
-            return Color.primary
-                .opacity(0.045)
-        }
     }
 
 
@@ -1773,7 +1334,7 @@ struct ZhuowangWorkflowView: View {
 
         return step.requiredCapabilities
             .map {
-                String(describing: $0)
+                $0.title
             }
             .joined(separator: "、")
     }
@@ -1820,8 +1381,8 @@ struct ZhuowangWorkflowView: View {
 
         return step.requiredCapabilities
             .flatMap {
-                connectionStore.availableTools(
-                    for: $0
+                connections.availableTools(
+                    $0
                 )
             }
             .filter {
@@ -1836,8 +1397,8 @@ struct ZhuowangWorkflowView: View {
 
         step.selectedToolIDs.lazy
             .compactMap {
-                connectionStore.toolIntegration(
-                    id: $0
+                connections.toolIntegration(
+                    $0
                 )
             }
             .first
@@ -1867,15 +1428,15 @@ struct ZhuowangWorkflowView: View {
         }
 
         guard
-            let connection = connectionStore
+            let connection = connections
                 .recommendedConnection(
-                    forProviderID: provider.id
+                    provider.id
                 ),
             let tool = selectedTool(for: latestStep),
             tool.capabilities.contains(capability),
-            let route = connectionStore.route(
-                connectionID: connection.id,
-                toolIntegrationID: tool.id
+            let route = connections.route(
+                connection.id,
+                tool.id
             )
         else {
             return false

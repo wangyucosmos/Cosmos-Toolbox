@@ -39,28 +39,33 @@ struct ZhuowangArtifactDeliveryPackageView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+                .background(.bar)
             Divider()
 
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingM
-            ) {
-                explanation
-                selectionControls
-                candidateList
-                statusArea
+            ScrollView {
+                VStack(
+                    alignment: .leading,
+                    spacing: CosmosDesign.spacingL
+                ) {
+                    summaryCard
+                    candidateList
+                    statusArea
+                }
+                .padding(CosmosDesign.spacingL)
             }
-            .padding(CosmosDesign.spacingL)
 
             Divider()
             footer
+                .background(.bar)
         }
         .frame(
             minWidth: 760,
             idealWidth: 820,
             minHeight: 560,
-            idealHeight: 620
+            idealHeight: 640
         )
+        .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(CosmosMotionPolicy())
         .onAppear {
             refreshCandidates()
         }
@@ -70,223 +75,98 @@ struct ZhuowangArtifactDeliveryPackageView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            ZStack {
-                RoundedRectangle(
-                    cornerRadius: 10,
-                    style: .continuous
-                )
-                .fill(
-                    Color.accentColor.opacity(0.09)
-                )
-                .frame(width: 42, height: 42)
-
-                Image(systemName: "archivebox")
-                    .font(
-                        .system(
-                            size: 18,
-                            weight: .medium
-                        )
-                    )
-                    .foregroundStyle(.tint)
-            }
-
-            VStack(
-                alignment: .leading,
-                spacing: 3
-            ) {
-                Text("导出 Campaign 交付包")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text(campaign.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
+        CampaignUIHeader(
+            icon: "archivebox",
+            title: "导出 Campaign 交付包",
+            subtitle: campaign.name
+        ) {
             Button("关闭") {
                 dismiss()
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .disabled(isExporting)
         }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
     }
 
 
-    private var explanation: some View {
-        Text(
-            "只导出当前已采用、真实落盘且位于该 Campaign 正式 Workspace 内的文件。源文件、Workflow 和采用状态不会被修改。"
-        )
-        .font(.callout)
-        .foregroundStyle(.secondary)
-        .fixedSize(
-            horizontal: false,
-            vertical: true
-        )
+    // MARK: Summary
+
+    private var summaryCard: some View {
+        VStack(
+            alignment: .leading,
+            spacing: CosmosDesign.spacingM
+        ) {
+            HStack(spacing: CosmosDesign.spacingXL) {
+                CampaignUIKeyValue(
+                    title: "已选择",
+                    value: "\(selectedGroupKeys.count) 项"
+                )
+                CampaignUIKeyValue(
+                    title: "可导出",
+                    value: "\(eligibleCandidates.count) 项"
+                )
+                CampaignUIKeyValue(
+                    title: "暂不可用",
+                    value: "\(candidates.count - eligibleCandidates.count) 项"
+                )
+            }
+
+            CampaignUINotice(
+                text: "只导出当前已采用、真实落盘且位于该 Campaign 正式 Workspace 内的文件。源文件、Workflow 和采用状态不会被修改。",
+                icon: "lock.shield"
+            )
+        }
+        .campaignUICardSurface()
     }
 
 
     // MARK: Selection
 
-    private var selectionControls: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            Text(
-                "已选择 \(selectedGroupKeys.count) / \(eligibleCandidates.count) 项"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            Spacer()
-
-            Button(
-                allEligibleSelected
-                ? "取消全选"
-                : "全选可用项"
-            ) {
-                if allEligibleSelected {
-                    selectedGroupKeys.removeAll()
-                } else {
-                    selectedGroupKeys = Set(
-                        eligibleCandidates.map(\.groupKey)
-                    )
-                }
-            }
-            .buttonStyle(.borderless)
-            .disabled(
-                eligibleCandidates.isEmpty
-                    || isExporting
-            )
-
-            Button("刷新状态") {
-                refreshCandidates()
-            }
-            .buttonStyle(.borderless)
-            .disabled(isExporting)
-        }
-    }
-
-
     private var candidateList: some View {
-        Group {
-            if candidates.isEmpty {
-                VStack(spacing: CosmosDesign.spacingM) {
-                    Image(
-                        systemName:
-                            "archivebox.circle"
-                    )
-                    .font(.system(size: 30))
-                    .foregroundStyle(.secondary)
-
-                    Text("当前没有工作产物")
-                        .font(.headline)
-
-                    Text(
-                        "只有 Workflow 中已保存的 Artifact 才会出现在这里。"
-                    )
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        CampaignUICard(
+            title: "选择要导出的工作产物",
+            icon: "checklist",
+            trailing: {
+                Button(
+                    allEligibleSelected
+                    ? "取消全选"
+                    : "全选可用项"
+                ) {
+                    if allEligibleSelected {
+                        selectedGroupKeys.removeAll()
+                    } else {
+                        selectedGroupKeys = Set(
+                            eligibleCandidates.map(\.groupKey)
+                        )
+                    }
                 }
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
+                .buttonStyle(.borderless)
+                .disabled(
+                    eligibleCandidates.isEmpty
+                        || isExporting
+                )
+
+                Button("刷新状态") {
+                    refreshCandidates()
+                }
+                .buttonStyle(.borderless)
+                .disabled(isExporting)
+            }
+        ) {
+            if candidates.isEmpty {
+                CosmosEmptyState(
+                    icon: "archivebox.circle",
+                    title: "当前没有工作产物",
+                    detail: "只有 Workflow 中已保存的 Artifact 才会出现在这里。"
                 )
             } else {
-                VStack(spacing: 0) {
-                    candidateHeader
-                    Divider()
-
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(candidates) {
-                                candidate in
-
-                                candidateRow(candidate)
-                                Divider()
-                                    .padding(.leading, 42)
-                            }
-                        }
+                VStack(spacing: 8) {
+                    ForEach(candidates) { candidate in
+                        candidateRow(candidate)
                     }
                 }
             }
         }
-        .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity
-        )
-        .background(
-            Color.primary.opacity(0.018)
-        )
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary.opacity(0.06),
-                lineWidth: 1
-            )
-        }
-    }
-
-
-    private var candidateHeader: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            Color.clear
-                .frame(width: 18)
-
-            Text("步骤")
-                .frame(
-                    width: 120,
-                    alignment: .leading
-                )
-
-            Text("工作产物")
-                .frame(
-                    minWidth: 170,
-                    maxWidth: .infinity,
-                    alignment: .leading
-                )
-
-            Text("采用版本")
-                .frame(
-                    width: 70,
-                    alignment: .leading
-                )
-
-            Text("文件状态")
-                .frame(
-                    width: 220,
-                    alignment: .leading
-                )
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingM
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingS
-        )
     }
 
 
@@ -295,7 +175,9 @@ struct ZhuowangArtifactDeliveryPackageView: View {
             ZhuowangArtifactDeliveryCandidate
     ) -> some View {
 
-        HStack(spacing: CosmosDesign.spacingM) {
+        let selected = selectedGroupKeys.contains(candidate.groupKey)
+
+        return HStack(spacing: CosmosDesign.spacingM) {
             Toggle(
                 "",
                 isOn: Binding(
@@ -325,67 +207,80 @@ struct ZhuowangArtifactDeliveryPackageView: View {
                     || isExporting
             )
 
-            Text(candidate.stepTitle)
-                .frame(
-                    width: 120,
-                    alignment: .leading
-                )
-                .lineLimit(2)
-
             VStack(
                 alignment: .leading,
-                spacing: 2
+                spacing: 3
             ) {
                 Text(candidate.name)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .lineLimit(1)
 
-                if let fileName = candidate.fileName {
-                    Text(fileName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(candidate.stepTitle)
+
+                    if let fileName = candidate.fileName {
+                        Text("·")
+                        Text(fileName)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             .frame(
-                minWidth: 170,
                 maxWidth: .infinity,
                 alignment: .leading
             )
 
-            Text(candidate.versionText)
-                .frame(
-                    width: 70,
-                    alignment: .leading
+            if let version = candidate.version {
+                CampaignUIVersionBadge(
+                    version: version,
+                    isCurrent: candidate.isEligible
                 )
+            } else {
+                Text(candidate.versionText)
+                    .foregroundStyle(.secondary)
+            }
 
-            Label(
-                candidate.fileStatusText,
-                systemImage:
+            CampaignUIStatusPill(
+                text: candidate.fileStatusText,
+                icon:
                     candidate.isEligible
                     ? "checkmark.circle.fill"
-                    : "exclamationmark.circle"
+                    : "exclamationmark.circle",
+                tone:
+                    candidate.isEligible
+                    ? .success
+                    : .warning
             )
-            .font(.caption)
-            .foregroundStyle(
-                candidate.isEligible
-                ? Color.green
-                : Color.orange
-            )
-            .frame(
-                width: 220,
-                alignment: .leading
-            )
-            .lineLimit(2)
+            .frame(maxWidth: 230, alignment: .trailing)
         }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingM
+        .padding(.horizontal, CosmosDesign.spacingM)
+        .padding(.vertical, CosmosDesign.spacingS + 2)
+        .background(
+            selected
+            ? Color.accentColor.opacity(0.08)
+            : Color.primary.opacity(0.025),
+            in: RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusMedium,
+                style: .continuous
+            )
         )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingS
-        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: CosmosDesign.cornerRadiusMedium,
+                style: .continuous
+            )
+            .stroke(
+                selected
+                ? Color.accentColor.opacity(0.4)
+                : Color.primary.opacity(0.05),
+                lineWidth: 1
+            )
+        }
+        .opacity(candidate.isEligible ? 1 : 0.72)
+        .campaignUIAnimation(value: selected)
     }
 
 
@@ -394,33 +289,34 @@ struct ZhuowangArtifactDeliveryPackageView: View {
     @ViewBuilder
     private var statusArea: some View {
         if let errorMessage {
-            Label(
-                errorMessage,
-                systemImage:
-                    "exclamationmark.triangle.fill"
+            CampaignUINotice(
+                text: errorMessage,
+                icon: "exclamationmark.triangle.fill",
+                tone: .warning
             )
-            .font(.callout)
-            .foregroundStyle(.orange)
-            .textSelection(.enabled)
+            .transition(.opacity)
         }
 
         if let completedArchiveURL {
             HStack(spacing: CosmosDesign.spacingM) {
-                Label(
-                    "交付包已完成",
-                    systemImage:
-                        "checkmark.circle.fill"
-                )
-                .font(.callout)
-                .foregroundStyle(.green)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.green)
 
-                Text(
-                    completedArchiveURL
-                        .lastPathComponent
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("交付包已完成")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.green)
+
+                    Text(
+                        completedArchiveURL
+                            .lastPathComponent
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                }
 
                 Spacer()
 
@@ -430,16 +326,26 @@ struct ZhuowangArtifactDeliveryPackageView: View {
                             [completedArchiveURL]
                         )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
             }
+            .padding(CosmosDesign.spacingM)
+            .background(
+                Color.green.opacity(0.08),
+                in: RoundedRectangle(
+                    cornerRadius: CosmosDesign.cornerRadiusMedium,
+                    style: .continuous
+                )
+            )
+            .transition(.opacity)
         }
     }
 
 
     private var footer: some View {
         HStack(spacing: CosmosDesign.spacingM) {
-            Text(
-                "ZIP 内包含所选文件、交付清单.md 和 manifest.json。"
+            Label(
+                "ZIP 内包含所选文件、交付清单.md 和 manifest.json。",
+                systemImage: "shippingbox"
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -454,7 +360,7 @@ struct ZhuowangArtifactDeliveryPackageView: View {
             Button("选择位置并导出") {
                 chooseDestinationAndExport()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .disabled(
                 selectedGroupKeys.isEmpty
                     || isExporting

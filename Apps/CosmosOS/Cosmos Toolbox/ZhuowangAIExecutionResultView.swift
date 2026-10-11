@@ -49,6 +49,7 @@ struct ZhuowangAIExecutionResultView: View {
         VStack(spacing: 0) {
 
             header
+                .background(.bar)
 
             Divider()
 
@@ -56,45 +57,58 @@ struct ZhuowangAIExecutionResultView: View {
 
                 VStack(
                     alignment: .leading,
-                    spacing: CosmosDesign.spacingXL
+                    spacing: CosmosDesign.spacingL
                 ) {
 
                     executionSummary
 
-                    switch state {
+                    ZStack(alignment: .top) {
 
-                    case .running:
-                        runningContent
+                        switch state {
 
-                    case .succeeded:
-                        successContent
+                        case .running:
+                            runningContent
+                                .transition(.opacity)
 
-                    case .failed:
-                        failureContent
+                        case .succeeded:
+                            successContent
+                                .transition(.opacity)
+
+                        case .failed:
+                            failureContent
+                                .transition(.opacity)
+                        }
                     }
+                    .campaignUIAnimation(
+                        .smooth(duration: CosmosDesign.animationNormal),
+                        value: state
+                    )
                 }
                 .padding(
                     .horizontal,
-                    CosmosDesign.pagePadding
+                    CosmosDesign.spacingXL + 4
                 )
                 .padding(
                     .vertical,
                     CosmosDesign.spacingXL
                 )
                 .frame(
-                    maxWidth: 860,
-                    alignment: .leading
+                    maxWidth: 880
                 )
+                .frame(maxWidth: .infinity)
             }
 
             Divider()
 
             footer
+                .background(.bar)
         }
         .frame(
             minWidth: 820,
             minHeight: 720
         )
+        .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(CosmosMotionPolicy())
         .sheet(
             isPresented:
                 $showRevisionSheet
@@ -119,57 +133,12 @@ struct ZhuowangAIExecutionResultView: View {
 
     private var header: some View {
 
-        HStack(
-            spacing:
-                CosmosDesign.spacingM
+        CampaignUIHeader(
+            icon: headerIcon,
+            title: headerTitle,
+            subtitle: headerSubtitle,
+            tone: headerTone
         ) {
-
-            ZStack {
-
-                RoundedRectangle(
-                    cornerRadius: 10,
-                    style: .continuous
-                )
-                .fill(
-                    headerColor.opacity(0.10)
-                )
-                .frame(
-                    width: 40,
-                    height: 40
-                )
-
-                Image(
-                    systemName:
-                        headerIcon
-                )
-                .font(
-                    .system(
-                        size: 17,
-                        weight: .medium
-                    )
-                )
-                .foregroundStyle(
-                    headerColor
-                )
-            }
-
-            VStack(
-                alignment: .leading,
-                spacing: 3
-            ) {
-
-                Text(headerTitle)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text(headerSubtitle)
-                    .font(.caption)
-                    .foregroundStyle(
-                        .secondary
-                    )
-            }
-
-            Spacer()
 
             if state == .running {
 
@@ -182,18 +151,11 @@ struct ZhuowangAIExecutionResultView: View {
 
                 dismiss()
             }
+            .buttonStyle(.glass)
             .disabled(
                 state == .running
             )
         }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
     }
 
 
@@ -219,8 +181,7 @@ struct ZhuowangAIExecutionResultView: View {
                 ) {
 
                     Text(taskPackage.title)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 20, weight: .semibold))
 
                     Text(
                         "Cosmos OS · AI Execution"
@@ -241,80 +202,27 @@ struct ZhuowangAIExecutionResultView: View {
                     CosmosDesign.spacingXL
             ) {
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "AI Provider",
                     value:
                         provider?.name
                         ?? "未选择"
                 )
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "Connection",
                     value:
                         connectionDisplayName
                 )
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "Execution",
                     value:
                         executionStyleText
                 )
             }
         }
-        .padding(
-            CosmosDesign.cardPadding
-        )
-        .background(.thinMaterial)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary
-                    .opacity(0.06),
-                lineWidth: 1
-            )
-        }
-    }
-
-
-    // MARK: - Summary Item
-
-    private func summaryItem(
-        title: String,
-        value: String
-    ) -> some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: 4
-        ) {
-
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(
-                    .secondary
-                )
-
-            Text(value)
-                .font(.callout)
-                .fontWeight(.medium)
-                .lineLimit(2)
-        }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
-        )
+        .campaignUICardSurface()
     }
 
 
@@ -395,32 +303,9 @@ struct ZhuowangAIExecutionResultView: View {
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: 360
+            minHeight: 320
         )
-        .background(
-            Color.primary
-                .opacity(0.012)
-        )
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary
-                    .opacity(0.05),
-                lineWidth: 1
-            )
-        }
+        .campaignUICardSurface()
     }
 
 
@@ -431,28 +316,40 @@ struct ZhuowangAIExecutionResultView: View {
         VStack(
             alignment: .leading,
             spacing:
-                CosmosDesign.spacingXL
+                CosmosDesign.spacingL
         ) {
 
-            HStack {
+            // 1. 等待你的确认：先说清楚下一步由用户决定。
+            reviewNotice
 
-                VStack(
-                    alignment: .leading,
-                    spacing: 3
-                ) {
+            // 2. 生成结果。
+            resultCard
 
-                    Text("AI 生成结果")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+            if let adoptionErrorMessage {
+                CampaignUINotice(
+                    text: adoptionErrorMessage,
+                    icon: "exclamationmark.triangle",
+                    tone: .danger
+                )
+            }
+        }
+    }
 
-                    Text("Generated Result")
-                        .font(.caption)
-                        .foregroundStyle(
-                            .secondary
-                        )
-                }
 
-                Spacer()
+    // MARK: - Result Card
+
+    private var resultCard: some View {
+
+        CampaignUICard(
+            title: provider?.name ?? "AI Result",
+            icon: "sparkles",
+            info: "这是 AI 生成的草稿，还没有被采用。采用后才会保存为工作产物并解锁下一步。",
+            trailing: {
+
+                CampaignUIStatusPill(
+                    text: "Draft",
+                    tone: .neutral
+                )
 
                 Button {
 
@@ -470,78 +367,10 @@ struct ZhuowangAIExecutionResultView: View {
                             : "doc.on.doc"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
+                .controlSize(.small)
             }
-
-
-            resultCard
-
-
-            reviewNotice
-
-            if let adoptionErrorMessage {
-                Label(
-                    adoptionErrorMessage,
-                    systemImage: "exclamationmark.triangle"
-                )
-                .font(.caption)
-                .foregroundStyle(.red)
-            }
-        }
-    }
-
-
-    // MARK: - Result Card
-
-    private var resultCard: some View {
-
-        VStack(
-            alignment: .leading,
-            spacing:
-                CosmosDesign.spacingM
         ) {
-
-            HStack(
-                spacing: 8
-            ) {
-
-                Image(
-                    systemName:
-                        "sparkles"
-                )
-                .foregroundStyle(.tint)
-
-                Text(
-                    provider?.name
-                    ?? "AI Result"
-                )
-                .font(.headline)
-
-                Spacer()
-
-                Text("Draft")
-                    .font(.caption2)
-                    .foregroundStyle(
-                        .secondary
-                    )
-                    .padding(
-                        .horizontal,
-                        8
-                    )
-                    .padding(
-                        .vertical,
-                        4
-                    )
-                    .background(
-                        Color.primary
-                            .opacity(0.04)
-                    )
-                    .clipShape(
-                        Capsule()
-                    )
-            }
-
-            Divider()
 
             if let artifactDraft {
                 artifactDraftSummary(
@@ -550,30 +379,6 @@ struct ZhuowangAIExecutionResultView: View {
             } else {
                 sourceCodeView
             }
-        }
-        .padding(
-            CosmosDesign.spacingL
-        )
-        .background(.thinMaterial)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary
-                    .opacity(0.06),
-                lineWidth: 1
-            )
         }
     }
 
@@ -588,7 +393,7 @@ struct ZhuowangAIExecutionResultView: View {
             HStack(spacing: CosmosDesign.spacingL) {
                 Label(
                     draft.name,
-                    systemImage: "doc.richtext"
+                    systemImage: CampaignUIFormat.artifactIcon(draft.type)
                 )
                 .font(.headline)
 
@@ -597,10 +402,6 @@ struct ZhuowangAIExecutionResultView: View {
                 Text(draft.type.title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
-                Text("Draft")
-                    .font(.caption)
-                    .fontWeight(.medium)
             }
 
             Text(
@@ -626,13 +427,13 @@ struct ZhuowangAIExecutionResultView: View {
                         systemImage: "macwindow"
                     )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
             }
         }
         .padding(CosmosDesign.spacingM)
-        .background(Color.primary.opacity(0.018))
-        .clipShape(
-            RoundedRectangle(
+        .background(
+            Color.primary.opacity(0.018),
+            in: RoundedRectangle(
                 cornerRadius: CosmosDesign.cornerRadiusSmall,
                 style: .continuous
             )
@@ -660,9 +461,9 @@ struct ZhuowangAIExecutionResultView: View {
                 .padding(CosmosDesign.spacingM)
         }
         .frame(minHeight: artifactDraft?.type == .html ? 420 : 180)
-        .background(Color.primary.opacity(0.018))
-        .clipShape(
-            RoundedRectangle(
+        .background(
+            Color.primary.opacity(0.018),
+            in: RoundedRectangle(
                 cornerRadius: CosmosDesign.cornerRadiusSmall,
                 style: .continuous
             )
@@ -698,12 +499,12 @@ struct ZhuowangAIExecutionResultView: View {
             ) {
 
                 Text("等待你的确认")
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
 
                 Text(
                     "AI 已完成当前步骤，但不会自动进入下一步。你可以采用结果、提出修改意见，或者重新生成。"
                 )
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(
                     .secondary
                 )
@@ -716,10 +517,8 @@ struct ZhuowangAIExecutionResultView: View {
         )
         .background(
             Color.accentColor
-                .opacity(0.055)
-        )
-        .clipShape(
-            RoundedRectangle(
+                .opacity(0.07),
+            in: RoundedRectangle(
                 cornerRadius:
                     CosmosDesign.cornerRadiusMedium,
                 style: .continuous
@@ -735,7 +534,7 @@ struct ZhuowangAIExecutionResultView: View {
         VStack(
             alignment: .leading,
             spacing:
-                CosmosDesign.spacingXL
+                CosmosDesign.spacingL
         ) {
 
             VStack(
@@ -743,32 +542,24 @@ struct ZhuowangAIExecutionResultView: View {
                     CosmosDesign.spacingM
             ) {
 
-                ZStack {
-
-                    Circle()
-                        .fill(
-                            Color.red
-                                .opacity(0.08)
-                        )
-                        .frame(
-                            width: 70,
-                            height: 70
-                        )
-
-                    Image(
-                        systemName:
-                            "exclamationmark.triangle"
+                Image(
+                    systemName:
+                        "exclamationmark.triangle"
+                )
+                .font(
+                    .system(
+                        size: 26,
+                        weight: .medium
                     )
-                    .font(
-                        .system(
-                            size: 26,
-                            weight: .medium
-                        )
-                    )
-                    .foregroundStyle(
-                        Color.red
-                    )
-                }
+                )
+                .foregroundStyle(
+                    Color.red
+                )
+                .frame(width: 70, height: 70)
+                .background(
+                    Color.red.opacity(0.08),
+                    in: Circle()
+                )
 
                 Text("AI 执行失败")
                     .font(.title3)
@@ -790,19 +581,10 @@ struct ZhuowangAIExecutionResultView: View {
             )
 
 
-            VStack(
-                alignment: .leading,
-                spacing:
-                    CosmosDesign.spacingM
-            ) {
-
-                HStack {
-
-                    Text("错误信息")
-                        .font(.headline)
-
-                    Spacer()
-
+            CampaignUICard(
+                title: "错误信息",
+                icon: "exclamationmark.octagon",
+                trailing: {
                     Button {
 
                         copyError()
@@ -815,8 +597,10 @@ struct ZhuowangAIExecutionResultView: View {
                                 "doc.on.doc"
                         )
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
                 }
+            ) {
 
                 Text(
                     cleanedErrorText
@@ -837,32 +621,15 @@ struct ZhuowangAIExecutionResultView: View {
                 )
                 .background(
                     Color.red
-                        .opacity(0.035)
-                )
-                .clipShape(
-                    RoundedRectangle(
+                        .opacity(0.045),
+                    in: RoundedRectangle(
                         cornerRadius:
                             CosmosDesign.cornerRadiusSmall,
                         style: .continuous
                     )
                 )
             }
-            .padding(
-                CosmosDesign.spacingL
-            )
-            .background(
-                Color.primary
-                    .opacity(0.012)
-            )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusLarge,
-                    style: .continuous
-                )
-            )
             .overlay {
-
                 RoundedRectangle(
                     cornerRadius:
                         CosmosDesign.cornerRadiusLarge,
@@ -870,7 +637,7 @@ struct ZhuowangAIExecutionResultView: View {
                 )
                 .stroke(
                     Color.red
-                        .opacity(0.15),
+                        .opacity(0.18),
                     lineWidth: 1
                 )
             }
@@ -943,7 +710,7 @@ struct ZhuowangAIExecutionResultView: View {
                             : "doc.on.doc"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 Spacer()
 
@@ -960,7 +727,7 @@ struct ZhuowangAIExecutionResultView: View {
                             "text.bubble"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 Button {
 
@@ -974,7 +741,7 @@ struct ZhuowangAIExecutionResultView: View {
                             "arrow.clockwise"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 Button {
 
@@ -998,7 +765,7 @@ struct ZhuowangAIExecutionResultView: View {
                     )
                 }
                 .buttonStyle(
-                    .borderedProminent
+                    .glassProminent
                 )
                 .keyboardShortcut(
                     .defaultAction
@@ -1022,6 +789,7 @@ struct ZhuowangAIExecutionResultView: View {
 
                     dismiss()
                 }
+                .buttonStyle(.glass)
 
                 Spacer()
 
@@ -1038,7 +806,7 @@ struct ZhuowangAIExecutionResultView: View {
                     )
                 }
                 .buttonStyle(
-                    .borderedProminent
+                    .glassProminent
                 )
             }
             .padding(
@@ -1058,32 +826,25 @@ struct ZhuowangAIExecutionResultView: View {
     private var executionStateBadge:
         some View {
 
-        HStack(spacing: 6) {
+        CampaignUIStatusPill(
+            text: stateTitle,
+            tone: headerTone
+        )
+    }
 
-            Circle()
-                .fill(headerColor)
-                .frame(
-                    width: 6,
-                    height: 6
-                )
+    private var headerTone: CampaignUITone {
 
-            Text(stateTitle)
-                .font(.caption)
-                .fontWeight(.medium)
+        switch state {
+
+        case .running:
+            return .info
+
+        case .succeeded:
+            return .success
+
+        case .failed:
+            return .danger
         }
-        .padding(
-            .horizontal,
-            9
-        )
-        .padding(
-            .vertical,
-            5
-        )
-        .background(
-            headerColor
-                .opacity(0.08)
-        )
-        .clipShape(Capsule())
     }
 
 
@@ -1347,34 +1108,18 @@ struct ZhuowangAIRevisionRequestView:
 
         VStack(spacing: 0) {
 
-            HStack {
-
-                VStack(
-                    alignment: .leading,
-                    spacing: 3
-                ) {
-
-                    Text("要求修改")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-
-                    Text(
-                        "Revision Request"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(
-                        .secondary
-                    )
-                }
-
-                Spacer()
-
+            CampaignUIHeader(
+                icon: "text.bubble",
+                title: "要求修改",
+                subtitle: "Revision Request"
+            ) {
                 Button("取消") {
 
                     dismiss()
                 }
+                .buttonStyle(.glass)
             }
-            .padding(20)
+            .background(.bar)
 
 
             Divider()
@@ -1389,14 +1134,6 @@ struct ZhuowangAIRevisionRequestView:
                 Text("告诉 AI 需要修改什么")
                     .font(.headline)
 
-                Text(
-                    "例如：玩法太复杂，保留签到和抽奖，减少排行榜内容，并重新优化 Slogan。"
-                )
-                .font(.caption)
-                .foregroundStyle(
-                    .secondary
-                )
-
                 TextEditor(
                     text: $feedback
                 )
@@ -1406,10 +1143,8 @@ struct ZhuowangAIRevisionRequestView:
                 .padding(10)
                 .background(
                     Color.primary
-                        .opacity(0.025)
-                )
-                .clipShape(
-                    RoundedRectangle(
+                        .opacity(0.025),
+                    in: RoundedRectangle(
                         cornerRadius:
                             CosmosDesign.cornerRadiusSmall,
                         style: .continuous
@@ -1428,6 +1163,10 @@ struct ZhuowangAIRevisionRequestView:
                         lineWidth: 1
                     )
                 }
+
+                Text("例如：玩法太复杂，保留签到和抽奖，减少排行榜内容，并重新优化 Slogan。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .padding(20)
 
@@ -1443,6 +1182,7 @@ struct ZhuowangAIRevisionRequestView:
 
                     dismiss()
                 }
+                .buttonStyle(.glass)
 
                 Button("提交修改意见") {
 
@@ -1466,7 +1206,7 @@ struct ZhuowangAIRevisionRequestView:
                     dismiss()
                 }
                 .buttonStyle(
-                    .borderedProminent
+                    .glassProminent
                 )
                 .keyboardShortcut(
                     .defaultAction
@@ -1481,10 +1221,12 @@ struct ZhuowangAIRevisionRequestView:
                 )
             }
             .padding(20)
+            .background(.bar)
         }
         .frame(
             minWidth: 560,
             minHeight: 420
         )
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
