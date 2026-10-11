@@ -182,6 +182,16 @@ struct ZhuowangStorePersistenceConfiguration {
         dataSource.domainIdentifier
     }
 
+    var workspaceFileManager: ZhuowangWorkspaceFileManager {
+#if DEBUG
+        if isIsolated {
+            guard let workspaceFilesRootURL else { return .unavailable }
+            return ZhuowangWorkspaceFileManager(rootURL: workspaceFilesRootURL)
+        }
+#endif
+        return .shared
+    }
+
     static var production: ZhuowangStorePersistenceConfiguration {
         ZhuowangStorePersistenceConfiguration(
             dataSource: ZhuowangUserDefaultsDataSource(
@@ -197,6 +207,7 @@ struct ZhuowangStorePersistenceConfiguration {
 
     let isIsolated: Bool
     let isolationSuiteName: String?
+    let workspaceFilesRootURL: URL?
 
     /// The temporary Bundle ID the App was launched under when the
     /// isolated suite was accepted. `nil` for unit-test configurations
@@ -207,17 +218,20 @@ struct ZhuowangStorePersistenceConfiguration {
         dataSource: any ZhuowangPersistenceDataSource,
         isIsolated: Bool = false,
         isolationSuiteName: String? = nil,
-        isolationBundleIdentifier: String? = nil
+        isolationBundleIdentifier: String? = nil,
+        workspaceFilesRootURL: URL? = nil
     ) {
         self.dataSource = dataSource
         self.isIsolated = isIsolated
         self.isolationSuiteName = isolationSuiteName
         self.isolationBundleIdentifier = isolationBundleIdentifier
+        self.workspaceFilesRootURL = workspaceFilesRootURL
     }
 
     static func isolatedSuite(
         named suiteName: String,
         bundleIdentifier: String? = nil,
+        workspaceFilesRootURL: URL? = nil,
         defaultsFactory: (String) -> UserDefaults? = {
             UserDefaults(suiteName: $0)
         }
@@ -237,7 +251,8 @@ struct ZhuowangStorePersistenceConfiguration {
             ),
             isIsolated: true,
             isolationSuiteName: suiteName,
-            isolationBundleIdentifier: bundleIdentifier
+            isolationBundleIdentifier: bundleIdentifier,
+            workspaceFilesRootURL: workspaceFilesRootURL
         )
     }
 #else
@@ -252,6 +267,21 @@ struct ZhuowangStorePersistenceConfiguration {
 
 #if DEBUG
 enum CosmosDebugStorePersistenceBootstrap {
+
+    static let workspaceFilesArgument = "--cosmos-workspace-files-fixture-root"
+    static let workspaceFilesPrefix = "/private/tmp/CosmosWorkspaceFiles-"
+
+    static func workspaceFilesRoot(arguments: [String]) -> URL? {
+        guard arguments.filter({ $0 == workspaceFilesArgument }).count == 1,
+              let index = arguments.firstIndex(of: workspaceFilesArgument),
+              index + 1 < arguments.count else { return nil }
+        let path = arguments[index + 1]
+        guard path.hasPrefix(workspaceFilesPrefix), !path.contains(".."),
+              UUID(uuidString: String(path.dropFirst(workspaceFilesPrefix.count))) != nil else { return nil }
+        let root = URL(fileURLWithPath: path, isDirectory: true)
+        guard ZhuowangWorkspaceFileManager.normalizedTemporaryPath(root.resolvingSymlinksInPath().path) == root.path else { return nil }
+        return root
+    }
 
     static let suiteArgument =
         "--cosmos-store-phase1-suite"
@@ -290,6 +320,9 @@ enum CosmosDebugStorePersistenceBootstrap {
                     of: suiteArgument
                 )
         else {
+            if arguments.contains(workspaceFilesArgument) {
+                return .blocked("工作文件隔离参数必须同时指定隔离 suite。")
+            }
             return .ready(.production)
         }
 
@@ -351,6 +384,9 @@ enum CosmosDebugStorePersistenceBootstrap {
                 .isolatedSuite(
                     named: suiteName,
                     bundleIdentifier: bundleIdentifier,
+                    workspaceFilesRootURL: workspaceFilesRoot(
+                        arguments: arguments
+                    ),
                     defaultsFactory:
                         defaultsFactory
                 )

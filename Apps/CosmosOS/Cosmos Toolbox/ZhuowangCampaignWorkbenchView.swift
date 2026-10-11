@@ -85,8 +85,11 @@ struct ZhuowangCampaignWorkbenchView: View {
 
     private var effectiveDeliverableCounter: ZhuowangCampaignProgressBuilder.DeliverableCounter? {
         if let deliverableCounter { return deliverableCounter }
-        if campaignStore.persistenceConfiguration.isIsolatedForUI { return { _, _, _, _ in 0 } }
-        return nil
+        let manager = workflowStore.workspaceFileManager
+        return { campaign, province, artifacts, steps in
+            ZhuowangCampaignProgressBuilder.deliveryPackageCount(campaign: campaign,
+                provinceName: province, artifacts: artifacts, steps: steps, workspaceFileManager: manager)
+        }
     }
 
     private func applyMetric(_ metric: CosmosWorkbenchMetric?) {

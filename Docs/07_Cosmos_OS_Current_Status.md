@@ -102,6 +102,7 @@
 | 个人笔记 | `PersonalNotes/notes.json` | `notes.backup.json`、`.notes.lock` | 1 | 16 MiB；正文 ≤1 MiB；≤500 版本、≤200 引用 | `--cosmos-notes-fixture-root …/CosmosPersonalNotesPhase1-<UUID>` |
 | 我的知识库来源 | `KnowledgeSources/sources.json` | `sources.backup.json`、`.sources.lock` | 1 | 1 MiB、最多 32 个来源；索引仅内存 | `--cosmos-knowledge-sources-fixture-root /private/tmp/CosmosKnowledgeSources-<UUID>`；隔离下仅可登记 /private/tmp 文件夹 |
 | 核心恢复控制 | `CoreRestore/state.json`、`payload-<sourceID>.json` | `.restore.lock`（非阻塞 flock） | — | journal fsync + 原子 rename | `--cosmos-core-restore-fixture-root …/CosmosCoreRestorePhase1-<UUID>` |
+| 卓望工作文件 | `Workspaces/卓望/<省份>/<活动>/` | 历史目录保持可读 | — | Workflow 恢复 / 迁移 / 采用 / 交付检查共用注入根 | `--cosmos-workspace-files-fixture-root /private/tmp/CosmosWorkspaceFiles-<UUID>` |
 | 资产中心 / 资料读取 | （只读，不是存储） | — | — | 单份文本 2 MiB；32 MiB LRU | `--cosmos-asset-fixture-root /private/tmp/CosmosAssetPhase1-*` |
 
 - 内容导出**没有持久化存储**（无导出记录）。
@@ -146,7 +147,7 @@
 
 - **只用隔离数据**：测试和 UI 验收只用合成数据、`/private/tmp/…` UUID 根、独立测试身份 / 随机 UserDefaults suite；隔离依赖缺失时失败关闭；不读写正式业务数据，不操作正式 App 窗口做验收。
 - **禁止按同名 App 使用 System Events**：2026-10-10 一次 UI 自动化尝试因隔离 App 与正式 App 同名，误改了正式 App 窗口位置 / 大小（已按原值恢复位置与大小，前台状态无法还原，未发点击输入，未做业务数据全面审计）。此后 UI 自动化只能定位**唯一进程名的隔离拷贝**，无法确认目标时放弃该 UI 操作。
-- **DEBUG 隔离模式下打开 Campaign 详情窗口可能写入正式 Workspace**（`onAppear` 的恢复 / 迁移调用不受隔离；归档 §13 todo 4）；因此隔离验收不打开合成活动详情，统一检索也拒绝隔离下的 Campaign 详情。
+- **DEBUG 隔离模式下 Campaign 详情写正式 Workspace 风险已修复（C0）**：新增 `--cosmos-workspace-files-fixture-root /private/tmp/CosmosWorkspaceFiles-<UUID>`，需同时满足隔离 Bundle 前缀与 UUID suite；根缺失 / 无效时拒绝工作文件读写并提示状态，绝不回退 Documents。Workflow 恢复 / 迁移 / 采用、详情目录操作、交付检查与工作台计数共用注入管理器；非隔离 DEBUG / Release 仍用正式根。临时根读写拒绝符号链接越界；Foundation 的 /tmp 与 /private/tmp 别名统一处理。统一检索的隔离详情禁用策略保留。
 - 测试数量按**唯一测试**去重，不把“首轮 + 修复后重跑”重复计数；报告区分**本轮实测**、**沿用证据**、**未覆盖**。真实窗口点击 / 保存面板 / Finder 的交互在多数模块仍为未覆盖缺口，工具无法安全完成时记录缺口，不要求用户逐步点击。
 - 每阶段最多一轮集中测试 + 一轮集中修复（AGENTS §23）。
 - 知识库文件夹：除用户点击触发的 `git fetch origin`、`git pull --ff-only` 外一律不写；Git 只走固定命令枚举与参数数组，`GIT_TERMINAL_PROMPT=0`、60 秒超时，读状态加 `--no-optional-locks`。敏感排除是硬规则。
@@ -165,7 +166,7 @@
 
 **P1**
 - 活动改名会改变推导的活动目录（省份已用 `directoryName` 固定路径，活动未处理）。
-- DEBUG 隔离未隔离 Campaign 详情写 Workspace（见 §7）。
+- DEBUG Campaign 工作文件隔离已修复（C0，见 §7）；仅隔离夹具验收，不代表真实 UI 交互已覆盖。
 - 交付包 ZIP 创建 / 哈希 / 解压校验在选择面板动作中同步执行，大交付集可能卡 UI。
 - 进程内解析：PDFKit / ImageIO 在 Cosmos 进程内，限制只降低风险；更强边界需 XPC / 独立进程 Renderer。HTML Preview 允许内联脚本与 `data:`/`blob:` 资源（兼容边界，放宽需单独威胁评估）。
 - Provider 覆盖窄：只有 DeepSeek Harness 完成端到端；`DeepSeekHarnessAdapter` 仍写死用户特定 `npx` 路径（运行时发现层仅限 DeepSeek）；Figma / Pixso 自动执行、Claude Desktop / ChatGPT / Codex 在 Cosmos 内直接执行均未实现。

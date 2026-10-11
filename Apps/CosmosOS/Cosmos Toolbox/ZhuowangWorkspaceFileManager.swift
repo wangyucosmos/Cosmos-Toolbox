@@ -5,15 +5,56 @@ final class ZhuowangWorkspaceFileManager {
     static let shared =
         ZhuowangWorkspaceFileManager()
 
+    static let unavailable = ZhuowangWorkspaceFileManager(
+        rootURL: URL(fileURLWithPath: "/private/tmp/CosmosWorkspaceFiles-Unavailable"),
+        accessFailure: "工作文件隔离根缺失或无效，已拒绝恢复、迁移、采用及交付文件操作；未回退正式工作目录。"
+    )
+
+    let accessFailure: String?
+
     private let fileManager =
         FileManager.default
 
     private let rootURLOverride: URL?
 
-    init(rootURL: URL? = nil) {
+    init(rootURL: URL? = nil, accessFailure: String? = nil) {
+        self.accessFailure = accessFailure
         rootURLOverride = rootURL
     }
 
+
+    static func normalizedTemporaryPath(_ path: String) -> String {
+        // Foundation shortens existing /private/tmp paths to /tmp, while
+        // keeping non-existing descendants under /private/tmp.
+        path.hasPrefix("/tmp/") ? "/private" + path : path
+    }
+
+    private func permitsAccess(to url: URL) -> Bool {
+        guard accessFailure == nil else { return false }
+        guard let rootURLOverride else { return true }
+        // Check the lexical path before resolving links; a fixture must not
+        // even probe a path outside its own root.
+        let root = Self.normalizedTemporaryPath(rootURLOverride.standardizedFileURL.path)
+        let path = Self.normalizedTemporaryPath(url.standardizedFileURL.path)
+        guard path == root || path.hasPrefix(root + "/") else { return false }
+        let resolvedRoot = Self.normalizedTemporaryPath(rootURLOverride.resolvingSymlinksInPath().path)
+        guard resolvedRoot == root else { return false }
+        let resolved = Self.normalizedTemporaryPath(url.resolvingSymlinksInPath().path)
+        return resolved == root || resolved.hasPrefix(root + "/")
+    }
+
+    private func requireAccess(to url: URL) throws {
+        guard permitsAccess(to: url) else {
+            throw ZhuowangWorkspaceFileError.accessUnavailable(
+                accessFailure ?? "工作文件路径越出隔离根，已拒绝访问。"
+            )
+        }
+    }
+
+    func fileExists(atPath path: String) -> Bool {
+        guard permitsAccess(to: URL(fileURLWithPath: path)) else { return false }
+        return fileManager.fileExists(atPath: path)
+    }
 
     // MARK: - Root
 
@@ -315,6 +356,8 @@ final class ZhuowangWorkspaceFileManager {
         campaignName: String
     ) throws -> URL {
 
+        if let accessFailure { throw ZhuowangWorkspaceFileError.accessUnavailable(accessFailure) }
+
         let campaignURL =
             campaignDirectoryURL(
                 provinceName:
@@ -371,6 +414,7 @@ final class ZhuowangWorkspaceFileManager {
 
         for directory in directories {
 
+            try requireAccess(to: directory)
             try fileManager
                 .createDirectory(
                     at: directory,
@@ -396,6 +440,8 @@ final class ZhuowangWorkspaceFileManager {
         version: Int,
         content: String
     ) throws -> URL {
+        if let accessFailure { throw ZhuowangWorkspaceFileError.accessUnavailable(accessFailure) }
+
 
         _ =
             try createCampaignWorkspace(
@@ -440,6 +486,7 @@ final class ZhuowangWorkspaceFileManager {
                     isDirectory: false
                 )
 
+        try requireAccess(to: fileURL)
         guard !fileManager.fileExists(
             atPath: fileURL.path
         ) else {
@@ -468,6 +515,8 @@ final class ZhuowangWorkspaceFileManager {
         version: Int,
         content: String
     ) throws -> URL {
+        if let accessFailure { throw ZhuowangWorkspaceFileError.accessUnavailable(accessFailure) }
+
 
         _ = try createCampaignWorkspace(
             provinceName: provinceName,
@@ -501,6 +550,7 @@ final class ZhuowangWorkspaceFileManager {
             isDirectory: false
         )
 
+        try requireAccess(to: fileURL)
         guard !fileManager.fileExists(
             atPath: fileURL.path
         ) else {
@@ -530,6 +580,7 @@ final class ZhuowangWorkspaceFileManager {
         artifactName: String,
         fileExtension: String
     ) -> [Int] {
+        guard accessFailure == nil else { return [] }
 
         let expectedExtension = fileExtension
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -548,6 +599,7 @@ final class ZhuowangWorkspaceFileManager {
             campaignName: campaignName
         ) {
             guard
+                permitsAccess(to: directory),
                 fileManager.fileExists(atPath: directory.path),
                 let files = try? fileManager.contentsOfDirectory(
                     at: directory,
@@ -559,6 +611,7 @@ final class ZhuowangWorkspaceFileManager {
             }
 
             for fileURL in files {
+                guard permitsAccess(to: fileURL) else { continue }
                 guard
                     seenPaths.insert(fileURL.path).inserted,
                     fileURL.pathExtension.lowercased()
@@ -589,6 +642,7 @@ final class ZhuowangWorkspaceFileManager {
         provinceName: String?,
         campaignName: String
     ) -> [ZhuowangDiscoveredLocalArtifact] {
+        guard accessFailure == nil else { return [] }
 
         let stepKinds: [ZhuowangWorkflowStepKind] = [
             .brief,
@@ -611,6 +665,7 @@ final class ZhuowangWorkspaceFileManager {
             ) {
 
                 guard
+                    permitsAccess(to: directory),
                     fileManager.fileExists(
                         atPath: directory.path
                     ),
@@ -629,6 +684,7 @@ final class ZhuowangWorkspaceFileManager {
                 }
 
                 for fileURL in files {
+                    guard permitsAccess(to: fileURL) else { continue }
 
                     let fileExtension =
                         fileURL.pathExtension.lowercased()
@@ -950,6 +1006,7 @@ struct ZhuowangDiscoveredLocalArtifact {
 enum ZhuowangWorkspaceFileError:
     LocalizedError {
 
+    case accessUnavailable(String)
     case emptyContent
     case invalidUTF8
     case versionAlreadyExists(String)
@@ -958,6 +1015,8 @@ enum ZhuowangWorkspaceFileError:
 
         switch self {
 
+        case let .accessUnavailable(message):
+            return message
         case .emptyContent:
             return "工作产物正文为空，无法保存为 Markdown 文件。"
         case .invalidUTF8:

@@ -68,7 +68,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             ZhuowangCampaignWorkflow
         ]>
 
-    private let workspaceFileManager:
+    let workspaceFileManager:
         ZhuowangWorkspaceFileManager
 
     private var workflowBaselineData: Data?
@@ -94,7 +94,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         persistenceConfiguration:
             ZhuowangStorePersistenceConfiguration = .production,
         workspaceFileManager:
-            ZhuowangWorkspaceFileManager = .shared
+            ZhuowangWorkspaceFileManager? = nil
     ) {
         self.persistenceConfiguration =
             persistenceConfiguration
@@ -110,7 +110,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             )
 
         self.workspaceFileManager =
-            workspaceFileManager
+            workspaceFileManager ?? persistenceConfiguration.workspaceFileManager
 
         loadProviders()
         loadWorkflows()
@@ -2405,6 +2405,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         provinceName: String?
     ) -> Int {
 
+        guard workspaceFileManager.accessFailure == nil else { return 0 }
         guard
             let workflowIndex =
                 workflows.firstIndex(
@@ -2434,7 +2435,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                     )
 
             if !currentLocation.isEmpty,
-               FileManager.default
+               workspaceFileManager
                 .fileExists(
                     atPath:
                         currentLocation

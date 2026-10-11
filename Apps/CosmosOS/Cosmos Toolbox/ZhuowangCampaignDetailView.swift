@@ -137,6 +137,10 @@ struct ZhuowangCampaignDetailView: View {
         )
         .onAppear {
             loadDraft()
+            if let failure = workflowStore.workspaceFileManager.accessFailure {
+                workspaceMessage = failure
+                showWorkspaceAlert = true
+            }
             recoverLocalWorkflowIfNeeded()
             migrateLegacyArtifactsIfNeeded()
             applyRoute()
@@ -178,13 +182,12 @@ struct ZhuowangCampaignDetailView: View {
             isPresented:
                 $showArtifactDeliveryPackage
         ) {
-            if let campaign {
+            if let campaign, workflowStore.workspaceFileManager.accessFailure == nil {
                 ZhuowangArtifactDeliveryPackageView(
                     campaign: campaign,
                     provinceName: province?.name,
                     campaignWorkspaceURL:
-                        ZhuowangWorkspaceFileManager
-                            .shared
+                        workflowStore.workspaceFileManager
                             .campaignDirectoryURL(
                                 provinceName:
                                     province?.pathName,
@@ -1693,8 +1696,7 @@ struct ZhuowangCampaignDetailView: View {
         do {
 
             let workspaceURL =
-                try ZhuowangWorkspaceFileManager
-                    .shared
+                try workflowStore.workspaceFileManager
                     .createCampaignWorkspace(
                         provinceName:
                             province?.pathName,
@@ -1729,8 +1731,7 @@ struct ZhuowangCampaignDetailView: View {
         do {
 
             let workspaceURL =
-                try ZhuowangWorkspaceFileManager
-                    .shared
+                try workflowStore.workspaceFileManager
                     .createCampaignWorkspace(
                         provinceName:
                             province?.pathName,

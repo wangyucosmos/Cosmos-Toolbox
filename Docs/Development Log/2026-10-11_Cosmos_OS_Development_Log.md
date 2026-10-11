@@ -57,3 +57,15 @@
 - 最终结论：可交用户体验第二步集成版本；没有合并冲突、构建或核心测试阻塞。250个唯一测试通过，集中夹具复测不重复计数。main / origin/main仍为b57d5aa；A为7d783bb，B为c8d3349，正式目录在integration/ui-step2；两个feature worktree保留且干净，无推送、无清理。第三步不自动开始。
 
 - 第二步正式收尾：用户实际体验并接受声明的验收范围；main 从 b57d5aa 快进到 a0cd690 并正常推送，HEAD/main/origin/main/远端 main 一致、0/0、工作区干净；以非强制方式移除 step2a-pages、step2b-knowledge 两个 worktree，prune 后用 branch -d 删除 feature/ui-upgrade-step2a、feature/knowledge-sources-step2b、integration/ui-step2，并删除空父目录；指定 Word/PDF WIP 引用未变；本次仅更新验收文档，不重建、不测试、不部署，文档单独提交并正常推送。
+
+
+## 体验升级第三步 C0 — 卓望工作文件隔离修复
+
+- 基线 main / origin/main = f4cb257012479f8c5e26ed6930caa5ef1b809ca0，开工干净。新增 DEBUG 参数 `--cosmos-workspace-files-fixture-root /private/tmp/CosmosWorkspaceFiles-<UUID>`；只在获准 Bundle + UUID suite 下接收，拒绝 .. / 非 UUID / 重复根参数 / 根符号链接越界；根缺失或无效时拒绝文件操作并给出状态。
+- 配置选根 → WorkflowStore 持有一个管理器 → 详情交付根 / Finder 目录创建 / 工作台交付计数。迁移的文件存在性探测也改为管理器，隔离下不探测根外路径。恢复、迁移、采用、交付算法与数据格式未改；Release / 非隔离 DEBUG 使用原 shared 根。
+- 全部工作文件 IO 方法：fileExists 返回 false；createCampaignWorkspace、writeMarkdownArtifact、writeHTMLArtifact 抛 accessUnavailable；existingArtifactVersions、discoverLocalArtifacts 返回空数组。每个方法在拒绝态均不访问文件；路径生成、文件名解析与 sanitizedPathComponent 为纯计算。无移动、复制、删除接口。临时根内部目录及文件在访问前校验解析路径，防止符号链接越界。
+- 保留 shared：ZhuowangProvinceRules.sanitizedPathComponent 仅字符串计算；配置 production 分支 / CampaignProgress Release 分支选择正式根；管理器自身 singleton 定义。ZhuowangStep06HarnessBoundary 的 Documents/Cosmos OS 是沙盒拒绝规则，原样保留。其余 Cosmos OS 路径位于既有 Application Support 存储，不是卓望工作文件；既有隔离根配置保持不变。
+- 构建环境：此前只改命令行参数，没有改工程、scheme、xcconfig 或测试宿主配置文件，无需恢复。沙箱外使用原配置成功 build-for-testing，独立 DerivedData `/private/tmp/CosmosC0-Authorized-DerivedData`、隔离 Bundle `com.wangyucosmos.cosmostoolbox.persistenceui.C0Authorized`。生成的 xctestrun 仅注入随机 suite / 全部临时根，不改工程。构建日志 `/private/tmp/CosmosC0-authorized-build.log`。
+- 首轮 103 唯一测试：99 个既有测试通过，新增 4 项中的 1 项失败；集中修复发现 Foundation 对已存在目录缩写为 /tmp、未存在子路径保留 /private/tmp，统一系统别名后修复误拒（不是恢复 / 迁移算法变更）。复建通过 `/private/tmp/CosmosC0-authorized-repair-build.log`，只复测新增 4 项通过。总计 103/103 唯一测试通过：Isolation、PersistenceBoundary、CampaignPersistence、Workbench、Delivery、Step05、Step06、References（实际按测试日志去重，不累加复跑）。测试结果 `/private/tmp/CosmosC0-authorized-tests-run.xcresult`、`/private/tmp/CosmosC0-authorized-retest.xcresult`。未执行真实 Harness / AI；测试只用合成夹具。
+- 正式 Workspace 14 个文件：shell 记录路径 / 大小 / st_mtime_ns，与首轮前清单完全一致。基线 `/private/tmp/CosmosC0-workspace-before.json`、本轮前后 `/private/tmp/CosmosC0-authorized-before.json`、`/private/tmp/CosmosC0-authorized-after.json`；XCTest 不访问 Documents。diff --check 通过。本轮未部署、未操作正式 App，真实交互未覆盖。
+- C0 文件：ZhuowangProtectedPersistence.swift、ZhuowangWorkspaceFileManager.swift、ZhuowangWorkflowStore.swift、ZhuowangCampaignDetailView.swift、ZhuowangCampaignProgress.swift、ZhuowangCampaignWorkbenchView.swift、新增 ZhuowangWorkspaceFilesIsolationTests.swift，以及 Current Status / 本日志。用户授权 main 本地提交 `fix: 隔离模式下卓望工作文件写入临时根`，不推送；下一阶段 A 在独立 worktree，C0 后不再改业务层 / B 文件。

@@ -268,21 +268,34 @@ enum ZhuowangCampaignProgressBuilder {
     }
 
 
+    private static var runtimeWorkspaceFileManager: ZhuowangWorkspaceFileManager {
+#if DEBUG
+        switch CosmosDebugStorePersistenceBootstrap.resolve() {
+        case .ready(let configuration): return configuration.workspaceFileManager
+        case .blocked: return .unavailable
+        }
+#else
+        return .shared
+#endif
+    }
+
     /// Uses the accepted delivery-package eligibility rules unchanged.
     static func deliveryPackageCount(
         campaign: ZhuowangCampaign,
         provinceName: String?,
         artifacts: [ZhuowangArtifact],
-        steps: [ZhuowangWorkflowStep]
+        steps: [ZhuowangWorkflowStep],
+        workspaceFileManager: ZhuowangWorkspaceFileManager = runtimeWorkspaceFileManager
     ) -> Int {
-        ZhuowangArtifactDeliveryPackageService()
+        guard workspaceFileManager.accessFailure == nil else { return 0 }
+        return ZhuowangArtifactDeliveryPackageService()
             .candidates(
                 snapshot: ZhuowangArtifactDeliverySnapshot(
                     campaignID: campaign.id,
                     artifacts: artifacts,
                     steps: steps
                 ),
-                campaignWorkspaceURL: ZhuowangWorkspaceFileManager.shared
+                campaignWorkspaceURL: workspaceFileManager
                     .campaignDirectoryURL(
                         provinceName: provinceName,
                         campaignName: campaign.name
