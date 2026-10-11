@@ -158,8 +158,10 @@ struct ArtifactVersionCompareWorkspace: View {
     var body: some View {
         VStack(spacing: 0) {
             compareHeader
+                .background(.bar)
             Divider()
             compareToolbar
+                .background(.bar)
             Divider()
 
             HStack(spacing: 0) {
@@ -182,14 +184,22 @@ struct ArtifactVersionCompareWorkspace: View {
         }
         .frame(minWidth: 1180, minHeight: 720)
         .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(CosmosMotionPolicy())
     }
 
     private var compareHeader: some View {
-        HStack(spacing: CosmosDesign.spacingL) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: CosmosDesign.spacingM) {
+            Image(systemName: "rectangle.split.2x1")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.tint)
+                .frame(width: 40, height: 40)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(artifactName)
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
 
                 Text("Artifact Version Compare")
                     .font(.caption)
@@ -198,9 +208,11 @@ struct ArtifactVersionCompareWorkspace: View {
 
             Spacer()
 
-            Text("基础并排比较 · 不包含 Diff")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            CampaignUIStatusPill(
+                text: "基础并排比较 · 不包含 Diff",
+                icon: "info.circle",
+                tone: .neutral
+            )
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingM)
@@ -218,6 +230,7 @@ struct ArtifactVersionCompareWorkspace: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 170)
             }
 
@@ -228,7 +241,7 @@ struct ArtifactVersionCompareWorkspace: View {
             } label: {
                 Label("关闭", systemImage: "xmark")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingS)
@@ -261,12 +274,11 @@ struct ArtifactVersionCompareWorkspace: View {
                 }
 
                 if item?.isCurrent == true {
-                    Label(
-                        "当前采用",
-                        systemImage: "checkmark.seal.fill"
+                    CampaignUIStatusPill(
+                        text: "当前采用",
+                        icon: "checkmark.seal.fill",
+                        tone: .success
                     )
-                    .font(.caption)
-                    .foregroundStyle(.green)
                 }
 
                 Spacer(minLength: CosmosDesign.spacingS)
@@ -281,6 +293,7 @@ struct ArtifactVersionCompareWorkspace: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                .labelsHidden()
                     .frame(width: 180)
                 }
             }

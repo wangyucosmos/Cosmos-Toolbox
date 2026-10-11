@@ -36,10 +36,12 @@ struct ArtifactReviewWorkspace: View {
         VStack(spacing: 0) {
             if reviewState.presentationMode == .workspace {
                 metadataHeader
+                    .background(.bar)
                 Divider()
             }
 
             workspaceToolbar
+                .background(.bar)
             Divider()
 
             ArtifactReviewPane(
@@ -51,52 +53,67 @@ struct ArtifactReviewWorkspace: View {
         }
         .frame(minWidth: 900, minHeight: 680)
         .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(CosmosMotionPolicy())
+        .campaignUIAnimation(value: reviewState.presentationMode)
     }
 
 
     // MARK: - Artifact Metadata
 
     private var metadataHeader: some View {
-        HStack(alignment: .center, spacing: CosmosDesign.spacingL) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(document.name)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+        VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
+            HStack(alignment: .center, spacing: CosmosDesign.spacingM) {
+                Image(systemName: CampaignUIFormat.artifactIcon(document.type))
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(.tint)
+                    .frame(width: 40, height: 40)
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
 
-                Text("Artifact Review Workspace")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(document.name)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+
+                    Text("Artifact Review Workspace")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: CosmosDesign.spacingL)
+
+                CampaignUIStatusPill(
+                    text: document.versionLabel,
+                    tone: document.versionLabel == "Draft" ? .neutral : .accent
+                )
             }
 
-            Spacer(minLength: CosmosDesign.spacingL)
-
-            metadataItem(
-                title: "版本",
-                value: document.versionLabel
-            )
-            metadataItem(
-                title: "类型",
-                value: document.typeDisplayName
-            )
-            metadataItem(
-                title: "Prototype Fidelity",
-                value: document.fidelityDisplayName
-            )
-            metadataItem(
-                title: "Prototype Style",
-                value: document.styleDisplayName
-            )
-            metadataItem(
-                title: "来源",
-                value: document.sourceName
-            )
-            metadataItem(
-                title: "执行时间",
-                value: document.executedAt.formatted(
-                    date: .abbreviated,
-                    time: .shortened
+            HStack(alignment: .top, spacing: CosmosDesign.spacingXL) {
+                metadataItem(
+                    title: "类型",
+                    value: document.typeDisplayName
                 )
-            )
+                metadataItem(
+                    title: "来源",
+                    value: document.sourceName
+                )
+                metadataItem(
+                    title: "Prototype Fidelity",
+                    value: document.fidelityDisplayName
+                )
+                metadataItem(
+                    title: "Prototype Style",
+                    value: document.styleDisplayName
+                )
+                metadataItem(
+                    title: "执行时间",
+                    value: document.executedAt.formatted(
+                        date: .abbreviated,
+                        time: .shortened
+                    )
+                )
+                Spacer(minLength: 0)
+            }
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingM)
@@ -133,6 +150,7 @@ struct ArtifactReviewWorkspace: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 200)
             }
 
@@ -147,6 +165,7 @@ struct ArtifactReviewWorkspace: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 170)
             }
 
@@ -166,7 +185,7 @@ struct ArtifactReviewWorkspace: View {
                             : "arrow.up.left.and.arrow.down.right"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
             }
 
             Button {
@@ -174,7 +193,7 @@ struct ArtifactReviewWorkspace: View {
             } label: {
                 Label("关闭", systemImage: "xmark")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingS)

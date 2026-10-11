@@ -44,6 +44,7 @@ struct ZhuowangTaskPackagePreviewView: View {
         VStack(spacing: 0) {
 
             header
+                .background(.bar)
 
             Divider()
 
@@ -51,41 +52,63 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                 VStack(
                     alignment: .leading,
-                    spacing: CosmosDesign.spacingXL
+                    spacing: CosmosDesign.spacingL
                 ) {
 
                     summaryCard
-
-                    instructionSection
-
-                    contextSection
-
-                    outputSection
+                        .campaignUIEntrance(0)
 
                     executionSection
+                        .campaignUIEntrance(1)
+
+                    instructionSection
+                        .campaignUIEntrance(2)
+
+                    ViewThatFits(in: .horizontal) {
+
+                        HStack(
+                            alignment: .top,
+                            spacing: CosmosDesign.spacingL
+                        ) {
+                            contextSection
+                            outputSection
+                        }
+
+                        VStack(
+                            alignment: .leading,
+                            spacing: CosmosDesign.spacingL
+                        ) {
+                            contextSection
+                            outputSection
+                        }
+                    }
+                    .campaignUIEntrance(3)
                 }
                 .padding(
                     .horizontal,
-                    CosmosDesign.pagePadding
+                    CosmosDesign.spacingXL + 4
                 )
                 .padding(
                     .vertical,
                     CosmosDesign.spacingXL
                 )
                 .frame(
-                    maxWidth: 820,
-                    alignment: .leading
+                    maxWidth: 860
                 )
+                .frame(maxWidth: .infinity)
             }
 
             Divider()
 
             footer
+                .background(.bar)
         }
         .frame(
             minWidth: 780,
             minHeight: 720
         )
+        .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(CosmosMotionPolicy())
         .sheet(
             isPresented:
                 $showExecutionResult
@@ -141,64 +164,17 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var header: some View {
 
-        HStack(
-            spacing: CosmosDesign.spacingM
+        CampaignUIHeader(
+            icon: "doc.text.magnifyingglass",
+            title: "任务预览",
+            subtitle: "Task Package Preview",
+            info: "任务包是发给 AI 的完整任务：任务正文、参考上下文和预期输出。确认后才会执行；执行结果还需要你审核，之后才能采用。"
         ) {
-
-            ZStack {
-
-                RoundedRectangle(
-                    cornerRadius: 10,
-                    style: .continuous
-                )
-                .fill(
-                    Color.accentColor.opacity(0.09)
-                )
-                .frame(
-                    width: 38,
-                    height: 38
-                )
-
-                Image(
-                    systemName: "doc.text.magnifyingglass"
-                )
-                .font(
-                    .system(
-                        size: 16,
-                        weight: .medium
-                    )
-                )
-                .foregroundStyle(.tint)
-            }
-
-            VStack(
-                alignment: .leading,
-                spacing: 3
-            ) {
-
-                Text("任务预览")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("Task Package Preview")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
             Button("关闭") {
                 dismiss()
             }
+            .buttonStyle(.glass)
         }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
     }
 
 
@@ -222,8 +198,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 ) {
 
                     Text(taskPackage.title)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 20, weight: .semibold))
 
                     Text("Cosmos OS AI Task Package")
                         .font(.caption)
@@ -232,31 +207,21 @@ struct ZhuowangTaskPackagePreviewView: View {
 
                 Spacer()
 
-                if let provider {
+                HStack(spacing: 6) {
 
-                    HStack(spacing: 7) {
+                    CampaignUIChip(
+                        caption: "AI",
+                        value: provider?.name,
+                        icon: provider?.kind.systemImage ?? "sparkles"
+                    )
 
-                        Image(
-                            systemName:
-                                provider.kind.systemImage
+                    if !(taskPackage.executionSnapshot == nil && tool == nil) {
+                        CampaignUIChip(
+                            caption: "工具",
+                            value: tool?.name,
+                            icon: "wrench.and.screwdriver"
                         )
-
-                        Text(provider.name)
-                            .fontWeight(.medium)
                     }
-                    .font(.callout)
-                    .padding(
-                        .horizontal,
-                        11
-                    )
-                    .padding(
-                        .vertical,
-                        7
-                    )
-                    .background(
-                        Color.accentColor.opacity(0.08)
-                    )
-                    .clipShape(Capsule())
                 }
             }
 
@@ -266,7 +231,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 spacing: CosmosDesign.spacingXL
             ) {
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "工作流步骤",
                     value:
                         taskPackage
@@ -278,71 +243,21 @@ struct ZhuowangTaskPackagePreviewView: View {
                         ?? "当前步骤"
                 )
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "执行 AI",
                     value:
                         provider?.name
                         ?? "未选择"
                 )
 
-                summaryItem(
+                CampaignUIKeyValue(
                     title: "连接方式",
                     value:
                         connectionDisplayName
                 )
             }
         }
-        .padding(
-            CosmosDesign.cardPadding
-        )
-        .background(.thinMaterial)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary.opacity(0.06),
-                lineWidth: 1
-            )
-        }
-    }
-
-
-    // MARK: - Summary Item
-
-    private func summaryItem(
-        title: String,
-        value: String
-    ) -> some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: 4
-        ) {
-
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text(value)
-                .font(.callout)
-                .fontWeight(.medium)
-                .lineLimit(2)
-        }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
-        )
+        .campaignUICardSurface()
     }
 
 
@@ -350,9 +265,8 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var instructionSection: some View {
 
-        sectionCard(
+        CampaignUICard(
             title: "任务正文",
-            subtitle: "Instruction",
             icon: "text.alignleft"
         ) {
 
@@ -370,10 +284,8 @@ struct ZhuowangTaskPackagePreviewView: View {
                 )
                 .padding(14)
                 .background(
-                    Color.primary.opacity(0.025)
-                )
-                .clipShape(
-                    RoundedRectangle(
+                    Color.primary.opacity(0.025),
+                    in: RoundedRectangle(
                         cornerRadius:
                             CosmosDesign.cornerRadiusSmall,
                         style: .continuous
@@ -387,9 +299,8 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var contextSection: some View {
 
-        sectionCard(
+        CampaignUICard(
             title: "参考上下文",
-            subtitle: "Context",
             icon: "books.vertical"
         ) {
 
@@ -404,6 +315,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 ) { reference in
 
                     HStack(
+                        alignment: .firstTextBaseline,
                         spacing: 9
                     ) {
 
@@ -423,6 +335,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 alignment: .leading
             )
         }
+        .frame(minWidth: 300)
     }
 
 
@@ -430,9 +343,8 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var outputSection: some View {
 
-        sectionCard(
+        CampaignUICard(
             title: "预期输出",
-            subtitle: "Expected Outputs",
             icon: "square.and.arrow.down"
         ) {
 
@@ -447,6 +359,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 ) { output in
 
                     HStack(
+                        alignment: .firstTextBaseline,
                         spacing: 9
                     ) {
 
@@ -469,6 +382,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                 alignment: .leading
             )
         }
+        .frame(minWidth: 300)
     }
 
 
@@ -476,118 +390,64 @@ struct ZhuowangTaskPackagePreviewView: View {
 
     private var executionSection: some View {
 
-        sectionCard(
+        CampaignUICard(
             title: "执行方式",
-            subtitle: "Execution",
-            icon: "bolt.horizontal.circle"
+            icon: "bolt.horizontal.circle",
+            info: "AI Provider 负责推理与生成，Tool 负责产出或操作外部成果，两者是独立的。Connection 与 Route 决定任务如何送达执行器。"
         ) {
 
             VStack(
                 alignment: .leading,
-                spacing: CosmosDesign.spacingM
+                spacing: 0
             ) {
 
-                HStack {
+                executionRow("AI Provider", provider?.name ?? "未选择")
 
-                    Text("AI Provider")
+                executionRow("Tool", tool?.name ?? "未选择")
 
-                    Spacer()
+                executionRow("Connection", connectionDisplayName)
 
-                    Text(
-                        provider?.name
-                        ?? "未选择"
-                    )
-                    .fontWeight(.medium)
-                }
+                executionRow("Capability", capabilityDisplayName)
 
-                Divider()
-
-                HStack {
-
-                    Text("Tool")
-
-                    Spacer()
-
-                    Text(tool?.name ?? "未选择")
-                        .fontWeight(.medium)
-                }
-
-                Divider()
-
-                HStack {
-
-                    Text("Connection")
-
-                    Spacer()
-
-                    Text(connectionDisplayName)
-                        .fontWeight(.medium)
-                }
-
-                Divider()
-
-                HStack {
-
-                    Text("Capability")
-
-                    Spacer()
-
-                    Text(capabilityDisplayName)
-                        .fontWeight(.medium)
-                }
-
-                Divider()
-
-                HStack {
-
-                    Text("Route")
-
-                    Spacer()
-
-                    Text(routeDisplayName)
-                        .fontWeight(.medium)
-                }
+                executionRow("Route", routeDisplayName)
 
                 if let profile =
                     taskPackage.executionSnapshot?
                         .prototypeExecutionProfile {
 
-                    Divider()
+                    executionRow("Prototype Fidelity", profile.fidelity.title)
 
-                    HStack {
-                        Text("Prototype Fidelity")
-                        Spacer()
-                        Text(profile.fidelity.title)
-                            .fontWeight(.medium)
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Prototype Style")
-                        Spacer()
-                        Text(profile.style.title)
-                            .fontWeight(.medium)
-                    }
+                    executionRow("Prototype Style", profile.style.title)
                 }
 
-                Divider()
-
-                HStack {
-
-                    Text("Execution Style")
-
-                    Spacer()
-
-                    Text(executionStyleText)
-                        .fontWeight(.medium)
-                }
-
-                Divider()
-
-                connectionNotice
+                executionRow("Execution Style", executionStyleText)
             }
             .font(.callout)
+
+            connectionNotice
+        }
+    }
+
+    private func executionRow(
+        _ title: String,
+        _ value: String
+    ) -> some View {
+
+        HStack(alignment: .firstTextBaseline) {
+
+            Text(title)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 12)
+
+            Text(value)
+                .fontWeight(.medium)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+        .padding(.vertical, 7)
+        .overlay(alignment: .bottom) {
+            Divider().opacity(0.6)
         }
     }
 
@@ -600,105 +460,32 @@ struct ZhuowangTaskPackagePreviewView: View {
 
         if connection == nil {
 
-            Label(
-                "当前还没有绑定具体 Connection。",
-                systemImage: "info.circle"
+            CampaignUINotice(
+                text: "当前还没有绑定具体 Connection。",
+                icon: "info.circle"
             )
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
         } else if taskPackage.executionSnapshot != nil {
 
-            Label(
-                "Provider、Connection、Tool、Route、Capability、Fidelity 与 Style 已冻结为本次执行快照，将通过 Coordinator 和 Adapter Registry 执行。",
-                systemImage: "checkmark.shield"
+            CampaignUINotice(
+                text: "Provider、Connection、Tool、Route、Capability、Fidelity 与 Style 已冻结为本次执行快照，将通过 Coordinator 和 Adapter Registry 执行。",
+                icon: "checkmark.shield",
+                tone: .success
             )
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
         } else if isDeepSeekHarnessConnection {
 
-            Label(
-                "该任务可以由 Cosmos OS 直接调用本机 DeepSeek Harness 执行，并在完成后自动返回结果。",
-                systemImage:
-                    "checkmark.circle"
+            CampaignUINotice(
+                text: "该任务可以由 Cosmos OS 直接调用本机 DeepSeek Harness 执行，并在完成后自动返回结果。",
+                icon: "checkmark.circle",
+                tone: .success
             )
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
         } else {
 
-            Label(
-                "当前连接已识别，但该执行器尚未接入自动执行。ChatGPT、Codex、Claude 等连接将在后续阶段接入。",
-                systemImage:
-                    "info.circle"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-    }
-
-
-    // MARK: - Section Card
-
-    private func sectionCard<Content: View>(
-        title: String,
-        subtitle: String,
-        icon: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-
-        VStack(
-            alignment: .leading,
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            HStack(
-                spacing: 8
-            ) {
-
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-
-                VStack(
-                    alignment: .leading,
-                    spacing: 1
-                ) {
-
-                    Text(title)
-                        .font(.headline)
-
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            content()
-        }
-        .padding(
-            CosmosDesign.spacingL
-        )
-        .background(
-            Color.primary.opacity(0.015)
-        )
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary.opacity(0.055),
-                lineWidth: 1
+            CampaignUINotice(
+                text: "当前连接已识别，但该执行器尚未接入自动执行。ChatGPT、Codex、Claude 等连接将在后续阶段接入。",
+                icon: "info.circle"
             )
         }
     }
@@ -728,13 +515,14 @@ struct ZhuowangTaskPackagePreviewView: View {
                         : "doc.on.doc"
                 )
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
 
             Spacer()
 
             Button("返回") {
                 dismiss()
             }
+            .buttonStyle(.glass)
 
             Button {
 
@@ -748,7 +536,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                         "arrow.right"
                 )
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .disabled(
                 !canContinue
             )
