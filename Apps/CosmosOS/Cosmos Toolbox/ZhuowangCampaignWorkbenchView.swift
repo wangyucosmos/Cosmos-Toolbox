@@ -402,18 +402,44 @@ struct ZhuowangCampaignWorkbenchView: View {
         return VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
             CosmosSectionTitle(title: "活动总览", subtitle: "All Campaigns")
 
-            VStack(spacing: 0) {
-                overviewHeaderRow
-                Divider()
-
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    if index > 0 {
-                        Divider().padding(.leading, CosmosDesign.spacingL)
+            ViewThatFits(in: .horizontal) {
+                VStack(spacing: 0) {
+                    overviewHeaderRow
+                    Divider()
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        if index > 0 { Divider().padding(.leading, CosmosDesign.spacingL) }
+                        overviewRow(row)
                     }
-                    overviewRow(row)
+                }
+                .frame(minWidth: 740)
+                .modifier(WorkbenchPanel())
+                VStack(spacing: CosmosDesign.spacingS) {
+                    ForEach(rows) { row in
+                        VStack(alignment: .leading, spacing: CosmosDesign.spacingS) {
+                            HStack {
+                                Text(row.campaign.name).fontWeight(.medium).lineLimit(2)
+                                Spacer(minLength: 8)
+                                ZhuowangCampaignStatusBadge(status: row.campaign.status)
+                            }
+                            Text(row.scopeName + " · " + compactDateRange(row.campaign))
+                                .font(.caption).foregroundStyle(.secondary)
+                            HStack {
+                                Text(progressText(row)).font(.caption.monospacedDigit())
+                                Text("采用产物 \(row.adoptedArtifactCount)").font(.caption)
+                                if row.adoptionConflictCount > 0 {
+                                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                                        .help("\(row.adoptionConflictCount) 个产物存在多个采用版本")
+                                }
+                                Spacer(minLength: 8)
+                                Button("打开") { open(row, .overview) }.controlSize(.small)
+                            }
+                        }
+                        .padding(CosmosDesign.spacingM)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .modifier(WorkbenchPanel())
+                    }
                 }
             }
-            .modifier(WorkbenchPanel())
         }
     }
 

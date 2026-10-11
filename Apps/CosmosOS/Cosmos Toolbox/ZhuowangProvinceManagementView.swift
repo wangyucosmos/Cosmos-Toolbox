@@ -3,6 +3,8 @@ import SwiftUI
 /// Province maintenance inside the existing "管理工作区" sheet: add, rename,
 /// reorder, stop and restore. Nothing here deletes data or moves folders.
 struct ZhuowangProvinceManagementSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+
 
     @ObservedObject var store: ZhuowangWorkspaceStore
     var campaignCount: (UUID) -> Int
@@ -54,7 +56,7 @@ struct ZhuowangProvinceManagementSection: View {
                 TextField("中文名称，例如：湖北", text: $newName)
                     .accessibilityIdentifier("province-new-name")
                 TextField("English Name, e.g. Hubei", text: $newEnglishName)
-                Button { add() } label: { Label("添加省份", systemImage: "plus").foregroundStyle(Color.primary) }.buttonStyle(.glass)
+                Button { add() } label: { Label("添加省份", systemImage: "plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.buttonStyle(.glass)
                     .disabled(
                         newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || !canMutate

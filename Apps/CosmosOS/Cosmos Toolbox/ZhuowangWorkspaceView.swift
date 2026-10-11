@@ -2,6 +2,8 @@ import SwiftUI
 import Combine
 
 struct ZhuowangWorkspaceView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     @Environment(\.cosmosNavigator) private var navigator
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
@@ -63,7 +65,7 @@ struct ZhuowangWorkspaceView: View {
                 Label("卓望工作", systemImage: "briefcase").font(.headline)
                 Spacer()
                 CosmosGlassToolbarGroup {
-                    Button { showManager = true } label: { Label("管理工作区", systemImage: "slider.horizontal.3").foregroundStyle(Color.primary) }
+                    Button { showManager = true } label: { Label("管理工作区", systemImage: "slider.horizontal.3").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
                         .disabled(!store.persistenceState.allowsMutations)
                 }
             }.padding(.horizontal, 20).padding(.vertical, 10)

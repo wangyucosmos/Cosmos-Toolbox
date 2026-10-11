@@ -126,7 +126,7 @@ final class ZhuowangWorkspaceUITests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         let prefs = CosmosUIPreferences(defaults: defaults); prefs.motion = .reduced
         let nav = CosmosNavigator()
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosStep3A-screenshots")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosStep3Integration-screenshots/A")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         let before = f.source.storage
         for width in [1180, 900] {
@@ -181,4 +181,85 @@ final class ZhuowangWorkspaceUITests: XCTestCase {
         }
         XCTAssertEqual(f.source.storage, before)
     }
+    func testIntegratedCampaignSurfacesPreserveIsolatedData() async throws {
+        let f = try fixture()
+        // Match recovery's existing adopted-step convention before measuring render-only changes.
+        for campaign in f.campaigns.campaigns {
+            var workflow = try XCTUnwrap(f.workflows.workflow(forCampaignID: campaign.id))
+            let province = f.provinces.first { $0.id == campaign.provinceID }
+            for index in workflow.artifacts.indices where workflow.artifacts[index].location.isEmpty {
+                let artifact = workflow.artifacts[index]
+                let step = try XCTUnwrap(workflow.steps.first { $0.id == artifact.stepID })
+                let url = try f.workflows.workspaceFileManager.writeMarkdownArtifact(provinceName: province?.pathName,
+                    campaignName: campaign.name, stepKind: step.kind, artifactName: artifact.name,
+                    version: artifact.version, content: try XCTUnwrap(artifact.content))
+                workflow.artifacts[index].location = url.path
+            }
+            for index in workflow.steps.indices where workflow.artifacts.contains(where: { $0.stepID == workflow.steps[index].id }) {
+                workflow.steps[index].status = .approved
+            }
+            f.workflows.updateWorkflow(workflow)
+        }
+        let campaign = try XCTUnwrap(f.campaigns.campaigns.first { $0.name == "国庆福利延续" })
+        let monthly = try XCTUnwrap(f.campaigns.campaigns.first { $0.isMonthlyMemberActivation })
+        let connections = ZhuowangWorkflowConnections(recommendedConnection: { _ in nil }, route: { _, _ in nil },
+            availableTools: { _ in [] }, toolIntegration: { _ in nil })
+        let suite = "CosmosStep3Integration.UI." + UUID().uuidString; suites.append(suite)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let prefs = CosmosUIPreferences(defaults: defaults); prefs.motion = .reduced
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosStep3Integration-screenshots/Integrated")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        func files() throws -> [String: Data] {
+            var result: [String: Data] = [:]
+            let urls = try XCTUnwrap(FileManager.default.enumerator(at: f.root, includingPropertiesForKeys: [.isRegularFileKey]))
+            for case let url as URL in urls where try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true {
+                result[url.path] = try Data(contentsOf: url)
+            }
+            return result
+        }
+        let before = f.source.storage, filesBefore = try files()
+        func detail(_ destination: ZhuowangCampaignDetailRoute.Destination?) -> some View {
+            let route = ZhuowangCampaignDetailRoute(); if let destination { route.show(destination) }
+            return ZhuowangCampaignDetailView(store: f.campaigns, workflowStore: f.workflows,
+                campaignID: campaign.id, province: f.provinces[0], module: nil, route: route, workflowConnections: connections)
+                .task { if let destination { route.show(destination) } }
+        }
+        let pages: [(String, AnyView)] = [
+            ("detail-overview", AnyView(detail(nil))),
+            ("detail-workflow", AnyView(detail(.workflow))),
+            ("detail-artifacts", AnyView(detail(.artifacts))),
+            ("monthly-checklist", AnyView(ScrollView {
+                ZhuowangMonthlyChecklistView(store: f.campaigns, workflowStore: f.workflows, campaignID: monthly.id).padding(28)
+            })),
+            ("delivery-package", AnyView(ZhuowangArtifactDeliveryPackageView(campaign: campaign, provinceName: f.provinces[0].name,
+                campaignWorkspaceURL: f.workflows.workspaceFileManager.campaignDirectoryURL(provinceName: f.provinces[0].pathName, campaignName: campaign.name),
+                snapshotProvider: {
+                    ZhuowangArtifactDeliverySnapshot(campaignID: campaign.id, artifacts: f.workflows.artifacts(forCampaignID: campaign.id),
+                        steps: f.workflows.workflow(forCampaignID: campaign.id)?.steps ?? [])
+                })))
+        ]
+        for width in [1180, 900] {
+            let height = width == 1180 ? 760 : 620
+            for dark in [false, true] {
+                for (name, page) in pages {
+                    let view = page.environment(\.cosmosPreferences, prefs).environment(\.colorScheme, dark ? .dark : .light)
+                        .defaultAppStorage(defaults).frame(width: CGFloat(width), height: CGFloat(height))
+                        .background(Color(nsColor: .windowBackgroundColor))
+                    let host = NSHostingView(rootView: view); host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+                    host.frame = NSRect(x: 0, y: 0, width: width, height: height)
+                    let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+                    window.isReleasedWhenClosed = false; window.appearance = host.appearance; window.contentView = host
+                    defer { window.contentView = nil; window.close() }
+                    host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(250)); host.layoutSubtreeIfNeeded()
+                    let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds)); host.cacheDisplay(in: host.bounds, to: bitmap)
+                    let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                    XCTAssertGreaterThan(png.count, 1500)
+                    try png.write(to: out.appendingPathComponent("\(name)-\(width)-\(dark ? "dark" : "light").png"))
+                }
+            }
+        }
+        XCTAssertEqual(f.source.storage, before)
+        XCTAssertEqual(try files(), filesBefore)
+    }
+
 }

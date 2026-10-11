@@ -3,6 +3,8 @@ import AppKit
 import Combine
 
 struct ZhuowangCampaignView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
 
     @ObservedObject var store: ZhuowangCampaignStore
 
@@ -80,7 +82,7 @@ struct ZhuowangCampaignView: View {
 
     private var header: some View {
         CosmosPageHeader("活动", subtitle: scopeDescription) {
-            Button { showCreateSheet = true } label: { Label("新建活动", systemImage: "plus").foregroundStyle(Color.primary) }
+            Button { showCreateSheet = true } label: { Label("新建活动", systemImage: "plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
                 .buttonStyle(.glass).disabled(!store.persistenceState.allowsMutations || !canCreateCampaign || !canCreate())
         }
         .sheet(isPresented: $showCreateSheet) {
