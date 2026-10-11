@@ -83,3 +83,17 @@
 - Apps/CosmosOS/Cosmos Toolbox/CosmosPromptSession.swift
 - Apps/CosmosOS/Cosmos ToolboxTests/CosmosExperiencePolishTests.swift
 - Apps/CosmosOS/Cosmos ToolboxTests/CosmosLegacyPromptBenchmark.swift
+
+
+## 体验验收修正：统一页面切换与侧栏选中（be4b6f6）
+
+- 基线 polish/ui-round4 @8255064，工作区干净；main/origin/main 均 fee48c5，未移动、未推送。
+- 问题1根因实测：检索自动聚焦文本框，List非活跃选择变灰。行内部统一强调色背景，保留原生List选择、悬停、箭头键与AX selected；不取消自动焦点。浅/深焦点前后蓝色像素测试通过；Release实机验证焦点/蓝色选中、项目→Down知识库→Up项目、侧栏隐藏/显示。
+- 问题2根因：原重建分支opacity transition与保留卓望opacity隐藏并行。统一内容替换无插入/退出动画，外层稳定容器以同一CosmosDesign token淡入；减少动效降级。Store持有位置与身份未改变，各页既有reload/task/cancel、Prompt首次加载及手动刷新、卓望共享Store发布刷新保持原样。
+- 9页72对有向互切均1次fade begin与commit、0次shell host appear/disappear、0次workspace selection；保留工作区没有再次appear。矩阵 /private/tmp/CosmosAcceptance-matrix/matrix.csv。事件测量的是实际外壳动画事务和宿主生命周期，未声称离屏动画完成回调或显示器每帧均已验收。
+- 问题3：旧titleVisibility仅隐藏AppKit标题，未移除SwiftUI默认toolbar标题；SDK确认toolbar(removing: .title)后接入。真实部署截图 /private/tmp/CosmosAcceptance-deployed-search.png，安装路径唯一PID61194、唯一窗口30268；重复标题消失，侧栏开合正常。系统采集胶囊遮挡红绿灯，CUA无障碍树可见原生关闭/最小化/全屏控件，直接位置核对缺口保留；独立Swift AX查询不可用，未重试或修改系统权限。
+- 检索胶囊与两个筛选开关分行；胶囊横向滚动带渐隐，工具栏用紧凑图标。D复查发现嵌套HSplitView仍按最小尺寸扩张，改为按实际宽度分配二级分栏（不再支持分隔线拖宽）；AI工具横向滚动补渐隐。114张离屏截图覆盖900×620、1180×760、1440×900、2560×1440浅/深；900九页、其余宽度检索/项目/卓望/知识库带主侧栏，未见右侧溢出。截图 /private/tmp/CosmosAcceptance-screenshots，原生List离屏绘制缺口由真实窗口补充。
+- Debug测试构建、Universal Release通过。串行111项唯一测试最终通过。首轮新矩阵测试失败源于未上屏动画完成回调与缺失Workspace初始化夹具；同轮集中修复改为动画事务提交计数、预置默认数据；未改业务Store、schema、恢复/采用、Provider/Harness、工程/scheme/xcconfig/测试宿主配置。相关复验见 /private/tmp/CosmosAcceptance-{tests,repair-tests,layout-tests}.log。
+- shell快照：/private/tmp/CosmosStep3Integration-acceptance-{before,after-tests,after-deploy}.json；14工作文件路径/大小/mtime_ns、5业务键逐键SHA-256完全一致。无数据格式变化。
+- 逐文件提交 fix: 统一页面切换与侧栏选中样式 @be4b6f69662cc8be67d43ca5535c9227a1c532ad（6文件）。原deploy-macos.py正常退出旧App、保留回退并启动新版Release dirty=false；回退 Cosmos Toolbox-20261012-012808-72175c3c.app；部署日志 /private/tmp/CosmosAcceptance-deploy.log。
+- 修改：DashboardView.swift、CosmosExperienceUI.swift、UnifiedSearchView.swift、AIWorkspaceView.swift、ZhuowangWorkspaceView.swift、CosmosExperiencePolishTests.swift；正式文档仅Current Status与本日志。代码与文档本地提交，等待用户体验验收；无额外worktree，无push。
