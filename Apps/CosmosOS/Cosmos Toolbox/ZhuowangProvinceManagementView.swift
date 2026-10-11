@@ -54,7 +54,7 @@ struct ZhuowangProvinceManagementSection: View {
                 TextField("中文名称，例如：湖北", text: $newName)
                     .accessibilityIdentifier("province-new-name")
                 TextField("English Name, e.g. Hubei", text: $newEnglishName)
-                Button("添加省份") { add() }
+                Button { add() } label: { Label("添加省份", systemImage: "plus").foregroundStyle(Color.primary) }.buttonStyle(.glass)
                     .disabled(
                         newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || !canMutate
@@ -104,11 +104,13 @@ struct ZhuowangProvinceManagementSection: View {
                     .foregroundStyle(.secondary)
             } else {
                 HStack {
-                    Text(province.name)
+                    Image(systemName: province.isEnabled ? "mappin.and.ellipse" : "archivebox").foregroundStyle(Color.accentColor)
+                    Text(province.name).font(.headline)
                         .foregroundStyle(province.isEnabled ? .primary : .secondary)
                     if !province.isEnabled {
                         Text("已停用").font(.caption).foregroundStyle(.orange)
                     }
+                    Text("\(campaignCount(province.id)) 个活动").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     Spacer()
                     Button {
                         finish(store.moveProvince(id: province.id, offset: -1))
@@ -141,7 +143,7 @@ struct ZhuowangProvinceManagementSection: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 10)
     }
 
     // MARK: Actions

@@ -12,6 +12,7 @@ struct ZhuowangCampaignView: View {
     @State private var searchText = ""
     @State private var selectedStatus: ZhuowangCampaignStatus?
     @State private var showCreateSheet = false
+    @AppStorage("cosmos.ui.workspace.campaignLayout") private var campaignLayout = "cards"
 
     /// Shared with the Workspace so every Campaign window uses one
     /// in-memory Workflow Store instance.
@@ -78,51 +79,9 @@ struct ZhuowangCampaignView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(
-            alignment: .top,
-            spacing: CosmosDesign.spacingXL
-        ) {
-
-            VStack(
-                alignment: .leading,
-                spacing: CosmosDesign.spacingS
-            ) {
-
-                Text("活动")
-                    .font(
-                        .system(
-                            size: 26,
-                            weight: .semibold
-                        )
-                    )
-
-                Text("Campaigns")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-
-                Text(scopeDescription)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
-            }
-
-            Spacer()
-
-            Button {
-                showCreateSheet = true
-            } label: {
-                Label(
-                    "新建活动",
-                    systemImage: "plus"
-                )
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(
-                !store.persistenceState
-                    .allowsMutations
-                || !canCreateCampaign
-                || !canCreate()
-            )
+        CosmosPageHeader("活动", subtitle: scopeDescription) {
+            Button { showCreateSheet = true } label: { Label("新建活动", systemImage: "plus").foregroundStyle(Color.primary) }
+                .buttonStyle(.glass).disabled(!store.persistenceState.allowsMutations || !canCreateCampaign || !canCreate())
         }
         .sheet(isPresented: $showCreateSheet) {
             ZhuowangCampaignCreateView(
@@ -235,6 +194,11 @@ struct ZhuowangCampaignView: View {
 
             Spacer()
 
+            Picker("显示方式", selection: $campaignLayout) {
+                Image(systemName: "square.grid.2x2").tag("cards")
+                Image(systemName: "list.bullet").tag("list")
+            }.pickerStyle(.segmented).labelsHidden().frame(width: 82).help("卡片 / 列表")
+
             Text("\(filteredCampaigns.count) 个活动")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -245,52 +209,16 @@ struct ZhuowangCampaignView: View {
     // MARK: - Campaign List
 
     private var campaignList: some View {
-        VStack(spacing: 0) {
-
-            ForEach(
-                Array(filteredCampaigns.enumerated()),
-                id: \.element.id
-            ) { index, campaign in
-
-                ZhuowangCampaignRow(
-                    campaign: campaign
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    openCampaignWindow(
-                        campaign
-                    )
-                }
-
-                if index
-                    < filteredCampaigns.count - 1 {
-
-                    Divider()
-                        .padding(.leading, 56)
-                }
+        let progress = ZhuowangWorkspaceUI.rows(campaigns: filteredCampaigns, workflows: workflowStore.workflows,
+            provinces: province.map { [$0] } ?? [], modules: module.map { [$0] } ?? [], manager: workflowStore.workspaceFileManager)
+        return LazyVGrid(columns: campaignLayout == "list" ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 250))], spacing: 12) {
+            ForEach(Array(progress.enumerated()), id: \.element.id) { index, row in
+                ZhuowangCampaignCardUI(row: row) { openCampaignWindow(row.campaign) }
+                    .contextMenu { Button("打开活动详情") { openCampaignWindow(row.campaign) } }
+                    .cosmosEntrance(index)
             }
         }
-        .background(.thinMaterial)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius:
-                    CosmosDesign.cornerRadiusLarge,
-                style: .continuous
-            )
-            .stroke(
-                Color.primary.opacity(0.06),
-                lineWidth: 1
-            )
-        }
     }
-
 
     // MARK: - Empty State
 
@@ -954,10 +882,11 @@ struct ZhuowangCampaignCreateView: View {
                     "基本信息 · Basic Information"
                 ) {
 
-                    TextField(
-                        "活动名称",
-                        text: $name
-                    )
+                    TextField("活动名称（必填）", text: $name)
+                        .accessibilityIdentifier("campaign-name")
+                    if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Label("请输入活动名称", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+                    }
 
                     TextField(
                         "英文名称（可选）",
@@ -996,6 +925,10 @@ struct ZhuowangCampaignCreateView: View {
                                     ) ?? Date()
                             }
                         }
+                        HStack {
+                            Text("按月整理会员促活活动及交付清单。").font(.caption).foregroundStyle(.secondary)
+                            CosmosInfoButton(text: "月度会员促活保留活动月份与上期参考，创建后使用既有清单。月份标签与实际日期独立；不复制上期成果。")
+                        }
                     }
                 }
 
@@ -1033,9 +966,10 @@ struct ZhuowangCampaignCreateView: View {
                             displayedComponents: [.date, .hourAndMinute]
                         )
 
-                        Text("已按上海时区预填「上月末 17:00 — 本月末 17:00」，可手动修改；月份标签与实际起止时间相互独立。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack {
+                            Text("已预填上海时区的月度起止时间，可修改。").font(.caption).foregroundStyle(.secondary)
+                            CosmosInfoButton(text: "默认上月末 17:00 至本月末 17:00；月份标签与实际起止时间相互独立。")
+                        }
                     } else {
                         DatePicker(
                             "开始日期",
@@ -1091,7 +1025,7 @@ struct ZhuowangCampaignCreateView: View {
         }
         .frame(
             minWidth: 560,
-            minHeight: 620
+            minHeight: 540
         )
         .alert(
             "Campaign Store",
@@ -1362,9 +1296,10 @@ struct ZhuowangCampaignCreateView: View {
                 }
             }
 
-            Text("只保存上期活动的身份，不复制它的内容；创建后清单是空白的，输入状态、掌厅奖池关系、成品位置和定稿确认都不会带过来。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text("仅引用上期身份，不复制内容；新清单为空。").font(.caption).foregroundStyle(.secondary)
+                CosmosInfoButton(text: "输入状态、掌厅奖池关系、成品位置和定稿确认均不会从上期活动带入。")
+            }
         }
         .onAppear {
             if referenceID == nil, !referenceChosen {

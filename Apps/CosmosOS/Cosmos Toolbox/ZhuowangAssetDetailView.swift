@@ -25,7 +25,8 @@ struct ZhuowangAssetDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(entry?.artifact.name ?? "选中版本已不可用").font(.title)
+            CosmosPageHeader(entry?.artifact.name ?? "选中版本已不可用", subtitle: "工作产物 · 版本与来源核对",
+                info: "刷新重新核对数据并关闭本中心打开的旧预览。未核对不会标记一致，不改变采用版本。")
             Picker("具体版本", selection: $selectedID) {
                 if entry == nil { Text("原版本已消失，请显式选择").tag(selectedID) }
                 ForEach(versions) { version in
@@ -33,19 +34,28 @@ struct ZhuowangAssetDetailView: View {
                 }
             }
             if let entry {
-                Text("来源活动：\(entry.campaignName) · \(entry.scopeName)")
-                Text("Workflow Step：\(entry.stepName)")
-                Text("版本：V\(entry.artifact.version) · \(entry.adoptionLabel) · \(entry.artifact.type.title)")
+                CosmosContentPanel {
+                    Label(entry.campaignName + " · " + entry.scopeName, systemImage: "megaphone").font(.headline)
+                    Text(entry.stepName).font(.callout).foregroundStyle(.secondary)
+                    HStack {
+                        Label("V\(entry.artifact.version)", systemImage: "doc.text")
+                        Text(entry.adoptionLabel)
+                        Spacer()
+                        Text(entry.artifact.type.title)
+                    }.font(.caption).foregroundStyle(.secondary)
+                }
                 if let bodyResult {
                     Text("正文来源：\(bodyResult.source)")
                     Text("文件状态：\(bodyResult.fileStatus)")
                     Text(bodyResult.comparison).foregroundStyle(.secondary)
                     if let limitation = bodyResult.limitation { Text(limitation).foregroundStyle(.orange) }
                     if let text = bodyResult.text {
-                        ScrollView([.horizontal, .vertical]) {
-                            Text(text).font(.system(.body, design: .monospaced)).textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                        }.background(.background).accessibilityIdentifier("asset-body")
+                        GeometryReader { geometry in
+                            ScrollView([.horizontal, .vertical]) {
+                                Text(text).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                                    .frame(minWidth: max(0, geometry.size.width - 24), alignment: .topLeading).padding(12)
+                            }
+                        }.background(Color(nsColor: .textBackgroundColor)).accessibilityIdentifier("asset-body")
                     } else {
                         ContentUnavailableView("此版本没有可展示的文本正文", systemImage: "doc",
                             description: Text("可使用受支持的文件预览；不提取 Word / PDF 正文。"))
@@ -64,11 +74,9 @@ struct ZhuowangAssetDetailView: View {
                 Spacer()
             }
             Text(message).font(.caption).foregroundStyle(.secondary)
-            Text("刷新会重新核对数据并关闭本中心打开的旧预览。未核对不会标记为一致；不改变采用版本。")
-                .font(.caption).foregroundStyle(.secondary)
             Button("刷新并重新核对") { bodyResult = nil; message = "数据已刷新，请核对当前版本。"; model.refresh() }
         }
-        .padding(24).frame(minWidth: 780, minHeight: 580)
+        .padding(24).frame(minWidth: 620, minHeight: 520)
         .task(id: requestIdentity) {
             bodyResult = nil; message = ""
             bodyResult = await model.resolveDetail(id: selectedID)

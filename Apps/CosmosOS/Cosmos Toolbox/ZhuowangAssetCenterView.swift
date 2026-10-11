@@ -47,24 +47,30 @@ struct ZhuowangAssetCenterView: View {
         model.refresh()
     }
 
+    private func assetIcon(_ type: ZhuowangArtifactType) -> String {
+        switch type {
+        case .image: return "photo"
+        case .html: return "safari"
+        case .pdf: return "doc.richtext"
+        case .flowchart: return "point.3.connected.trianglepath.dotted"
+        default: return "doc.text"
+        }
+    }
+
     private var catalogContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("知识与资产中心").font(.largeTitle)
-                    Text("来源：Cosmos OS 已管理的卓望资产 · 只读检索与复用").foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button("刷新", systemImage: "arrow.clockwise") { model.refresh() }
+            CosmosPageHeader("知识与资产", subtitle: "已管理的工作产物 · 只读检索与复用",
+                info: "仅检索现有元数据和受支持文本正文；不扫描、恢复、导入或修改采用版本。单份正文读取上限仍为 2 MiB。") {
+                Button { model.refresh() } label: { Label("刷新", systemImage: "arrow.clockwise").foregroundStyle(Color.primary) }.buttonStyle(.glass)
             }
             TextField("搜索产物名称、活动名或 Markdown / 纯文本正文", text: $model.filter.query)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("asset-search")
-            HStack {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], alignment: .leading, spacing: 10) {
                 Picker("版本", selection: $model.filter.allVersions) {
                     Text("当前采用").tag(false)
                     Text("全部版本").tag(true)
-                }.frame(width: 200)
+                }.frame(maxWidth: .infinity)
                 if fixedScope == nil {
                     Picker("省份", selection: $model.filter.provinceID) {
                     Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
@@ -111,6 +117,7 @@ struct ZhuowangAssetCenterView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
+                                Image(systemName: assetIcon(match.entry.artifact.type)).foregroundStyle(Color.accentColor).frame(width: 24)
                                 Text(match.entry.artifact.name).font(.headline)
                                 Text("V\(match.entry.artifact.version)")
                                 Text(match.entry.adoptionLabel).foregroundStyle(match.entry.adoptedCount > 1 ? .orange : .secondary)
@@ -120,12 +127,12 @@ struct ZhuowangAssetCenterView: View {
                             Text("\(match.entry.scopeName) · \(match.entry.campaignName) · \(match.entry.stepName)")
                                 .font(.caption).foregroundStyle(.secondary)
                             if let snippet = match.snippet { Text(snippet).font(.callout).lineLimit(3) }
-                        }.padding(.vertical, 6).contentShape(Rectangle())
+                        }.padding(12).contentShape(Rectangle())
                     }.buttonStyle(.plain)
-                }.accessibilityIdentifier("asset-results")
+                }.frame(minHeight: 240).listStyle(.plain).scrollContentBackground(.hidden).accessibilityIdentifier("asset-results")
             }
         }
         .padding(24)
-        .frame(minWidth: 760, minHeight: 560)
+        .frame(minWidth: 440, minHeight: 420)
     }
 }

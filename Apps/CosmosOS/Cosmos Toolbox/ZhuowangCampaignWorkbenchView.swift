@@ -110,21 +110,24 @@ struct ZhuowangCampaignWorkbenchView: View {
     }
 
     private func metrics(_ items: [ZhuowangCampaignProgress]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 12)], spacing: 12) {
-            ForEach(CosmosWorkbenchMetric.allCases) { metric in
-                CosmosMetricTile(icon: metric.icon, title: metric.title, value: items.filter(metric.matches).count,
-                    selected: selectedMetric == metric) {
-                    applyMetric(metric.toggled(from: selectedMetric))
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                ForEach(CosmosWorkbenchMetric.allCases) { metric in metricTile(metric, items: items).frame(minWidth: 130) }
+            }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(CosmosWorkbenchMetric.allCases) { metric in metricTile(metric, items: items) }
             }
         }
     }
-
+    private func metricTile(_ metric: CosmosWorkbenchMetric, items: [ZhuowangCampaignProgress]) -> some View {
+        CosmosMetricTile(icon: metric.icon, title: metric.title, value: items.filter(metric.matches).count,
+            selected: selectedMetric == metric) { applyMetric(metric.toggled(from: selectedMetric)) }
+    }
 
     // MARK: Filter
 
     private var filterBar: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
+        VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
             HStack(spacing: CosmosDesign.spacingS) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
@@ -139,6 +142,7 @@ struct ZhuowangCampaignWorkbenchView: View {
             )
             .frame(maxWidth: 280)
 
+            HStack(spacing: CosmosDesign.spacingM) {
             if fixedScope == nil {
                 Picker("省份", selection: $filter.scope) {
                     Text("全部省份 / 模块").tag(ZhuowangCampaignWorkbenchFilter.Scope.all)
@@ -175,6 +179,7 @@ struct ZhuowangCampaignWorkbenchView: View {
             }
 
             Spacer()
+            }
         }
     }
 
@@ -203,16 +208,12 @@ struct ZhuowangCampaignWorkbenchView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            VStack(spacing: 0) {
+            VStack(spacing: 18) {
 
                 ForEach(Array(groups.enumerated()), id: \.element.0) { index, group in
-                    if index > 0 {
-                        Divider()
-                    }
-                    actionGroup(group.0, rows: group.1)
+                    actionGroup(group.0, rows: group.1).cosmosEntrance(index)
                 }
             }
-            .modifier(WorkbenchPanel())
         }
     }
 
@@ -221,7 +222,7 @@ struct ZhuowangCampaignWorkbenchView: View {
         _ category: ZhuowangCampaignActionCategory,
         rows: [ZhuowangCampaignProgress]
     ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             Label("\(category.title) · \(rows.count)", systemImage: category.systemImage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(category == .needsAttention ? Color.orange : Color.secondary)
@@ -254,10 +255,11 @@ struct ZhuowangCampaignWorkbenchView: View {
 
                     actionButtons(row)
                 }
-                .padding(.horizontal, CosmosDesign.spacingL)
-                .padding(.vertical, CosmosDesign.spacingS)
+                .padding(16)
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+                .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.06)) }
+                .cosmosRowFeedback()
             }
-            .padding(.bottom, CosmosDesign.spacingS)
         }
     }
 
@@ -311,7 +313,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(alignment: .top, spacing: CosmosDesign.spacingM) {
+            VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
                 timelineColumn(.ongoing, rows: ongoing, footnote: nil)
                 timelineColumn(.upcoming, rows: upcoming, footnote: nil)
                 timelineColumn(
@@ -322,7 +324,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                         : nil
                 )
             }
-        }
+        }.id("workbench-schedule")
     }
 
 
@@ -341,23 +343,25 @@ struct ZhuowangCampaignWorkbenchView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            ForEach(rows) { row in
-                Button {
-                    open(row, .overview)
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(row.campaign.name)
-                            .font(.callout)
-                            .lineLimit(1)
-                        Text(timelineText(row))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            let calendar = Calendar.current
+            let groups = Dictionary(grouping: rows) { row in
+                calendar.startOfDay(for: phase == .upcoming ? row.campaign.startDate : row.campaign.endDate)
+            }
+            ForEach(groups.keys.sorted(), id: \.self) { date in
+                HStack(alignment: .top, spacing: 16) {
+                    Text(date.formatted(.dateTime.month().day())).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(width: 62, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(groups[date] ?? []) { row in
+                            Button { open(row, .overview) } label: {
+                                HStack {
+                                    Text(row.campaign.name).font(.callout).lineLimit(1)
+                                    Spacer()
+                                    Text(timelineText(row)).font(.caption).foregroundStyle(.secondary)
+                                }.contentShape(Rectangle())
+                            }.buttonStyle(.plain).cosmosRowFeedback().help("打开活动详情")
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .help("打开活动详情")
             }
 
             if let footnote {
@@ -578,7 +582,7 @@ struct ZhuowangCampaignWorkbenchView: View {
 private struct WorkbenchPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(.thinMaterial)
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(
                 RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusLarge, style: .continuous)
             )

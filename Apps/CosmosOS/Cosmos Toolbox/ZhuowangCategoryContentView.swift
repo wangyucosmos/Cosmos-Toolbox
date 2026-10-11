@@ -58,14 +58,13 @@ struct ZhuowangCategoryContentView: View {
     var body: some View {
         let route = ZhuowangCategoryRoute(categoryID: categoryID)
         VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
-            CosmosSectionTitle(title: category?.name ?? "内容", subtitle: category?.englishName ?? "Content")
-            Text(route.explanation).font(.callout).foregroundStyle(.secondary)
+            CosmosPageHeader(category?.name ?? "内容", subtitle: scopeName + " · 当前范围", info: route.explanation)
             switch route {
             case .assets:
                 if let filter = route.filter(provinceID: provinceID, moduleID: moduleID) {
                     Text(scopeName + " · 当前范围").font(.headline)
                     ZhuowangAssetCenterView(model: model, fixedScope: filter)
-                        .id(categoryID + "::" + (provinceID?.uuidString ?? moduleID ?? ""))
+
                 } else {
                     ContentUnavailableView("当前范围不可用", systemImage: "exclamationmark.triangle",
                         description: Text("请重新选择现有省份或业务模块；未显示其他范围的资产。"))
