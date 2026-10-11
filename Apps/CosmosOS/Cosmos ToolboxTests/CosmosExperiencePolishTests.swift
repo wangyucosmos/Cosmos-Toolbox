@@ -186,6 +186,78 @@ final class CosmosExperiencePolishTests: XCTestCase {
         try ("first entry\n" + first.map { "\($0)" }.joined(separator: "\n") + "\nreentry\n" + second.map { "\($0)" }.joined(separator: "\n"))
             .write(toFile: "/private/tmp/CosmosRound4-navigation-timing.txt", atomically: true, encoding: .utf8)
     }
+    func testAllDirectedPageSwitchesUseOneStableShellFade() async throws {
+        let root = try root(), (prefs, defaults) = try preferences(), nav = CosmosNavigator()
+        let data = ZhuowangInMemoryPersistenceDataSource(storage: [ZhuowangCampaignStore.storageKey: Data("[]".utf8),
+            ZhuowangWorkspaceStore.storageKey: try JSONEncoder().encode(ZhuowangWorkspaceSnapshot(modules: [], provinces: [], categories: []))])
+        let config = ZhuowangStorePersistenceConfiguration(dataSource: data, isIsolated: true, workspaceFilesRootURL: root)
+        _ = ZhuowangWorkflowStore(persistenceConfiguration: config)
+        let baseline = data.storage
+        let pages = SidebarItem.allCases.filter { $0 != .settings }
+        nav.selection = .dashboard; prefs.motion = .system
+        let (window, host) = self.host(DashboardView(storePersistenceConfiguration: config), width: 900, height: 620, dark: false, nav: nav, prefs: prefs, defaults: defaults)
+        defer { window.contentView = nil; window.close() }
+        try await Task.sleep(for: .milliseconds(500)); host.layoutSubtreeIfNeeded()
+        // Visit the retained workspace before measuring reentry; fixture stores may initialize once.
+        nav.selection = .zhuowang; try await Task.sleep(for: .milliseconds(500))
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosAcceptance-matrix")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        var rows = ["from,to,fade_begin,fade_commit,host_remount,workspace_second_selection"]
+        for from in pages {
+            nav.selection = from; try await Task.sleep(for: .milliseconds(450))
+            for to in pages where from != to {
+                nav.selection = from; try await Task.sleep(for: .milliseconds(450))
+                CosmosExperienceTrace.shared.start(); nav.selection = to
+                try await Task.sleep(for: .milliseconds(500)); host.layoutSubtreeIfNeeded()
+                let events = CosmosExperienceTrace.shared.finish()
+                let begins = events.filter { $0.0 == "shell.fade.begin." + to.rawValue }.count
+                let ends = events.filter { $0.0 == "shell.fade.commit." + to.rawValue }.count
+                let remounts = events.filter { $0.0.hasPrefix("shell.host.") }.count
+                let selections = events.filter { $0.0.hasPrefix("workspace.selection.") }.count
+                XCTAssertEqual(begins, 1, "\(from) → \(to)"); XCTAssertEqual(ends, 1)
+                XCTAssertEqual(remounts, 0); XCTAssertEqual(selections, 0); XCTAssertEqual(nav.selection, to)
+                XCTAssertFalse(events.contains { $0.0.hasPrefix("workspace.appear.") })
+                rows.append("\(from.rawValue),\(to.rawValue),\(begins),\(ends),\(remounts),\(selections)")
+                if to == .projects || to == .unifiedSearch {
+                    let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                    host.cacheDisplay(in: host.bounds, to: bitmap)
+                    try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: out.appendingPathComponent("\(from.rawValue)-\(to.rawValue).png"))
+                }
+            }
+        }
+        XCTAssertEqual(rows.count, 73); XCTAssertEqual(data.storage, baseline)
+        try rows.joined(separator: "\n").write(to: out.appendingPathComponent("matrix.csv"), atomically: true, encoding: .utf8)
+    }
+
+    func testSelectedSidebarAccentSurvivesSearchFocusLightAndDark() throws {
+        let (prefs, defaults) = try preferences(), nav = CosmosNavigator()
+        for dark in [false, true] {
+            let view = VStack {
+                Text("统一检索").frame(width: 220, height: 40).modifier(CosmosSidebarSelection(selected: true))
+                TextField("检索", text: .constant(""))
+            }.accentColor(.blue).padding(20)
+            let (window, host) = self.host(view, width: 300, height: 150, dark: dark, nav: nav, prefs: prefs, defaults: defaults)
+            defer { window.contentView = nil; window.close() }
+            window.makeKeyAndOrderFront(nil); host.layoutSubtreeIfNeeded()
+            func fields(_ view: NSView) -> [NSTextField] {
+                (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap { fields($0) }
+            }
+            func bluePixels() throws -> Int {
+                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                var count = 0
+                for y in 0..<bitmap.pixelsHigh { for x in 0..<bitmap.pixelsWide {
+                    if let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB), c.blueComponent > 0.5, c.blueComponent > c.redComponent * 1.5 { count += 1 }
+                } }
+                return count
+            }
+            window.makeFirstResponder(host); let before = try bluePixels()
+            let field = try XCTUnwrap(fields(host).first); XCTAssertTrue(window.makeFirstResponder(field))
+            host.layoutSubtreeIfNeeded(); let after = try bluePixels()
+            XCTAssertGreaterThan(before, 2000); XCTAssertLessThanOrEqual(abs(before - after), 150)
+        }
+    }
+
     func testOffscreenSevenPagesThreeSizesLightDarkAndCategory() async throws {
         let root = try root(), (prefs, defaults) = try preferences(), nav = CosmosNavigator()
         let province = ZhuowangProvince(id: UUID(), name: "河南", englishName: "Henan")
@@ -221,10 +293,10 @@ final class CosmosExperiencePolishTests: XCTestCase {
         dashboard.distribution = ["河南", "浙江", "湖北", "全国"].enumerated().map { .init(id: String($0.offset), label: $0.element, count: [3,2,1,1][$0.offset]) }
         dashboard.workflow = [.init(id: "notStarted", label: "未开始", count: 8), .init(id: "ready", label: "可开始", count: 2), .init(id: "waitingForApproval", label: "等待确认", count: 3), .init(id: "approved", label: "已确认", count: 5), .init(id: "failed", label: "失败", count: 1)]
         dashboard.weeks = (0..<8).map { .init(id: String($0), label: "\($0 + 1)周", count: [1,3,2,4,1,5,2,3][$0]) }
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosRound4-screenshots")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosAcceptance-screenshots")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         let before = source.storage
-        for (width, height) in [(900,620),(1440,900),(2560,1440)] {
+        for (width, height) in [(900,620),(1180,760),(1440,900),(2560,1440)] {
             for dark in [false,true] {
                 func save<V: View>(_ view: V, _ name: String) async throws {
                     let (window, host) = host(view, width: width, height: height, dark: dark, nav: nav, prefs: prefs, defaults: defaults)
@@ -244,6 +316,11 @@ final class CosmosExperiencePolishTests: XCTestCase {
                 try await save(ZhuowangWorkspaceView(persistenceConfiguration: config, isolatedAssetRoot: root, initialNavigation: .province(province.id), initialCategoryID: "banner"), "category")
                 nav.workspaceNavigation = .province(province.id); nav.selection = .zhuowang
                 try await save(DashboardView(storePersistenceConfiguration: config), "shell")
+                let shellPages: [SidebarItem] = width == 900 ? SidebarItem.allCases.filter { $0 != .settings } : [.unifiedSearch, .projects, .zhuowang, .knowledgeBase]
+                for page in shellPages {
+                        nav.selection = page
+                        try await save(DashboardView(storePersistenceConfiguration: config), "shell-" + page.rawValue)
+                }
             }
         }
         XCTAssertEqual(source.storage, before)

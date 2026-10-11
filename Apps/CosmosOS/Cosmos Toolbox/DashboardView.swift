@@ -21,6 +21,7 @@ struct DashboardView: View {
     /// Last finished AI 工作台 detection; memory only, never persisted.
     @StateObject private var promptSession: CosmosPromptSession
     @State private var didVisitWorkspace = false
+    @State private var pageOpacity = 1.0
     @State private var aiWorkspaceCache = AIWorkspaceResultCache.shared
 
     @StateObject private var macEnvironment = MacEnvironmentViewModel()
@@ -187,7 +188,7 @@ struct DashboardView: View {
             )
 
         } detail: {
-
+            GeometryReader { geometry in
             ZStack {
                 Group {
                 if selection == .dashboard {
@@ -257,19 +258,28 @@ struct DashboardView: View {
                 }
                 }
                 .id(selection)
-                .transition(CosmosDesign.pageTransition(reduced: preferences.reducesMotion(system: systemMotion)))
+                .transition(.identity)
+                .animation(nil, value: selection)
                 if selection == .zhuowang || didVisitWorkspace {
                     ZhuowangWorkspaceView(persistenceConfiguration: storePersistenceConfiguration,
                         isolatedAssetRoot: isolatedAssetRoot, openPromptVault: { selection = .promptVault },
                         initialNavigation: navigator.workspaceNavigation, initialCategoryID: navigator.workspaceCategory)
                         .opacity(selection == .zhuowang ? 1 : 0)
+                        .animation(nil, value: selection)
                         .allowsHitTesting(selection == .zhuowang).accessibilityHidden(selection != .zhuowang)
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
             .environment(\.cosmosShellOwnsTransition, true)
-            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: selection)
+            .opacity(pageOpacity)
+#if DEBUG
+            .onAppear { CosmosExperienceTrace.shared.mark("shell.host.appear") }
+            .onDisappear { CosmosExperienceTrace.shared.mark("shell.host.disappear") }
+#endif
+            }
         }
         .background(CosmosMainWindowPolicy())
+        .toolbar(removing: .title)
         .environment(\.locale, Locale(identifier: "zh_Hans_CN"))
         .environment(\.cosmosGlassNamespace, pageGlass)
         .modifier(CosmosMotionPolicy())
@@ -279,6 +289,20 @@ struct DashboardView: View {
             CosmosExperienceTrace.shared.mark("shell.transition." + (value?.rawValue ?? "nil"))
 #endif
             if value == .zhuowang { didVisitWorkspace = true }
+            // Swap content without insertion/removal animations; the stable shell alone fades in.
+            pageOpacity = preferences.reducesMotion(system: systemMotion) ? 1 : 0.65
+            Task { @MainActor in
+                await Task.yield()
+#if DEBUG
+                CosmosExperienceTrace.shared.mark("shell.fade.begin." + (value?.rawValue ?? "nil"))
+#endif
+                withAnimation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion))) {
+                    pageOpacity = 1
+                }
+#if DEBUG
+                CosmosExperienceTrace.shared.mark("shell.fade.commit." + (value?.rawValue ?? "nil"))
+#endif
+            }
             if let value, value != .settings { preferences.lastPage = value.rawValue; sidebarPulse[value, default: 0] += 1 }
         }
         .onChange(of: navigator.settingsRequest) { _, _ in openSettings() }
@@ -412,7 +436,7 @@ struct DashboardView: View {
                 Text(item.chineseName).font(CosmosDesign.font(.body))
 
                 if preferences.sidebarEnglish {
-                    Text(item.englishName).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                    Text(item.englishName).font(CosmosDesign.font(.caption)).foregroundStyle(selection == item ? Color.white.opacity(0.85) : Color.secondary)
                 }
             }
 
@@ -422,7 +446,8 @@ struct DashboardView: View {
                 .symbolEffect(.bounce, options: .nonRepeating, value: sidebarPulse[item, default: 0])
                 .symbolEffectsRemoved(preferences.reducesMotion(system: systemMotion))
         }
-        .frame(minHeight: 30)
+        .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+        .modifier(CosmosSidebarSelection(selected: selection == item))
         .tag(item)
     }
 }

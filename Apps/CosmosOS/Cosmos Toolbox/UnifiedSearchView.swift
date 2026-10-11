@@ -47,15 +47,25 @@ struct UnifiedSearchView: View {
                 }
             }.padding(16).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
                 .overlay { RoundedRectangle(cornerRadius: 14).stroke(searchFocused ? Color.accentColor.opacity(0.6) : Color.primary.opacity(0.1)) }
-            HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         sourceButton("全部", nil)
                         ForEach(UnifiedSearchSource.allCases) { sourceButton($0.title, $0) }
                     }
                 }
-                Toggle("包含归档", isOn: $query.includeArchived).toggleStyle(.checkbox).fixedSize()
-                Toggle("Artifact 历史", isOn: $query.includeHistory).toggleStyle(.checkbox).fixedSize()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .mask {
+                    HStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: 6)
+                        Color.black
+                        LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 12)
+                    }
+                }
+                HStack(spacing: 14) {
+                    Toggle("包含归档", isOn: $query.includeArchived).toggleStyle(.checkbox)
+                    Toggle("Artifact 历史", isOn: $query.includeHistory).toggleStyle(.checkbox)
+                }
             }.font(CosmosDesign.font(.body))
             if !model.states.isEmpty {
                 DisclosureGroup("来源状态") {
@@ -95,8 +105,8 @@ struct UnifiedSearchView: View {
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
             .toolbar {
-                ToolbarItem { Button("聚焦搜索", systemImage: "magnifyingglass") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).buttonStyle(.glass) }
-                ToolbarItem { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.buttonStyle(.glass).disabled(query.keyword.isEmpty) }
+                ToolbarItem(placement: .primaryAction) { Button("聚焦搜索", systemImage: "magnifyingglass") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).labelStyle(.iconOnly).help("聚焦搜索").buttonStyle(.glass) }
+                ToolbarItem(placement: .primaryAction) { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.labelStyle(.iconOnly).help("刷新").buttonStyle(.glass).disabled(query.keyword.isEmpty) }
             }
             .task {
                 searchFocused = true

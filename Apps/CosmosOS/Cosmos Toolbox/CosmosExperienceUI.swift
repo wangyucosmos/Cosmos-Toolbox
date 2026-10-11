@@ -78,3 +78,16 @@ struct CosmosMainWindowPolicy: NSViewRepresentable {
         override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.titleVisibility = .hidden }
     }
 }
+
+/// Paint inside the native List row so inactive AppKit selection cannot replace the accent fill.
+/// List still owns selection, arrow keys and hover; the selected trait also survives search focus.
+struct CosmosSidebarSelection: ViewModifier {
+    let selected: Bool
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 8).padding(.vertical, 5)
+            .foregroundStyle(selected ? Color.white : Color.primary)
+            .background(selected ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}

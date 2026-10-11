@@ -73,13 +73,16 @@ struct ZhuowangWorkspaceView: View {
             if let message = store.persistenceState.userMessage {
                 ContentUnavailableView("工作区暂不可编辑", systemImage: "lock.trianglebadge.exclamationmark", description: Text(message))
             } else {
-                HSplitView {
-                    sidebar.frame(minWidth: 160, idealWidth: 190, maxWidth: 250)
+                GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    sidebar.frame(width: min(190, max(160, geometry.size.width * 0.28)))
+                    Divider()
                     // Only the outer shell transitions; local selection changes keep their host.
                     ZStack(alignment: .topLeading) {
                         detail.id(contentIdentity)
                     }
-                        .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                }.frame(width: geometry.size.width, height: geometry.size.height)
                 }
             }
         }.background(Color(nsColor: .windowBackgroundColor))

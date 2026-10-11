@@ -110,6 +110,12 @@ struct AIWorkspaceView: View {
                     }
                 }
             }
+            .mask {
+                HStack(spacing: 0) {
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                }
+            }
             if let snapshot = model.snapshot { Text("最近检测：" + CosmosDate.timestamp(snapshot.completedAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary).accessibilityIdentifier("ai-workspace-time") }
         }
     }
