@@ -20,3 +20,66 @@
 ## 第三步正式收尾（用户体验已接受）
 
 - 验收代码 1cc1e12 快进 main、正常推送；fetch / ls-remote 核对 main=origin/main=远端 main、0/0、干净；删除干净的第三步两个 worktree、prune 与三个已合并分支，空父目录删除，两个 WIP 不动。只更新状态与本日志，不重复构建、测试或部署。
+
+
+## 体验打磨轮（追加集中处理完成，待用户体验验收）
+
+- P0 已完成：第三步验收代码快进并推送；收尾文档 fee48c5697c1ab34d74ed66692de110d05079d11 已推送，main/origin/main/远端核对一致、0/0；阶段分支与干净worktree清理，WIP保留。本轮不重做P0、不移动main、不推送。
+- P1 基于现有36个未提交草稿继续，在 polish/ui-round4 单独开发。功能提交 c76319b4ca74541ff7058b6afc9f182b9c53cf29：feat: 体验打磨（图表、响应式布局、导航与性能），共42个源码/测试文件。本轮修复工作台3处旧日期调用；全仓旧Self.fullDate/Self.shortDate调用为零，生产UI直接格式化日期收口CosmosDate。保留数值count.formatted()、文件名时间戳、ISO序列化与历史/交接正文，不改格式或生成业务语义。
+- 14项：横向细圆角条和数量/左侧省份标签；语义色Workflow环图与数量图例；图表内容区等高225pt；宽屏图表最多三列铺满行；阅读上限2200与自适应指标/项目卡；省份首字及模块白符号稳定方块；主窗口隐藏重复标题、紧凑primaryAction工具栏；设置独立底部行；统一主页面Header；骨架与轻淡入；未接入分类说明和替代入口（不新增分类）；AI五阶段折叠引导与复制后下一步。
+- 卓望根因：侧栏条件销毁页面，重入默认工作台；外壳blur/scale/offset、内部目的地和卡片错峰叠加。现保留一个子树，离开隐藏，外壳纯淡入，抑制内部重复入场；记住省份/模块/分类，外部指标优先。隔离事件/五张采样帧：首次过渡87.816ms、appear89.046ms；重入过渡27.284ms；每次一个shell事件、内部selection0次，重入appear0次。采样包含位图成本，不作为显示器帧率或真实显示延迟。证据 /private/tmp/CosmosRound4-navigation-timing.txt、navigation-frames。
+- Prompt根因：页面重建Store和全库重读，固定等待380ms、重复过滤/全库变量解析、历史行提前创建。文件读取/解码原已在专用队列；未把它误报为主线程读取。外壳持有稳定会话；首次loadIfNeeded、手动刷新仍可用；页面离开仍清理变量。schema2、revision重读冲突、事务、窗口草稿、历史恢复保护均未改。新增测试证明外部磁盘更新不覆盖草稿；缓存显示快照可能外部过期，需手动刷新。
+- 完整路径实测：冻结main原PromptVaultView/ViewModel于测试目标，重现普通动效380ms等待；同一120模板/4800版本约8MiB合成库，实际900×620完整页面NSHostingView+缓存位图。原冷/新冷/新暖：首帧131.199/49.301/45.054ms；真实列表帧1014.896/455.023/315.405ms；Store创建0.370/0.237/复用；读取6.238/1.098/无；解码校验139.715/117.995/无；宿主构造初布局67.416/21.109/14.227ms。分类每次约0.004–0.079ms，所选历史处理0.015–0.031ms。主线程可观察到数据666.763→294.104ms，暖已有数据。另一个独立同夹具实测协调16.347→0.187ms、storage.reload约118ms同量级。最大额外开销为固定等待和SwiftUI布局/位图缓存；新页冷暖先显示骨架，布局仍有成本。并发/重复渲染阶段不可简单相加；cacheDisplay与PNG编码在计时内，不等于Release显示器首帧/正式库用户体感。证据 /private/tmp/CosmosRound4-full-route-timing.txt，perf-before/after.log。
+- 计时类/调用仅#if DEBUG；原页面基线仅测试目标，不加入Release启动参数。发布二进制nm核对无CosmosExperienceTrace/CosmosLegacyPrompt诊断符号。PromptVaultFileStorage仅新增DEBUG计时，不改变路径、校验、队列或写入事务。
+- AI行为变化：每次App运行首次AI页自动一次既有--version探测；离开取消后不自动重试，需手动刷新；首页仍不检测。折叠状态仅cosmos.ui.aiWorkspace.guideCollapsed；提示词生成、资料上限、历史交接语义保持。
+- 沙箱外原工程/原scheme Debug build-for-testing通过，不改工程、scheme、xcconfig或仓库宿主配置。唯一App/进程、随机suite与全部临时根，仓库外xctestrun。首次389项中387通过，两项新增夹具缺少Provider元数据导致原有默认初始化写入；已在setup初始化后取基线，没有修改业务算法。集中修复另含宽屏图表空列、首帧骨架、暗色标签。受影响复验105/105，通过；深色空状态共享标签最后局部17/17通过。合并按唯一方法去重389/389，不重复累加。
+- 结果 /private/tmp/CosmosRound4-tests-extra.xcresult、tests-final.xcresult、tests-glass.xcresult；Debug日志build-extra-fixture.log、build-final.log、build-glass.log。日志/结果都在仓库外。测试未读取Documents或标准连接Store，未运行真实Provider/Harness。
+- 最终54张页面PNG：/private/tmp/CosmosRound4-screenshots，七页三尺寸浅深42张+分类6张+外壳6张；另5张导航采样帧。已亲自查看六张联系表和图表/Prompt/AI/导航原图；图表等高、三尺寸布局和深色标签已检查。AppKit主侧栏/标题栏在离屏缓存中未完整绘制；真实点击、短窗口设置、原生toolbar/窗口缩放、现场玻璃、帧率仍需用户实机验收，不把截图当成实际交互验收。
+- 正式数据shell清单：14文件路径/大小/mtime_ns；5现存cosmos.zhuowang业务键逐键SHA256。round4-before、extra-before、after-tests、final-validation、after-deploy.json完全一致；不输出业务正文。数据格式不变，没有迁移或恢复/采用算法修改。
+- 原脚本 /usr/bin/python3 scripts/deploy-macos.py：从干净c76319b构建Universal Release，签名和双架构检查通过，旧App正常退出（或未运行），脚本确认新版安装路径启动，PID58554。回退副本 Cosmos Toolbox-20261012-005631-a7085e88.app；部署日志 /private/tmp/CosmosRound4-deploy.log；安装Info.plist确认commit=c76319b、dirty=false、Release。文档在部署后记录，不改变部署代码。
+- 只更新Current Status与本日志，不改AGENTS，不写其他知识库。当前可收尾为实现/工程验证/部署完成，待用户体验验收。下一模块候选：卓望分类内容接入；既有打开详情会把有本地文件的失败/需修改步骤恢复为已确认的P1风险保留。
+- 可复用：稳定页面/Store身份、一个外壳过渡、先出骨架的完整路径计时、同夹具前后比较、唯一测试去重与shell逐业务键完整性闸门。避免把缓存位图计时或默认元数据夹具初始化当作真实UI验收/业务回归。
+
+本轮源码/测试文件：
+- Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceHandoffHistoryView.swift
+- Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceModels.swift
+- Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceTaskPreparationView.swift
+- Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceView.swift
+- Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceViewModel.swift
+- Apps/CosmosOS/Cosmos Toolbox/ArtifactReviewWorkspace.swift
+- Apps/CosmosOS/Cosmos Toolbox/CampaignReferencesView.swift
+- Apps/CosmosOS/Cosmos Toolbox/CoreRestoreView.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosDesignComponents.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosDesignSystem.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosNavigator.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosPageMotion.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosWorkspaceUI.swift
+- Apps/CosmosOS/Cosmos Toolbox/DashboardHomeSnapshot.swift
+- Apps/CosmosOS/Cosmos Toolbox/DashboardHomeView.swift
+- Apps/CosmosOS/Cosmos Toolbox/DashboardSnapshot.swift
+- Apps/CosmosOS/Cosmos Toolbox/DashboardView.swift
+- Apps/CosmosOS/Cosmos Toolbox/KnowledgeSourceReaderView.swift
+- Apps/CosmosOS/Cosmos Toolbox/KnowledgeSourceViews.swift
+- Apps/CosmosOS/Cosmos Toolbox/LearningCenterView.swift
+- Apps/CosmosOS/Cosmos Toolbox/MacEnvironmentView.swift
+- Apps/CosmosOS/Cosmos Toolbox/PersonalNotesEditor.swift
+- Apps/CosmosOS/Cosmos Toolbox/PersonalNotesView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ProjectsEditor.swift
+- Apps/CosmosOS/Cosmos Toolbox/ProjectsView.swift
+- Apps/CosmosOS/Cosmos Toolbox/PromptVaultFileStorage.swift
+- Apps/CosmosOS/Cosmos Toolbox/PromptVaultView.swift
+- Apps/CosmosOS/Cosmos Toolbox/PromptVaultViewModel.swift
+- Apps/CosmosOS/Cosmos Toolbox/UnifiedSearchView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignDetailUIComponents.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignDetailView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignWorkbenchView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangCategoryContentView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangMonthlyChecklistView.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkspaceUI.swift
+- Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkspaceView.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosExperienceTrace.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosExperienceUI.swift
+- Apps/CosmosOS/Cosmos Toolbox/CosmosPromptSession.swift
+- Apps/CosmosOS/Cosmos ToolboxTests/CosmosExperiencePolishTests.swift
+- Apps/CosmosOS/Cosmos ToolboxTests/CosmosLegacyPromptBenchmark.swift
