@@ -91,10 +91,19 @@ nonisolated final class PromptVaultFileStorage: @unchecked Sendable {
         guard try checkParents(create: false) else { return (PromptVaultDocument(), nil) }
         // Check even an unused backup's file type; never overwrite a linked target.
         if let type = try kind(backupURL), type != S_IFREG { throw PromptVaultError.unsafePath }
+#if DEBUG
+        CosmosExperienceTrace.shared.mark("disk_read.begin")
+        defer { CosmosExperienceTrace.shared.mark("storage_read.end") }
+#endif
         guard let raw = try read(primaryURL) else {
             if try kind(backupURL) != nil { throw PromptVaultError.missingPrimaryWithBackup }
             return (PromptVaultDocument(), nil)
         }
+#if DEBUG
+        CosmosExperienceTrace.shared.mark("disk_read.end")
+        CosmosExperienceTrace.shared.mark("decode_validate.begin")
+        defer { CosmosExperienceTrace.shared.mark("decode_validate.end") }
+#endif
         guard String(data: raw, encoding: .utf8) != nil, !raw.contains(0) else { throw PromptVaultError.corruptData }
         let document: PromptVaultDocument
         do { document = try JSONDecoder().decode(PromptVaultDocument.self, from: raw) }

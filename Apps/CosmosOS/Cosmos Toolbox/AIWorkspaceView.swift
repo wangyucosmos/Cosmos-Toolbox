@@ -8,6 +8,7 @@ struct AIWorkspaceView: View {
     private let initialStage: Int
     @StateObject private var preparation: AIWorkspaceTaskPreparation
     @StateObject private var history: AIWorkspaceHandoffStore
+    @AppStorage("cosmos.ui.aiWorkspace.guideCollapsed") private var guideCollapsed = false
     @State private var showsHistory = false
 
     init(cache: AIWorkspaceResultCache, configuration: ZhuowangStorePersistenceConfiguration, referenceRoot: URL? = nil, autoDetect: Bool = false) {
@@ -44,27 +45,45 @@ struct AIWorkspaceView: View {
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 CosmosPageHeader("AI 工作台", subtitle: "把卓望活动的上下文整理成一段提示词，交给 Claude 或 Codex 去执行。",
                     info: "选择活动与步骤，填写本次目标，预览后手动复制。草稿仅在页面内存中。CLI 检测只证明本机入口与 --version 可运行，不证明登录、额度、网络或模型可用；不会安装、更新、读取密钥或调用 AI 服务。")
-                toolStatus.cosmosEntrance()
+                usageGuide
+                toolStatus
                 CosmosSegmentedControl(title: "工作台", options: [(false, "准备任务"), (true, "交接记录")], selection: $showsHistory)
                     .accessibilityIdentifier("ai-workspace-section")
                 if showsHistory { AIWorkspaceHandoffHistoryView(history: history, preparation: preparation).cosmosEntrance(1) }
                 else { AIWorkspaceTaskPreparationView(model: preparation, history: history, initialStage: initialStage).cosmosEntrance(1) }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
         }.background(Color(nsColor: .windowBackgroundColor))
-            .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+            .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
                 Button(model.isDetecting ? "正在检测…" : "开始检测", systemImage: "terminal") { model.refresh() }
                     .disabled(model.isDetecting).accessibilityIdentifier("ai-workspace-detect")
                 Button("刷新活动上下文", systemImage: "arrow.clockwise") { preparation.refresh() }
-            } } }
+            }.labelStyle(.iconOnly) } }
             .task {
                 guard await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) else { return }
                 preparation.refresh(); await history.reload()
-                if autoDetect, model.snapshot == nil { model.refresh() }
+                if autoDetect { model.detectOnceOnArrival() }
             }.onDisappear { model.cancel() }
+    }
+    private var usageGuide: some View {
+        CosmosContentPanel {
+            DisclosureGroup("怎么用 · 从上下文到交接", isExpanded: Binding(get: { !guideCollapsed }, set: { guideCollapsed = !$0 })) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 16) {
+                    ForEach(Array(zip(["list.bullet.rectangle", "pencil", "doc.on.doc", "terminal", "checkmark.bubble"],
+                        ["选活动和步骤", "写本次目标", "复制完整提示词", "粘贴到 Claude Code 或 Codex 执行", "回来记录交接"]).enumerated()), id: \.offset) { index, item in
+                        VStack(alignment: .leading, spacing: 8) {
+                            CosmosSquareIcon(symbol: item.0, identity: String(index), filled: false)
+                            Text("\(index + 1). " + item.1).font(.callout.weight(.medium))
+                            Text(["带上已确认的上游上下文。", "说明希望得到什么成果。", "先核对预览再复制。", "在外部工具中检查并完成任务。", "记录结果与下一步，保留追踪线索。"][index]).font(.caption).foregroundStyle(.secondary)
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }.padding(.top, 12)
+                Text("示例：为河南活动的完整策划案步骤生成初稿。").font(.callout).foregroundStyle(.secondary).padding(.top, 10)
+            }
+        }
     }
     private func statusText(_ result: AIWorkspaceToolResult?) -> String {
         guard let result else { return model.isDetecting ? "检测中" : "未检测" }
@@ -76,6 +95,7 @@ struct AIWorkspaceView: View {
     }
     private var toolStatus: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if model.isDetecting { ProgressView("正在检测本机工具（--version）…") }
             if model.snapshot == nil { Text("检测本机是否已安装这些 AI 工具").font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -90,7 +110,7 @@ struct AIWorkspaceView: View {
                     }
                 }
             }
-            if let snapshot = model.snapshot { Text("最近检测：" + snapshot.completedAt.formatted(date: .abbreviated, time: .standard)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary).accessibilityIdentifier("ai-workspace-time") }
+            if let snapshot = model.snapshot { Text("最近检测：" + CosmosDate.timestamp(snapshot.completedAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary).accessibilityIdentifier("ai-workspace-time") }
         }
     }
 }

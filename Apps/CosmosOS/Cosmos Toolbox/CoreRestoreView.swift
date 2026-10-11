@@ -65,7 +65,7 @@ struct CoreRestoreView: View {
                 confirmed = false;Task { await model.choose(url) }
             }.disabled(model.busy || model.finished)
             if let plan = model.plan {
-                Text("备份时间：\(plan.manifest.exportedAt.formatted()) · 格式 V\(plan.manifest.version)").font(.headline)
+                Text("备份时间：\(CosmosDate.timestamp(plan.manifest.exportedAt)) · 格式 V\(plan.manifest.version)").font(.headline)
                 ForEach(plan.manifest.sources,id:\.id) { source in
                     Text("\(source.id)：\(source.status == "missing" ? "尚未建立，不恢复" : "恢复 · \((plan.payloads[source.id]?.count ?? 0)) 字节 · \(plan.summaries[source.id] ?? "")")")
                 }

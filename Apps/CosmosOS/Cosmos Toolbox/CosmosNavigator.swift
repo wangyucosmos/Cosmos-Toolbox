@@ -43,6 +43,8 @@ nonisolated enum CosmosDashboardLink: CaseIterable {
 final class CosmosNavigator {
     static let shared = CosmosNavigator()
     var selection: SidebarItem? = .dashboard
+    var workspaceNavigation: ZhuowangNavigationItem = .workbench
+    var workspaceCategory = "overview"
     var pendingWorkbenchMetric: CosmosWorkbenchMetric?
     var knowledgeSection: CosmosKnowledgeSection = .notes
     var searchText = ""
@@ -56,7 +58,7 @@ final class CosmosNavigator {
         case .module(let name):
             guard let item = SidebarItem(rawValue: name), item != .settings else { return }
             pendingWorkbenchMetric = nil; selection = item
-        case .workbench(let metric): pendingWorkbenchMetric = metric; selection = .zhuowang
+        case .workbench(let metric): workspaceNavigation = .workbench; workspaceCategory = "overview"; pendingWorkbenchMetric = metric; selection = .zhuowang
         case .knowledge(let section): knowledgeSection = section; selection = .knowledgeBase
         case .search(let text): searchText = text; selection = .unifiedSearch
         case .settings(let tab): settingsTab = tab; settingsRequest += 1

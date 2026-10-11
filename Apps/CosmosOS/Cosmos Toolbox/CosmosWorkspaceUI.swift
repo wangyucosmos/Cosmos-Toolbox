@@ -4,6 +4,9 @@ import SwiftUI
 struct CosmosWorkspaceNavigationRow: View {
     let icon: String
     let title: String
+    var letter: String? = nil
+    var iconIdentity: String? = nil
+    var subdued = false
     var subtitle = ""
     var count: Int? = nil
     var attention = false
@@ -14,7 +17,7 @@ struct CosmosWorkspaceNavigationRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: icon).frame(width: 20).foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                CosmosSquareIcon(letter: letter, symbol: icon, identity: iconIdentity ?? title, subdued: subdued)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.system(.body, weight: selected ? .semibold : .medium))
                     if !subtitle.isEmpty { Text(subtitle).font(.caption2).foregroundStyle(.secondary) }

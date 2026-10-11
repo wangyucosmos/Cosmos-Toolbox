@@ -4,6 +4,7 @@ import AppKit
 /// 「我的知识库」页面根视图。自包含：由接线层放进知识库分段即可。
 /// 只读：不写入、不移动、不删除来源文件夹中的任何内容。
 struct KnowledgeSourcesRootView: View {
+    @Environment(\.colorScheme) private var colorScheme
     enum ListKind: String { case documents = "文档", attachments = "附件" }
 
     @StateObject private var store: KnowledgeSourceStore
@@ -56,9 +57,9 @@ struct KnowledgeSourcesRootView: View {
             CosmosPageHeader("我的知识库", subtitle: "只读浏览本地知识库文件夹，并同步 GitHub 更新。",
                 info: "选择你的知识库文件夹（如 Obsidian 库）后，Cosmos 会在后台读取其中的 Markdown 与文本，附件只显示名称。\n\n只读：不会修改、移动或删除文件夹里的任何内容（包括 .obsidian 配置）。隐藏文件、.gitignore 排除项、嵌套仓库，以及疑似密钥的文件（type: secret 或文件名含密钥 / secret / token / password / .env）都不会被读取，也不会出现在列表、搜索或统一检索中。索引只保存在内存里。") {
                 CosmosGlassToolbarGroup {
-                    Button("添加文件夹", systemImage: "folder.badge.plus") { pickFolder() }
+                    Button { pickFolder() } label: { Label("添加文件夹", systemImage: "folder.badge.plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
                         .disabled(!store.canSave).accessibilityIdentifier("knowledge-add-folder")
-                    Button("重新扫描", systemImage: "arrow.clockwise") { store.rescanAll() }
+                    Button { store.rescanAll() } label: { Label("重新扫描", systemImage: "arrow.clockwise").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
                         .disabled(enabledSources.isEmpty).help("重新扫描已启用的来源")
                 }
             }.padding(.horizontal, CosmosDesign.pagePadding).padding(.top, CosmosDesign.spacingXL).padding(.bottom, CosmosDesign.spacingM)
@@ -72,7 +73,7 @@ struct KnowledgeSourcesRootView: View {
             }
             Group {
                 if !store.loaded && store.error != nil { Spacer() }
-                else if !store.loaded { ProgressView("读取来源登记…").frame(maxWidth: .infinity, maxHeight: .infinity) }
+                else if !store.loaded { CosmosLoadingSkeleton(title: "读取来源登记…").frame(maxWidth: .infinity, maxHeight: .infinity) }
                 else if store.sources.isEmpty { onboarding }
                 else { browser }
             }
@@ -151,7 +152,7 @@ struct KnowledgeSourcesRootView: View {
                     CosmosEmptyState(icon: "exclamationmark.triangle", title: "无法扫描「\(source.displayName)」", detail: reason, actionTitle: "重新扫描") { store.scan(source) }
                 default:
                     if let index { panes(source: source, index: index) }
-                    else { ProgressView("正在扫描…").frame(maxWidth: .infinity, maxHeight: .infinity) }
+                    else { CosmosLoadingSkeleton(title: "正在扫描…").frame(maxWidth: .infinity, maxHeight: .infinity) }
                 }
             } else { Spacer() }
         }
@@ -237,7 +238,7 @@ struct KnowledgeSourcesRootView: View {
         let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if !keyword.isEmpty {
             if searchModel.searching && searchModel.hits.isEmpty {
-                ProgressView("搜索中…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                CosmosLoadingSkeleton(title: "搜索中…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if searchModel.hits.isEmpty {
                 CosmosEmptyState(icon: "magnifyingglass", title: "没有匹配", detail: "只搜索已读入的标题、路径、标签与正文；被排除的文件不会出现。")
                 Spacer()
@@ -374,7 +375,7 @@ struct KnowledgeDocumentRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(document.title).font(.system(size: 13.5 * CosmosUIPreferences.shared.textSize.scale, weight: .medium)).lineLimit(1)
                 Spacer(minLength: 4)
-                Text(document.modifiedAt.formatted(date: .abbreviated, time: .omitted)).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+                Text(CosmosDate.day(document.modifiedAt)).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
             }
             Text(document.folder.isEmpty ? document.fileName : document.folder + "/").font(.caption).foregroundStyle(.secondary)
                 .lineLimit(1).truncationMode(.middle)
@@ -399,7 +400,7 @@ struct KnowledgeAttachmentRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(attachment.fileName).font(.system(size: 13 * CosmosUIPreferences.shared.textSize.scale, weight: .medium)).lineLimit(1)
                 Text(ByteCountFormatter.string(fromByteCount: Int64(attachment.byteSize), countStyle: .file) + " · " +
-                     attachment.modifiedAt.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundStyle(.secondary)
+                     CosmosDate.day(attachment.modifiedAt)).font(.caption).foregroundStyle(.secondary)
             }
         }.padding(.vertical, 3)
     }
@@ -595,7 +596,7 @@ struct KnowledgeGitPanelView: View {
                     HStack(spacing: 6) {
                         Text(commit.shortHash).font(.caption.monospaced()).foregroundStyle(.secondary)
                         Text(commit.subject).font(.caption).lineLimit(1).truncationMode(.tail)
-                        Text(commit.date.formatted(.relative(presentation: .named))).font(.caption).foregroundStyle(.tertiary)
+                        Text(CosmosDate.timestamp(commit.date)).font(.caption).foregroundStyle(.tertiary)
                     }.textSelection(.enabled)
                 }
             }
@@ -609,7 +610,7 @@ struct KnowledgeGitPanelView: View {
                     statChip("领先 \(s.ahead)", "arrow.up", s.ahead > 0 ? .blue : .secondary)
                     statChip("落后 \(s.behind)", "arrow.down", s.behind > 0 ? .blue : .secondary)
                 }
-                statChip(s.lastFetch.map { "上次拉取 " + $0.formatted(.relative(presentation: .named)) } ?? "尚未从远端拉取", "clock", .secondary)
+                statChip(s.lastFetch.map { "上次拉取 " + CosmosDate.timestamp($0) } ?? "尚未从远端拉取", "clock", .secondary)
             }
         }
     }

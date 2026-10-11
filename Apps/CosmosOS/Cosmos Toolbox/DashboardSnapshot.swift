@@ -476,12 +476,7 @@ enum DashboardGreeting {
     }
 
     static func dateText(now: Date, calendar: Calendar = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "M月d日 EEEE"
-        return formatter.string(from: now)
+        CosmosDate.greetingDay(now, calendar: calendar)
     }
 }
 

@@ -75,7 +75,7 @@ struct UnifiedSearchView: View {
                 }
                 Spacer()
             } else if model.loading {
-                ProgressView("正在读取本地元数据…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                CosmosLoadingSkeleton(title: "正在读取本地元数据…").frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else if model.rows.isEmpty {
                 CosmosEmptyState(icon: "magnifyingglass", title: "可读取来源中没有匹配", detail: "试试更短的关键词、全部来源，或包含归档与历史。读取失败会单独提示。")
                 Spacer()
@@ -165,7 +165,7 @@ struct UnifiedSearchView: View {
                 Text("活动 ID：\(ref.campaignID.uuidString)").font(.caption)
                 Text("引用 ID：\(ref.id.uuidString)").font(.caption)
                 Text("版本标签：" + (ref.versionLabel.isEmpty ? "未填写" : ref.versionLabel))
-                Text(ref.recordedAt, format: .dateTime.year().month().day().hour().minute())
+                Text(CosmosDate.timestamp(ref.recordedAt))
                 if let corrected = ref.correctsReferenceID { Text("更正对象 ID：" + corrected.uuidString).font(.caption) }
                 if !ref.location.isEmpty { Text(ref.location).textSelection(.enabled) }
                 if !ref.notes.isEmpty { ScrollView { Text(ref.notes).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }.frame(maxHeight: 220) }

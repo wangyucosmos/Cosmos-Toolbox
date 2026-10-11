@@ -59,7 +59,7 @@ struct CampaignReferencesView: View {
                     .buttonStyle(.glass).controlSize(.small)
                     .disabled(!store.persistenceState.allowsMutations)
             }
-            Text(record.recordedAt, format: .dateTime.year().month().day().hour().minute())
+            Text(CosmosDate.timestamp(record.recordedAt))
                 .font(.caption).foregroundStyle(.secondary)
             if let id = record.correctsReferenceID {
                 Text("更正对象：\(records.first(where: { $0.id == id })?.name ?? id.uuidString) · \(id.uuidString)")

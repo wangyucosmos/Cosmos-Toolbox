@@ -428,11 +428,9 @@ private struct ZhuowangMonthlyOutputRow: View {
     }
 
     private static func dayText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.timeZone = ZhuowangMonthlyRules.shanghai
-        formatter.dateFormat = "M月d日"
-        return formatter.string(from: date)
+        var calendar = Calendar.current
+        calendar.timeZone = ZhuowangMonthlyRules.shanghai
+        return CosmosDate.day(date, calendar: calendar)
     }
 }
 

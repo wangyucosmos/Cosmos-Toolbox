@@ -77,11 +77,11 @@ struct PersonalNotesView: View {
             .frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
             Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }.disabled(!store.canSave).accessibilityIdentifier("notes-new")
             Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("notes-export-batch")
             Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving)
-        } } }
+        }.labelStyle(.iconOnly) } }
         .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload() } }
         .sheet(isPresented: $showExport) {
             ContentExportBatchSheet(libraries: ContentExportLibraries(notesLocation: store.location, promptLocation: promptLocation),
@@ -107,7 +107,7 @@ struct PersonalNotesView: View {
                                 Text(note.title).font(.headline)
                                 if note.isArchived { Text("已归档").font(.caption).foregroundStyle(.orange) }
                             }
-                            Text("\(note.category ?? "未分类") · 内容 v\(note.contentVersion ?? 0) · 更新 \(note.updatedAt.formatted())")
+                            Text("\(note.category ?? "未分类") · 内容 v\(note.contentVersion ?? 0) · 更新 \(CosmosDate.timestamp(note.updatedAt))")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(Self.preview(note.body)).lineLimit(2).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())

@@ -94,10 +94,7 @@ extension View {
 
 enum CampaignUIFormat {
     static func dateTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy.MM.dd HH:mm"
-        return formatter.string(from: date)
+        CosmosDate.timestamp(date)
     }
 
     static func artifactIcon(_ type: ZhuowangArtifactType) -> String {

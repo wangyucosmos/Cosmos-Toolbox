@@ -110,7 +110,7 @@ struct CosmosMetricTile: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack { Image(systemName: icon).foregroundStyle(selected ? Color.accentColor : Color.secondary); Spacer(); if selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor) } }
+                HStack { CosmosSquareIcon(symbol: icon, identity: icon, filled: false); Spacer(); if selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor) } }
                 if loading { ProgressView().frame(height: 35) }
                 else { Text(value.map(String.init) ?? "—").font(CosmosDesign.font(.metric)).monospacedDigit().contentTransition(.numericText()) }
                 Text(title).font(CosmosDesign.font(.body)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
@@ -124,6 +124,7 @@ struct CosmosMetricTile: View {
 }
 
 struct CosmosEmptyState: View {
+    @Environment(\.colorScheme) private var colorScheme
     let icon: String
     let title: String
     var detail: String? = nil
@@ -134,7 +135,7 @@ struct CosmosEmptyState: View {
             Image(systemName: icon).font(.system(size: 26)).foregroundStyle(.secondary)
             Text(title).font(CosmosDesign.font(.section))
             if let detail { Text(detail).font(CosmosDesign.font(.body)).foregroundStyle(.secondary).multilineTextAlignment(.center) }
-            if let actionTitle, let action { Button(actionTitle, action: action).buttonStyle(.glass) }
+            if let actionTitle, let action { Button(action: action) { Text(actionTitle).foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.buttonStyle(.glass) }
         }.frame(maxWidth: .infinity, minHeight: 130).padding(12)
     }
 }
@@ -149,10 +150,12 @@ struct CosmosChartCard<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         CosmosCard(icon: icon, title: title, action: action) {
-            if loading { ProgressView().frame(maxWidth: .infinity, minHeight: 180) }
+            Group {
+            if loading { CosmosLoadingSkeleton() }
             else if let error { CosmosEmptyState(icon: "exclamationmark.triangle", title: "无法读取", detail: error) }
-            else if empty { CosmosEmptyState(icon: icon, title: "尚无数据", detail: "打开对应模块添加记录") }
-            else { content.frame(height: 185) }
+            else if empty { CosmosEmptyState(icon: icon, title: "尚无数据", detail: "从对应模块添加第一条记录", actionTitle: "前往添加", action: action) }
+            else { content }
+            }.frame(height: 225)
         }
     }
 }

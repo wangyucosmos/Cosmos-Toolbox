@@ -35,16 +35,12 @@ enum CosmosDesign {
         reduced ? nil : .smooth(duration: pageDuration, extraBounce: 0.06)
     }
     static func pageTransition(reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .opacity.combined(with: .scale(scale: 0.98))
-            .combined(with: AnyTransition(.blurReplace)).combined(with: .offset(y: 6))
+        .opacity
     }
-    /// Wait asynchronously until the shell's transition has started / settled, then use the existing reader.
+    /// Yield to the shell without imposing a fixed delay on local reads.
     static func beginPageLoad(reduced: Bool) async -> Bool {
-        do {
-            if !reduced { try await Task.sleep(for: .seconds(pageDuration)) }
-            else { await Task.yield() }
-            return !Task.isCancelled
-        } catch { return false }
+        await Task.yield()
+        return !Task.isCancelled
     }
 
     // MARK: - Card
@@ -54,7 +50,7 @@ enum CosmosDesign {
 
     // MARK: - Window
 
-    static let contentMaxWidth: CGFloat = 1150
+    static let contentMaxWidth: CGFloat = 2200
 }
 
 

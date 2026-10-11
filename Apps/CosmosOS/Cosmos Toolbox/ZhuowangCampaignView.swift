@@ -689,7 +689,7 @@ struct ZhuowangCampaignRow: View {
                 HStack(spacing: 10) {
 
                     Label(
-                        campaign.dateRangeText,
+                        ZhuowangWorkspaceUI.dates(campaign),
                         systemImage: "calendar"
                     )
 

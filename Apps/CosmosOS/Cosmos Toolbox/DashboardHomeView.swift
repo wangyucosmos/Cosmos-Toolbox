@@ -10,6 +10,7 @@ struct DashboardHomeView: View {
     private let ai: AIWorkspaceResultCache
     private let autoRefresh: Bool
     private let open: (SidebarItem) -> Void
+    @Environment(\.colorScheme) private var colorScheme
     @State private var appeared = false
 
     init(configuration: ZhuowangStorePersistenceConfiguration, promptLocation: DashboardLocation,
@@ -39,6 +40,7 @@ struct DashboardHomeView: View {
     private var data: DashboardHomeData { model.homeData }
     private func go(_ link: CosmosDashboardLink) { navigator.navigate(link.destination) }
     var body: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 CosmosPageHeader(DashboardGreeting.text(now: model.now), subtitle: DashboardGreeting.dateText(now: model.now),
@@ -47,7 +49,7 @@ struct DashboardHomeView: View {
                     quickActions
                     quickActions.labelStyle(.iconOnly)
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: CosmosAdaptiveLayout.columns(width: min(geometry.size.width, CosmosDesign.contentMaxWidth) - 48, minimum: 145)), spacing: 12) {
                     metric(.campaigns, "megaphone", "活动总数", data.total, data.errors["campaigns"])
                     metric(.ongoing, "calendar", "活动日期内", data.ongoing, data.errors["campaigns"])
                     metric(.attention, "exclamationmark.triangle", "失败或需修改", data.attention, data.errors["workflow"] ?? data.errors["campaigns"])
@@ -57,18 +59,32 @@ struct DashboardHomeView: View {
                     metric(.prompts, "text.book.closed", "提示词", data.promptCount, data.errors["prompts"])
                     metric(.learning, "graduationcap", "近 7 天学习记录", data.learningCount, data.errors["learning"])
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 270), spacing: 16)], alignment: .leading, spacing: 16) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: CosmosAdaptiveLayout.columns(width: min(geometry.size.width, CosmosDesign.contentMaxWidth) - 48, minimum: 320, maximum: 3)), alignment: .leading, spacing: 16) {
                     CosmosChartCard(title: "活动分布", icon: "chart.bar", empty: data.distribution.isEmpty, loading: model.loading,
                         error: data.errors["distribution"] ?? data.errors["campaigns"], action: { go(.distribution) }) {
-                        Chart(data.distribution) { row in BarMark(x: .value("活动数", appeared ? row.count : 0), y: .value("省份或模块", row.label)).foregroundStyle(Color.accentColor) }
-                            .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
+                        Chart(data.distribution) { row in
+                            BarMark(x: .value("活动数", appeared ? row.count : 0), y: .value("省份或模块", row.label), height: .fixed(14))
+                                .cornerRadius(5).foregroundStyle(Color.accentColor.opacity(0.55))
+                                .annotation(position: .trailing, alignment: .leading) { Text(String(row.count)).font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
+                        }
+                        .chartXScale(domain: 0...max(5, Int(Double(data.distribution.map(\.count).max() ?? 0) * 1.45)))
+                        .chartXAxis(.hidden)
+                        .chartYAxis { AxisMarks(position: .leading) { _ in AxisValueLabel() } }
                     }
                     CosmosChartCard(title: "Workflow 步骤状态", icon: "chart.pie", empty: data.workflow.isEmpty, loading: model.loading,
                         error: data.errors["workflow"] ?? data.errors["campaigns"], action: { go(.workflow) }) {
-                        Chart(data.workflow) { row in
-                            BarMark(x: .value("状态", row.label), y: .value("步骤数", appeared ? row.count : 0))
-                                .foregroundStyle(row.id == "failed" || row.id == "needsRevision" ? Color.orange : Color.accentColor)
-                        }.chartYAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
+                        VStack(spacing: 12) {
+                            Chart(data.workflow) { row in
+                                SectorMark(angle: .value("步骤数", row.count), innerRadius: .ratio(0.65), angularInset: 2)
+                                    .cornerRadius(3).foregroundStyle(workflowColor(row.id).opacity(0.8))
+                            }.frame(height: 130).opacity(appeared ? 1 : 0)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 105), alignment: .leading)], alignment: .leading, spacing: 6) {
+                                ForEach(data.workflow) { row in
+                                    HStack(spacing: 5) { Circle().fill(workflowColor(row.id)).frame(width: 7, height: 7)
+                                        Text(row.label + " " + String(row.count)).font(.caption).lineLimit(1) }
+                                }
+                            }
+                        }
                     }
                     CosmosChartCard(title: "近 8 周学习记录", icon: "chart.bar.xaxis", empty: data.weeks.allSatisfy { $0.count == 0 },
                         loading: model.loading, error: data.errors["learning"], action: { go(.learningChart) }) {
@@ -92,7 +108,7 @@ struct DashboardHomeView: View {
                                             Text(item.row.id.source.title + " · " + item.row.ownership).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary).lineLimit(1)
                                         }
                                         Spacer()
-                                        Text(item.updatedAt, format: .dateTime.month().day()).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                                        Text(CosmosDate.day(item.updatedAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
                                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                                     }
                                 }.buttonStyle(CosmosInteractiveCardStyle())
@@ -104,8 +120,9 @@ struct DashboardHomeView: View {
                     HStack(spacing: 12) { statusCards }
                     VStack(spacing: 12) { statusCards }
                 }
-                if let readAt = data.readAt { Text("读取于 " + readAt.formatted(date: .omitted, time: .standard)).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary) }
-            }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth)
+                if let readAt = data.readAt { Text("读取于 " + CosmosDate.timestamp(readAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary) }
+            }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth).frame(maxWidth: .infinity)
+        }
         }.background(Color(nsColor: .windowBackgroundColor))
             .toolbar { ToolbarItem { Button("刷新", systemImage: "arrow.clockwise") { model.refresh(); mac.refresh() }.buttonStyle(.glass).disabled(model.loading).accessibilityIdentifier("dashboard-refresh") } }
              .task {
@@ -117,12 +134,21 @@ struct DashboardHomeView: View {
             .onDisappear { model.cancel() }
             .modifier(CosmosMotionPolicy())
     }
+    private func workflowColor(_ status: String) -> Color {
+        switch status {
+        case "ready": return .blue
+        case "running", "waitingForApproval", "generated": return .orange
+        case "approved", "completed": return .green
+        case "failed", "needsRevision": return .red
+        default: return .gray
+        }
+    }
     private var quickActions: some View {
         CosmosGlassToolbarGroup {
-            Button("新建活动", systemImage: "plus.circle") { navigator.navigate(.module("zhuowang")) }.help("打开卓望工作，在活动分类新建")
-            Button("新建笔记", systemImage: "square.and.pencil") { navigator.newRecordRequest = .note }.help("打开原生新建笔记窗口")
-            Button("新建提示词", systemImage: "text.badge.plus") { navigator.newRecordRequest = .prompt }.help("打开原生新建模板窗口")
-            Button("统一检索", systemImage: "magnifyingglass") { navigator.navigate(.search("")) }
+            Button { navigator.navigate(.module("zhuowang")) } label: { Label("新建活动", systemImage: "plus.circle").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开卓望工作，在活动分类新建")
+            Button { navigator.newRecordRequest = .note } label: { Label("新建笔记", systemImage: "square.and.pencil").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开原生新建笔记窗口")
+            Button { navigator.newRecordRequest = .prompt } label: { Label("新建提示词", systemImage: "text.badge.plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开原生新建模板窗口")
+            Button { navigator.navigate(.search("")) } label: { Label("统一检索", systemImage: "magnifyingglass").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
         }
     }
     private func metric(_ link: CosmosDashboardLink, _ icon: String, _ title: String, _ value: Int?, _ error: String?) -> some View {
@@ -132,7 +158,7 @@ struct DashboardHomeView: View {
         CosmosCard(icon: "desktopcomputer", title: "Mac 环境", action: { go(.mac) }) { Text(macText).font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }
         CosmosCard(icon: "sparkles", title: "AI 工具", action: { go(.ai) }) {
             if let snapshot = ai.snapshot {
-                Text("本次检测：\(snapshot.results.filter { $0.status == .ready }.count)/\(snapshot.results.count) 可运行 · " + snapshot.completedAt.formatted(date: .omitted, time: .shortened)).font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
+                Text("本次检测：\(snapshot.results.filter { $0.status == .ready }.count)/\(snapshot.results.count) 可运行 · " + CosmosDate.timestamp(snapshot.completedAt)).font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
             } else { Text("尚未检测 · 打开 AI 工作台").font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }
         }
     }

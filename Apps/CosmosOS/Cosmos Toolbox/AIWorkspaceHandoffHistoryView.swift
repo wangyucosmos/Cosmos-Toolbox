@@ -68,7 +68,7 @@ struct AIWorkspaceHandoffHistoryView: View {
                                 Text(record.stepName).foregroundStyle(.secondary)
                                 Spacer()
                                 Text(record.toolName)
-                                Text(record.recordedAt, format: .dateTime.year().month().day().hour().minute().second())
+                                Text(CosmosDate.timestamp(record.recordedAt))
                                     .foregroundStyle(.secondary)
                             }
                             Text(record.goal).lineLimit(2).foregroundStyle(.primary)
@@ -100,7 +100,7 @@ struct AIWorkspaceHandoffDetailView: View {
             Text("\(record.campaignName) / \(record.workflowName) / \(record.stepName)").font(.headline)
             HStack {
                 Text(record.toolName)
-                Text(record.recordedAt, format: .dateTime.year().month().day().hour().minute().second())
+                Text(CosmosDate.timestamp(record.recordedAt))
                 Spacer()
                 Button("复制历史快照", systemImage: "doc.on.doc") { copyModel.copySnapshot(record) }
                     .accessibilityIdentifier("ai-handoff-copy-history")

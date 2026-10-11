@@ -5,17 +5,24 @@ struct PromptVaultView: View {
     @StateObject private var model = PromptVaultViewModel()
     @State private var pendingRestore: PromptVersionEntry?
     @State private var showExport = false
+    @State private var layoutReady = false
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
+    private let session: CosmosPromptSession?
     private let location: PromptVaultLocation
     private let notesLocation: PersonalNotesLocation?
     init(location: PromptVaultLocation, notesLocation: PersonalNotesLocation? = nil) {
-        self.location = location; self.notesLocation = notesLocation
+        session = nil; self.location = location; self.notesLocation = notesLocation
         _store = StateObject(wrappedValue: PromptVaultStore(root: location.root, startupError: location.error))
     }
     init(store: PromptVaultStore, model: PromptVaultViewModel) {
-        location = .init(root: store.storageRoot, error: nil); notesLocation = nil
+        session = nil; location = .init(root: store.storageRoot, error: nil); notesLocation = nil
         _store = StateObject(wrappedValue: store); _model = StateObject(wrappedValue: model)
+    }
+    init(session: CosmosPromptSession, notesLocation: PersonalNotesLocation? = nil) {
+        self.session = session; self.notesLocation = notesLocation
+        location = .init(root: session.store.storageRoot, error: session.store.error)
+        _store = StateObject(wrappedValue: session.store); _model = StateObject(wrappedValue: session.model)
     }
     private var singleExportLibraries: ContentExportLibraries {
         ContentExportLibraries(notes: nil, prompts: store.storageRoot.map { PromptVaultFileStorage(root: $0) },
@@ -28,14 +35,15 @@ struct PromptVaultView: View {
             if let error = store.error {
                 Text(error.localizedDescription).foregroundStyle(.orange).textSelection(.enabled)
             }
-            if store.loading { ProgressView("正在读取提示词库…") }
             HStack {
                 TextField("搜索名称或正文", text: $model.query).accessibilityIdentifier("prompt-search")
                 Toggle("仅收藏", isOn: $model.favoritesOnly)
                 Toggle("查看归档", isOn: $model.showArchived)
             }
-            if store.loaded && store.templates.isEmpty && store.error == nil {
-                ScrollView(.vertical, showsIndicators: true) { starters }
+            if !layoutReady || store.loading || (!store.loaded && store.error == nil) {
+                CosmosLoadingSkeleton(title: "正在读取提示词库…").frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else if store.loaded && store.templates.isEmpty && store.error == nil {
+                ScrollView { starters }
             } else {
                 ViewThatFits(in: .horizontal) {
                     HSplitView {
@@ -53,12 +61,17 @@ struct PromptVaultView: View {
             }
         }
         .padding(24)
-        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.pageAnimation(reduced: false), value: store.loaded)
+        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
             Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }.disabled(!store.canSave).accessibilityIdentifier("prompt-new")
             Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("prompt-export-batch")
             Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-        } } }
-        .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload(); model.reconcile(store.templates) } }
+        }.labelStyle(.iconOnly) } }
+        .task {
+            await Task.yield(); layoutReady = true
+            if let session { await session.loadIfNeeded() }
+            else if !store.loaded { await store.reload() } }
         .onChange(of: store.templates) { _, templates in model.reconcile(templates) }
         .onDisappear { model.clearSession() }
         .sheet(isPresented: $showExport) {
@@ -83,7 +96,11 @@ struct PromptVaultView: View {
         }.padding(.vertical, 12)
     }
     private var categoryNames: [String] {
+#if DEBUG
+        CosmosExperienceTrace.timed("categories") { Array(Set(store.templates.map { $0.category ?? "未分类" })).sorted() }
+#else
         Array(Set(store.templates.map { $0.category ?? "未分类" })).sorted()
+#endif
     }
     private var categories: some View {
         List(selection: $model.category) {
@@ -92,21 +109,22 @@ struct PromptVaultView: View {
         }.listStyle(.sidebar)
     }
     private var content: some View {
-        HSplitView {
+        let visible = model.filtered(store.templates)
+        return HSplitView {
             VStack {
-                if model.filtered(store.templates).isEmpty {
+                if visible.isEmpty {
                     ContentUnavailableView(store.templates.isEmpty ? "创建第一份提示词模板" : "没有匹配的模板",
                         systemImage: "text.book.closed", description: Text("模板由你创建；可调整搜索、分类、收藏或归档筛选。"))
                 } else {
                     List(selection: $model.selectedID) {
-                        ForEach(model.filtered(store.templates)) { template in
+                        ForEach(visible) { template in
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text(template.name).fontWeight(.medium)
                                     if template.isFavorite { Image(systemName: "star.fill").foregroundStyle(.yellow) }
                                 }
                                 Text(template.category ?? "未分类").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
-                                Text(template.updatedAt, format: .dateTime.month().day().hour().minute()).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary)
+                                Text(CosmosDate.day(template.updatedAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary)
                             }.padding(.vertical, 7).cosmosRowFeedback().tag(template.id).accessibilityIdentifier("prompt-template-" + template.id.uuidString)
                         }
                     }
@@ -175,17 +193,21 @@ struct PromptVaultView: View {
             }.padding(12)
         }
     }
-    private static let timeText: Date.FormatStyle = .dateTime.year().month().day().hour().minute().second()
     private func timeLabel(_ entry: PromptVersionEntry, _ template: PromptTemplate) -> String {
         switch entry.kind {
-        case .legacyCurrent: return "无独立记录时间 · 模板更新于 " + template.updatedAt.formatted(Self.timeText)
-        case .upgradeBaseline: return (entry.recordedAt ?? template.updatedAt).formatted(Self.timeText) + "（沿用升级前的模板更新时间，非实际编辑时间）"
-        default: return (entry.recordedAt ?? template.updatedAt).formatted(Self.timeText)
+        case .legacyCurrent: return "无独立记录时间 · 模板更新于 " + CosmosDate.timestamp(template.updatedAt)
+        case .upgradeBaseline: return CosmosDate.timestamp(entry.recordedAt ?? template.updatedAt) + "（沿用升级前的模板更新时间，非实际编辑时间）"
+        default: return CosmosDate.timestamp(entry.recordedAt ?? template.updatedAt)
         }
     }
     private func history(_ template: PromptTemplate) -> some View {
-        let entries = template.versionEntries, viewed = model.viewedEntry(of: template)
-        return VStack(alignment: .leading, spacing: 8) {
+#if DEBUG
+        let entries = CosmosExperienceTrace.timed("version_history") { template.versionEntries }
+#else
+        let entries = template.versionEntries
+#endif
+        let viewed = model.viewedEntry(of: template)
+        return LazyVStack(alignment: .leading, spacing: 8) {
             Text("版本历史").font(.headline)
             if template.versions.isEmpty {
                 Text("此模板保存于版本历史功能之前：当前内容显示为「升级前当前内容」。首次修改内容并保存时，会连同旧内容一起保留；收藏与归档不产生内容版本。")

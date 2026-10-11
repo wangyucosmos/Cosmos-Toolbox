@@ -19,7 +19,9 @@ struct DashboardView: View {
     @State private var homeCache = DashboardReadCache()
 
     /// Last finished AI 工作台 detection; memory only, never persisted.
-    @State private var aiWorkspaceCache = AIWorkspaceResultCache()
+    @StateObject private var promptSession: CosmosPromptSession
+    @State private var didVisitWorkspace = false
+    @State private var aiWorkspaceCache = AIWorkspaceResultCache.shared
 
     @StateObject private var macEnvironment = MacEnvironmentViewModel()
 
@@ -32,8 +34,9 @@ struct DashboardView: View {
     ) {
         self.storePersistenceConfiguration =
             storePersistenceConfiguration
-
-
+        let location = PromptVaultLocation.resolve(isIsolated: storePersistenceConfiguration.isIsolatedForUI,
+            bundleIdentifier: Bundle.main.bundleIdentifier, arguments: ProcessInfo.processInfo.arguments)
+        _promptSession = StateObject(wrappedValue: CosmosPromptSession(location: location))
     }
 
     var body: some View {
@@ -118,13 +121,13 @@ struct DashboardView: View {
             notesRoot: personalNotesLocation.root)
     }
 
-    /// Isolated UI acceptance only: run the AI 工作台 detection on arrival.
+    /// A single --version probe per runtime; isolated acceptance requires an explicit opt-in.
     private var aiWorkspaceAutoDetect: Bool {
 #if DEBUG
-        storePersistenceConfiguration.isIsolated
-            && ProcessInfo.processInfo.arguments.contains("--cosmos-ai-workspace-autodetect")
+        !storePersistenceConfiguration.isIsolated
+            || ProcessInfo.processInfo.arguments.contains("--cosmos-ai-workspace-autodetect")
 #else
-        false
+        true
 #endif
     }
 
@@ -145,6 +148,7 @@ struct DashboardView: View {
 
     private var navigationContent: some View {
         return NavigationSplitView {
+            VStack(spacing: 0) {
             List(selection: Binding(get: { selection }, set: { navigator.pendingWorkbenchMetric = nil; selection = $0 })) {
 
                 Section("首页") {
@@ -171,7 +175,8 @@ struct DashboardView: View {
                     sidebarRow(.macOptimizer)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .frame(maxHeight: .infinity)
+            Divider()
                 Button { navigator.navigate(.settings(.general)) } label: {
                     Label("设置", systemImage: "gearshape").frame(maxWidth: .infinity, alignment: .leading).padding(12)
                 }.buttonStyle(.plain).padding(10)
@@ -207,14 +212,7 @@ struct DashboardView: View {
                         .id(SidebarItem.dashboard)
 
                 } else if selection == .zhuowang {
-
-                    ZhuowangWorkspaceView(
-                        persistenceConfiguration:
-                            storePersistenceConfiguration,
-                        isolatedAssetRoot: isolatedAssetRoot,
-                        openPromptVault: { selection = .promptVault }
-                    )
-                        .id(SidebarItem.zhuowang)
+                    Color.clear
 
                 } else if selection == .unifiedSearch {
                     UnifiedSearchView(configuration: storePersistenceConfiguration,
@@ -233,7 +231,7 @@ struct DashboardView: View {
                     .id(SidebarItem.knowledgeBase)
 
                 } else if selection == .promptVault {
-                    PromptVaultView(location: promptVaultLocation, notesLocation: personalNotesLocation)
+                    PromptVaultView(session: promptSession, notesLocation: personalNotesLocation)
                         .id(SidebarItem.promptVault)
 
                 } else if selection == .learningCenter {
@@ -260,13 +258,27 @@ struct DashboardView: View {
                 }
                 .id(selection)
                 .transition(CosmosDesign.pageTransition(reduced: preferences.reducesMotion(system: systemMotion)))
+                if selection == .zhuowang || didVisitWorkspace {
+                    ZhuowangWorkspaceView(persistenceConfiguration: storePersistenceConfiguration,
+                        isolatedAssetRoot: isolatedAssetRoot, openPromptVault: { selection = .promptVault },
+                        initialNavigation: navigator.workspaceNavigation, initialCategoryID: navigator.workspaceCategory)
+                        .opacity(selection == .zhuowang ? 1 : 0)
+                        .allowsHitTesting(selection == .zhuowang).accessibilityHidden(selection != .zhuowang)
+                }
             }
+            .environment(\.cosmosShellOwnsTransition, true)
             .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: selection)
         }
+        .background(CosmosMainWindowPolicy())
+        .environment(\.locale, Locale(identifier: "zh_Hans_CN"))
         .environment(\.cosmosGlassNamespace, pageGlass)
         .modifier(CosmosMotionPolicy())
         .task { restoreNavigationOnce() }
         .onChange(of: selection) { _, value in
+#if DEBUG
+            CosmosExperienceTrace.shared.mark("shell.transition." + (value?.rawValue ?? "nil"))
+#endif
+            if value == .zhuowang { didVisitWorkspace = true }
             if let value, value != .settings { preferences.lastPage = value.rawValue; sidebarPulse[value, default: 0] += 1 }
         }
         .onChange(of: navigator.settingsRequest) { _, _ in openSettings() }
@@ -278,7 +290,7 @@ struct DashboardView: View {
                     if store.canSave { PersonalNoteWindowManager.shared.open(store: store, note: nil) }
                     else { navigationMessage = store.error?.localizedDescription ?? "笔记库不可编辑" }
                 } else if source == .prompt {
-                    let store = PromptVaultStore(root: promptVaultLocation.root, startupError: promptVaultLocation.error); await store.reload()
+                    let store = promptSession.store; await promptSession.loadIfNeeded()
                     if store.canSave { PromptTemplateWindowManager.shared.open(store: store, template: nil) }
                     else { navigationMessage = store.error?.localizedDescription ?? "提示词库不可编辑" }
                 }
@@ -436,13 +448,7 @@ struct PlaceholderView: View {
             )
             .foregroundStyle(.secondary)
 
-            Text(item.chineseName)
-                .font(.largeTitle)
-                .fontWeight(.semibold)
-
-            Text(item.englishName)
-                .font(.title3)
-                .foregroundStyle(.secondary)
+            CosmosPageHeader(item.chineseName, subtitle: item.englishName).padding(24)
         }
         .frame(
             maxWidth: .infinity,

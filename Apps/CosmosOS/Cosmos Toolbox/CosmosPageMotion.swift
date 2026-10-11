@@ -1,6 +1,7 @@
 import SwiftUI
 
 extension EnvironmentValues {
+    @Entry var cosmosShellOwnsTransition = false
     @Entry var cosmosGlassNamespace: Namespace.ID? = nil
 }
 
@@ -9,8 +10,9 @@ struct CosmosEntrance: ViewModifier {
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     @State private var visible = false
+    @Environment(\.cosmosShellOwnsTransition) private var shellTransition
     func body(content: Content) -> some View {
-        let reduced = preferences.reducesMotion(system: systemMotion)
+        let reduced = preferences.reducesMotion(system: systemMotion) || shellTransition
         content.opacity(visible || reduced ? 1 : 0)
             .offset(y: visible || reduced ? 0 : 8)
             .task {

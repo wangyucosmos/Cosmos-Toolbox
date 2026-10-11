@@ -47,6 +47,7 @@ enum ZhuowangCategoryRoute: Equatable {
 }
 
 struct ZhuowangCategoryContentView: View {
+    @Environment(\.cosmosNavigator) private var navigator
     let category: ZhuowangCategory?
     let categoryID: String
     let scopeName: String
@@ -73,8 +74,9 @@ struct ZhuowangCategoryContentView: View {
                 Button("打开全局提示词库", systemImage: "text.quote", action: openPromptVault)
                     .accessibilityIdentifier("category-prompt-vault")
             case .unsupported:
-                ContentUnavailableView("该分类暂未接入", systemImage: "rectangle.dashed",
-                    description: Text("这不是空资产结果。当前没有可用的分类检索或创建入口。"))
+                CosmosEmptyState(icon: "rectangle.dashed", title: (category?.name ?? "此分类") + " · 准备接入",
+                    detail: "这里将集中整理" + (category?.name ?? "此类") + "成果（正文、设计稿与版本记录）。当前可在活动详情中打开对应工作目录管理文件，或到知识与资产中心查看已登记产物。已有数据保留。",
+                    actionTitle: "前往知识与资产中心", action: { navigator.navigate(.knowledge(.assets)) })
                     .accessibilityIdentifier("category-unsupported")
             }
         }

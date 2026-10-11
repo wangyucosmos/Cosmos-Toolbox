@@ -19,7 +19,7 @@ struct LearningCenterView: View {
             if let error = store.error {
                 Text(error.localizedDescription).foregroundStyle(.orange).textSelection(.enabled)
             }
-            if store.loading { ProgressView("正在读取学习库…") }
+            if store.loading || (!store.loaded && store.error == nil) { CosmosLoadingSkeleton(title: "正在读取学习库…") }
             HStack {
                 TextField("搜索主题、目标、下一步或笔记", text: $model.query).accessibilityIdentifier("learning-search")
                 Picker("状态", selection: $model.statusFilter) {
@@ -37,10 +37,10 @@ struct LearningCenterView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
             Button("新建主题", systemImage: "plus") { LearningEditorWindowManager.shared.openTopic(store: store, topic: nil) }.disabled(!store.canSave).accessibilityIdentifier("learning-new-topic")
             Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-        } } }
+        }.labelStyle(.iconOnly) } }
         .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload(); model.reconcileSelection(store.topics) } }
         .onChange(of: store.topics) { _, topics in model.reconcileSelection(topics) }
     }

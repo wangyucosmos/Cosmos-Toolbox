@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Drives the AI 工作台 page. Detection is manual; the last completed result is
+/// Drives the AI 工作台 page. The first visit automatically detects once; manual refresh remains available. the last completed result is
 /// kept in memory (via the cache) and never persisted. Leaving the page cancels
 /// an unfinished detection, and a superseded run can never overwrite a newer
 /// result.
@@ -24,6 +24,12 @@ final class AIWorkspaceViewModel: ObservableObject {
         self.cache = cache
         self.detect = detect
         self.snapshot = cache.snapshot
+    }
+
+    func detectOnceOnArrival() {
+        guard !cache.automaticDetectionStarted else { return }
+        cache.automaticDetectionStarted = true
+        refresh()
     }
 
     /// Starts one detection. Ignored while one is already running.

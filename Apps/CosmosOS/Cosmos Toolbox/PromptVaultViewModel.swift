@@ -36,7 +36,7 @@ final class PromptVaultViewModel: ObservableObject {
         let ids = Set(templates.map(\.id))
         values = values.filter { ids.contains($0.key) }
         viewedEntryIDs = viewedEntryIDs.filter { ids.contains($0.key) }
-        for template in templates {
+        for template in templates where values[template.id]?.isEmpty == false {
             let names = Set(PromptTemplateRenderer(template.body).variables.map(\.id))
             values[template.id] = values[template.id]?.filter { names.contains($0.key) }
         }

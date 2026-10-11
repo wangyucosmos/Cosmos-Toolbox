@@ -70,11 +70,11 @@ struct ProjectsEditorView: View {
                 area("目标 / 说明", text: $session.draft.goal)
                 area("下一步行动", text: $session.draft.nextStep)
                 Toggle("归档（保留全部历史，取消勾选可恢复）", isOn: $session.draft.isArchived)
-                if let saved = session.baseline { Text("创建：\(saved.createdAt.formatted()) · 更新：\(saved.updatedAt.formatted())").font(.caption).foregroundStyle(.secondary) }
+                if let saved = session.baseline { Text("创建：\(CosmosDate.timestamp(saved.createdAt)) · 更新：\(CosmosDate.timestamp(saved.updatedAt))").font(.caption).foregroundStyle(.secondary) }
                 Divider()
                 Text("进展记录（按原文追加，历史不改写）").font(.headline)
                 ForEach(session.draft.progress.sorted { $0.recordedAt > $1.recordedAt }) { progress in
-                    Text(progress.recordedAt.formatted()).font(.caption).foregroundStyle(.secondary)
+                    Text(CosmosDate.timestamp(progress.recordedAt)).font(.caption).foregroundStyle(.secondary)
                     Text(progress.body).textSelection(.enabled)
                 }
                 area("新增本次进展（可选，保存时一并追加）", text: $session.progressText)

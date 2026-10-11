@@ -172,7 +172,6 @@ struct PersonalNoteEditorView: View {
     @State private var confirmReload = false
     @State private var viewedVersionID: UUID?
     @State private var pendingRestore: NoteVersion?
-    private static let timeText: Date.FormatStyle = .dateTime.year().month().day().hour().minute().second()
 
     init(session: PersonalNoteEditSession, store: PersonalNotesStore, initialTab: Tab = .body) {
         self.session = session; self.store = store; _tab = State(initialValue: initialTab)
@@ -201,7 +200,7 @@ struct PersonalNoteEditorView: View {
                 if session.baseline != nil { Toggle("归档", isOn: $session.draft.isArchived) }
             }
             if let saved = session.baseline {
-                Text("创建 \(saved.createdAt.formatted(Self.timeText)) · 更新 \(saved.updatedAt.formatted(Self.timeText)) · 已保存 r\(saved.revision) · 内容 v\(saved.contentVersion ?? 0)\(saved.isArchived ? " · 已归档" : "")")
+                Text("创建 \(CosmosDate.timestamp(saved.createdAt)) · 更新 \(CosmosDate.timestamp(saved.updatedAt)) · 已保存 r\(saved.revision) · 内容 v\(saved.contentVersion ?? 0)\(saved.isArchived ? " · 已归档" : "")")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Picker("", selection: $tab) { ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
@@ -272,7 +271,7 @@ struct PersonalNoteEditorView: View {
                                     Spacer()
                                     if version.id == viewed.id { Image(systemName: "eye") }
                                 }
-                                Text(version.recordedAt.formatted(Self.timeText)).font(.caption).foregroundStyle(.secondary)
+                                Text(CosmosDate.timestamp(version.recordedAt)).font(.caption).foregroundStyle(.secondary)
                             }.contentShape(Rectangle())
                         }
                         .buttonStyle(.plain).padding(6)
@@ -335,7 +334,7 @@ struct PersonalNoteEditorView: View {
                 }
                 Text(reference.notes).textSelection(.enabled)
             }
-            if !pending { Text("登记于 " + reference.recordedAt.formatted(Self.timeText)).font(.caption).foregroundStyle(.secondary) }
+            if !pending { Text("登记于 " + CosmosDate.timestamp(reference.recordedAt)).font(.caption).foregroundStyle(.secondary) }
             if let reason = reference.unavailableReason() { Text(reason).font(.caption).foregroundStyle(.orange) }
         }.padding(.vertical, 4)
     }

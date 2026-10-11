@@ -158,5 +158,7 @@ nonisolated struct AIWorkspaceSnapshot: Sendable, Equatable {
 /// Reference holder that outlives the page so a finished result survives
 /// switching the sidebar. It holds no persistent data.
 final class AIWorkspaceResultCache {
+    static let shared = AIWorkspaceResultCache()
     var snapshot: AIWorkspaceSnapshot?
+    var automaticDetectionStarted = false
 }

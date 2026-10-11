@@ -20,8 +20,7 @@ enum ZhuowangWorkspaceUI {
         return (items.count, items.contains { $0.category == .needsAttention })
     }
     static func dates(_ campaign: ZhuowangCampaign) -> String {
-        let style = Date.FormatStyle.dateTime.year().month().day().locale(Locale(identifier: "zh_CN"))
-        return campaign.startDate.formatted(style) + " – " + max(campaign.startDate, campaign.endDate).formatted(style)
+        CosmosDate.day(campaign.startDate) + " – " + CosmosDate.day(max(campaign.startDate, campaign.endDate))
     }
 }
 

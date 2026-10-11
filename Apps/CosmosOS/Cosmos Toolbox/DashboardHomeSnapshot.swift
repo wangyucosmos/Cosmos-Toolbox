@@ -122,7 +122,7 @@ nonisolated enum DashboardHomeAggregation {
             result.weeks = (0..<8).map { index in
                 let start = calendar.date(byAdding: .weekOfYear, value: index - 7, to: currentWeek)!
                 let end = calendar.date(byAdding: .weekOfYear, value: 1, to: start)!
-                let label = start.formatted(.dateTime.month(.defaultDigits).day().locale(Locale(identifier: "zh_CN")))
+                let label = CosmosDate.day(start, now: now, calendar: calendar)
                 return DashboardHomeBar(id: String(index), label: label, count: entries.filter {
                     let date = $0.studyDay.date(timeZone: calendar.timeZone); return start <= date && date < end
                 }.count)

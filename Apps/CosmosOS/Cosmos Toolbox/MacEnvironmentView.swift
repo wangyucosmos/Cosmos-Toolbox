@@ -5,12 +5,12 @@ struct MacEnvironmentView: View {
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 CosmosPageHeader("Mac 环境概览", subtitle: "查看这台 Mac 的设备与资源信息。",
                     info: "只读系统 API，不清理、不修改系统。仅保留本次内存快照，无轮询、设备历史或上传；未知与失败单独显示，不当作正常值。")
                 if let snapshot = model.snapshot {
-                    Text("读取时间：" + snapshot.readAt.formatted(date: .abbreviated, time: .standard)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
+                    Text("读取时间：" + CosmosDate.timestamp(snapshot.readAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], alignment: .leading, spacing: 16) {
                         panel("系统", icon: "desktopcomputer", info: "ProcessInfo / sysctl：硬件型号、处理器名称与硬件架构。") {
                             row("系统版本", snapshot.systemVersion) { $0 }; row("硬件型号", snapshot.hardwareModel) { $0 }
@@ -39,11 +39,11 @@ struct MacEnvironmentView: View {
                             } else { row("内置电池", snapshot.battery) { _ in "" } }
                         }.cosmosEntrance(3)
                     }
-                } else if model.isReading { ProgressView("正在读取系统信息…") }
+                } else if model.isReading { CosmosLoadingSkeleton(title: "正在读取系统信息…") }
                 else { CosmosEmptyState(icon: "desktopcomputer", title: "正在准备环境概览", detail: "只读本机信息，不进行清理或修改。") }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
         }.background(Color(nsColor: .windowBackgroundColor))
-            .toolbar { ToolbarItem { CosmosGlassToolbarGroup { Button(model.isReading ? "正在读取…" : "刷新", systemImage: "arrow.clockwise") { model.refresh() }.disabled(model.isReading) } } }
+            .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup { Button(model.isReading ? "正在读取…" : "刷新", systemImage: "arrow.clockwise") { model.refresh() }.disabled(model.isReading) } } }
             .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { model.loadIfNeeded() } }
             .onDisappear { model.cancel() }
     }

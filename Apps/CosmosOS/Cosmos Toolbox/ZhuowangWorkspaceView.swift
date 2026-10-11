@@ -74,16 +74,27 @@ struct ZhuowangWorkspaceView: View {
                 ContentUnavailableView("工作区暂不可编辑", systemImage: "lock.trianglebadge.exclamationmark", description: Text(message))
             } else {
                 HSplitView {
-                    sidebar.frame(minWidth: 180, idealWidth: 210, maxWidth: 280)
-                    // The animation host remains alive while its destination changes.
+                    sidebar.frame(minWidth: 160, idealWidth: 190, maxWidth: 250)
+                    // Only the outer shell transitions; local selection changes keep their host.
                     ZStack(alignment: .topLeading) {
-                        detail.transition(CosmosDesign.pageTransition(reduced: reduced))
-                            .id(contentIdentity)
-                    }.animation(CosmosDesign.pageAnimation(reduced: reduced), value: contentIdentity)
-                        .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
+                        detail.id(contentIdentity)
+                    }
+                        .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }.background(Color(nsColor: .windowBackgroundColor))
+            .onChange(of: selectedNavigation) { _, value in
+#if DEBUG
+                CosmosExperienceTrace.shared.mark("workspace.selection." + String(describing: value))
+#endif
+                navigator.workspaceNavigation = value
+            }
+            .onAppear {
+#if DEBUG
+                CosmosExperienceTrace.shared.mark("workspace.appear." + String(describing: selectedNavigation))
+#endif
+            }
+            .onChange(of: selectedCategoryID) { _, value in navigator.workspaceCategory = value }
             .onChange(of: navigator.pendingWorkbenchMetric) { _, metric in if metric != nil { select(.workbench) } }
             .onReceive(campaignStore.$campaigns.dropFirst()) { _ in assetModel.refresh() }
             .onReceive(workflowStore.$workflows.dropFirst()) { _ in assetModel.refresh() }
@@ -139,7 +150,8 @@ struct ZhuowangWorkspaceView: View {
     }
     private func provinceRow(_ item: ZhuowangProvince) -> some View {
         let badge = ZhuowangWorkspaceUI.badge(rows, scope: .province(item.id))
-        return CosmosWorkspaceNavigationRow(icon: item.isEnabled ? "mappin.and.ellipse" : "archivebox", title: item.name,
+        return CosmosWorkspaceNavigationRow(icon: "square", title: item.name, letter: CosmosIconPalette.letter(item.name),
+            iconIdentity: item.id.uuidString, subdued: !item.isEnabled,
             subtitle: item.isEnabled ? "" : "已停用 · 历史保留", count: badge.count, attention: badge.attention,
             selected: !publicResources && selectedNavigation == .province(item.id)) { select(.province(item.id)) }
     }
@@ -171,7 +183,7 @@ struct ZhuowangWorkspaceView: View {
                     }
                 }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .top)
         }
     }
     private var categoryNavigation: some View {
@@ -179,7 +191,7 @@ struct ZhuowangWorkspaceView: View {
             HStack(spacing: 4) {
                 tab("概览", id: "overview")
                 tab("活动", id: "campaign")
-                ForEach(store.categories.filter { $0.id != "overview" && $0.id != "campaign" }) { tab($0.name, id: $0.id) }
+                ForEach(store.categories.filter { $0.id != "overview" && $0.id != "campaign" }) { tab($0.name + (ZhuowangCategoryRoute(categoryID: $0.id) == .unsupported ? " · 未接入" : ""), id: $0.id) }
             }.padding(4).background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
         }
     }

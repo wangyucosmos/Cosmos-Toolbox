@@ -210,7 +210,7 @@ struct KnowledgeAttachmentView: View {
             VStack(spacing: 4) {
                 Text(attachment.relativePath).lineLimit(2).truncationMode(.middle)
                 Text(ByteCountFormatter.string(fromByteCount: Int64(attachment.byteSize), countStyle: .file) + " · 修改于 " +
-                     attachment.modifiedAt.formatted(date: .abbreviated, time: .shortened))
+                     CosmosDate.timestamp(attachment.modifiedAt))
             }.font(.caption).foregroundStyle(.secondary)
             Text("附件只显示名称、大小与修改时间；内容不会被读取或索引。").font(.caption).foregroundStyle(.tertiary)
             HStack(spacing: 10) {

@@ -309,7 +309,7 @@ struct ZhuowangCampaignWorkbenchView: View {
         return VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
             CosmosSectionTitle(title: "近期活动", subtitle: "Schedule")
 
-            Text("依据：各活动信息中填写的开始 / 结束日期，今天为 \(Self.fullDate(today))。这里只反映活动日期，不推算任务截止时间。")
+            Text("依据：各活动信息中填写的开始 / 结束日期，今天为 \(CosmosDate.day(today, now: today))。这里只反映活动日期，不推算任务截止时间。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -349,7 +349,7 @@ struct ZhuowangCampaignWorkbenchView: View {
             }
             ForEach(groups.keys.sorted(), id: \.self) { date in
                 HStack(alignment: .top, spacing: 16) {
-                    Text(date.formatted(.dateTime.month().day())).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(width: 62, alignment: .leading)
+                    Text(CosmosDate.day(date)).font(.caption.weight(.semibold)).foregroundStyle(.secondary).frame(width: 62, alignment: .leading)
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(groups[date] ?? []) { row in
                             Button { open(row, .overview) } label: {
@@ -377,8 +377,8 @@ struct ZhuowangCampaignWorkbenchView: View {
 
 
     private func timelineText(_ row: ZhuowangCampaignProgress) -> String {
-        let start = Self.shortDate(row.campaign.startDate)
-        let end = Self.shortDate(max(row.campaign.startDate, row.campaign.endDate))
+        let start = CosmosDate.day(row.campaign.startDate, now: now())
+        let end = CosmosDate.day(max(row.campaign.startDate, row.campaign.endDate), now: now())
         switch row.datePhase {
         case .ongoing:
             return row.dayDistance == 0
@@ -477,7 +477,7 @@ struct ZhuowangCampaignWorkbenchView: View {
                 .font(.caption.monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
-                .help(row.campaign.dateRangeText)
+                .help(ZhuowangWorkspaceUI.dates(row.campaign))
                 .frame(width: 118, alignment: .leading)
 
             ZhuowangCampaignStatusBadge(status: row.campaign.status)
@@ -575,35 +575,10 @@ struct ZhuowangCampaignWorkbenchView: View {
         return lhs.campaign.name.localizedStandardCompare(rhs.campaign.name) == .orderedAscending
     }
 
-    /// "09.25–10.07" within the current year; the year is added otherwise.
     private func compactDateRange(_ campaign: ZhuowangCampaign) -> String {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: now())
-        let start = campaign.startDate
-        let end = max(campaign.startDate, campaign.endDate)
-        let sameYear = calendar.component(.year, from: start) == year
-            && calendar.component(.year, from: end) == year
-        guard !sameYear else {
-            return "\(Self.shortDate(start))–\(Self.shortDate(end))"
-        }
-        return "\(Self.fullDate(start))–\(Self.fullDate(end))"
-    }
-
-    private static func shortDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "MM.dd"
-        return formatter.string(from: date)
-    }
-
-    private static func fullDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy.MM.dd"
-        return formatter.string(from: date)
+        CosmosDate.day(campaign.startDate, now: now()) + "–" + CosmosDate.day(max(campaign.startDate, campaign.endDate), now: now())
     }
 }
-
 
 private struct WorkbenchPanel: ViewModifier {
     func body(content: Content) -> some View {

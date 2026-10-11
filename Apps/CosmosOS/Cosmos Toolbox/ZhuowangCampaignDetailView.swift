@@ -269,7 +269,7 @@ struct ZhuowangCampaignDetailView: View {
                             Text("·")
                                 .foregroundStyle(.tertiary)
 
-                            Text(campaign.dateRangeText)
+                            Text(ZhuowangWorkspaceUI.dates(campaign))
                                 .monospacedDigit()
 
                             if campaign.isMonthlyMemberActivation {
@@ -861,7 +861,7 @@ struct ZhuowangCampaignDetailView: View {
                 CampaignUIMetaRow(
                     icon: "calendar",
                     title: "活动时间",
-                    value: campaign.dateRangeText
+                    value: ZhuowangWorkspaceUI.dates(campaign)
                 )
 
                 HStack(alignment: .firstTextBaseline, spacing: CosmosDesign.spacingM) {

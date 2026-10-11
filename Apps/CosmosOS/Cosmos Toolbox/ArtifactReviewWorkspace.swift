@@ -107,10 +107,7 @@ struct ArtifactReviewWorkspace: View {
                 )
                 metadataItem(
                     title: "执行时间",
-                    value: document.executedAt.formatted(
-                        date: .abbreviated,
-                        time: .shortened
-                    )
+                    value: CosmosDate.timestamp(document.executedAt)
                 )
                 Spacer(minLength: 0)
             }
