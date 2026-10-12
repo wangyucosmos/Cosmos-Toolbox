@@ -58,6 +58,14 @@ struct CosmosWindowConfiguration {
     /// 同类型可同时打开多个的窗口（每条笔记一个窗口等）不要传 autosave 名。
     var frameAutosaveName: String?
 
+    /// 窗口位置 / 大小记忆的“窗口类型”键（见 `CosmosWindowFrameMemory`）。
+    /// 有值时由 FrameMemory 负责恢复 / 居中 / 错开，工厂不再自行 `center()`，也不使用 frameAutosaveName；
+    /// 为 nil 时保持原有行为。按类型而不是按对象记，所以同类型可同时开多个窗口。
+    var frameMemoryKey: String?
+
+    /// frame 记忆所用的 UserDefaults；测试注入随机 suite，生产为 `.standard`。
+    var frameMemoryDefaults: UserDefaults = .standard
+
     /// 无已保存 frame 时是否居中（现有代码都是 `window.center()`）。
     var centersWhenNoSavedFrame = true
 
@@ -70,6 +78,7 @@ struct CosmosWindowConfiguration {
         minSize: NSSize,
         identifier: String? = nil,
         frameAutosaveName: String? = nil,
+        frameMemoryKey: String? = nil,
         allowsFullScreen: Bool = false,
         delegate: NSWindowDelegate? = nil
     ) {
@@ -78,6 +87,7 @@ struct CosmosWindowConfiguration {
         self.minSize = minSize
         self.identifier = identifier
         self.frameAutosaveName = frameAutosaveName
+        self.frameMemoryKey = frameMemoryKey
         self.allowsFullScreen = allowsFullScreen
         self.delegate = delegate
     }
@@ -160,6 +170,11 @@ enum CosmosWindowFactory {
         to window: NSWindow
     ) {
         window.setContentSize(configuration.contentSize)
+
+        if let key = configuration.frameMemoryKey {
+            CosmosWindowFrameMemory.attach(window, key: key, defaults: configuration.frameMemoryDefaults)
+            return
+        }
 
         if let name = configuration.frameAutosaveName {
             // 已有保存的 frame 则沿用；没有才居中。autosave 名原样使用。
