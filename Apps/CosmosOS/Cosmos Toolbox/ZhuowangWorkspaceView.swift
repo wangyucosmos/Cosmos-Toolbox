@@ -59,6 +59,24 @@ struct ZhuowangWorkspaceView: View {
     }
     private var contentIdentity: String { String(describing: selectedNavigation) + "::" + selectedCategoryID + "::" + String(publicResources) + "::" + String(describing: assetDestination) }
 
+    private var sidebarMinimum: CGFloat {
+        let snapshot = rows
+        var items: [CosmosWorkspaceSplitWidth.Item] = [.init(title: "推进工作台", count: snapshot.count, attention: true),
+            .init(title: "知识与资产"), .init(title: "提示词库")]
+        for province in store.provinces {
+            let badge = ZhuowangWorkspaceUI.badge(snapshot, scope: .province(province.id))
+            items.append(.init(title: province.name, count: badge.count, attention: true))
+        }
+        for module in store.modules.filter({ !$0.usesProvinces }) {
+            let badge = ZhuowangWorkspaceUI.badge(snapshot, scope: .module(module.id))
+            items.append(.init(title: module.name, count: badge.count, attention: true))
+        }
+        if store.provinces.isEmpty { items.append(.init(title: "添加负责的省份")) }
+        // A stopped-province disclosure has an additional indent; allow for it before measuring.
+        let measured = CosmosWorkspaceSplitWidth.requiredMinimum(items: items, scale: preferences.textSize.scale)
+        return measured + (store.provinces.contains(where: { !$0.isEnabled }) ? 20 : 0)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -74,9 +92,10 @@ struct ZhuowangWorkspaceView: View {
                 ContentUnavailableView("工作区暂不可编辑", systemImage: "lock.trianglebadge.exclamationmark", description: Text(message))
             } else {
                 GeometryReader { bounds in
+                let minimum = sidebarMinimum
                 HSplitView {
-                    sidebar.frame(minWidth: CosmosWorkspaceSplitWidth.minimum, idealWidth: preferences.workspaceSidebarWidth, maxWidth: CosmosWorkspaceSplitWidth.maximum)
-                        .background(CosmosNativeSplitWidth(width: Binding(get: { preferences.workspaceSidebarWidth }, set: { preferences.workspaceSidebarWidth = $0 })))
+                    sidebar.frame(minWidth: minimum, idealWidth: CosmosWorkspaceSplitWidth.displayed(preferences.workspaceSidebarWidth, minimum: minimum), maxWidth: max(CosmosWorkspaceSplitWidth.maximum, minimum))
+                        .background(CosmosNativeSplitWidth(width: Binding(get: { Double(CosmosWorkspaceSplitWidth.displayed(preferences.workspaceSidebarWidth, minimum: minimum)) }, set: { preferences.workspaceSidebarWidth = $0 })))
                     // Keep the existing detail identity and shell-owned transition unchanged.
                     GeometryReader { geometry in
                         detail.id(contentIdentity).frame(width: geometry.size.width, height: geometry.size.height)

@@ -20,12 +20,12 @@ struct CosmosWorkspaceNavigationRow: View {
             HStack(spacing: 10) {
                 CosmosSquareIcon(letter: letter, symbol: icon, identity: iconIdentity ?? title, subdued: subdued)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(.body, weight: selected ? .semibold : .medium)).lineLimit(1).truncationMode(.tail)
+                    Text(title).font(Font(CosmosWorkspaceSplitWidth.nameFont(scale: preferences.textSize.scale, selected: selected))).lineLimit(1).truncationMode(.tail)
                     if !subtitle.isEmpty { Text(subtitle).font(.caption2).foregroundStyle(.secondary) }
                 }
                 Spacer(minLength: 4)
                 if attention { Circle().fill(.orange).frame(width: 6, height: 6).accessibilityLabel("有活动需要关注") }
-                if let count { Text(count.formatted()).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                if let count { Text(count.formatted()).font(Font(CosmosWorkspaceSplitWidth.countFont(scale: preferences.textSize.scale))).foregroundStyle(.secondary)
                     .padding(.horizontal, 7).padding(.vertical, 3).background(.quaternary, in: Capsule()) }
             }.padding(10).contentShape(RoundedRectangle(cornerRadius: 10))
                 .background(selected ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
@@ -89,6 +89,31 @@ struct CosmosWorkCard<Status: View>: View {
 nonisolated enum CosmosWorkspaceSplitWidth {
     static let minimum: CGFloat = 220
     static let maximum: CGFloat = 360
+    struct Item {
+        let title: String
+        var count: Int? = nil
+        var attention = false
+    }
+    @MainActor static func nameFont(scale: CGFloat, selected: Bool = true) -> NSFont {
+        NSFont.systemFont(ofSize: NSFont.preferredFont(forTextStyle: .body).pointSize * scale, weight: selected ? .semibold : .medium)
+    }
+    @MainActor static func countFont(scale: CGFloat) -> NSFont {
+        NSFont.monospacedDigitSystemFont(ofSize: NSFont.preferredFont(forTextStyle: .caption1).pointSize * scale, weight: .regular)
+    }
+    @MainActor static func requiredMinimum(items: [Item], scale: CGFloat) -> CGFloat {
+        let scrollbar = NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
+        let widths = items.map { item in
+            let name = (item.title as NSString).size(withAttributes: [.font: nameFont(scale: scale)]).width
+            let badge = item.count.map { ( $0.formatted() as NSString).size(withAttributes: [.font: countFont(scale: scale)]).width + 14 } ?? 0
+            // Icon32, parent24, row20, spacer4, gap10 per neighbouring pair; reserve system scroller.
+            let gaps: CGFloat = item.count == nil ? 20 : 30
+            return ceil(name + 32 + 24 + 20 + 4 + gaps + badge + (item.attention ? 16 : 0) + scrollbar + 8)
+        }
+        return max(minimum, widths.max() ?? minimum)
+    }
+    static func displayed(_ saved: Double, minimum: CGFloat) -> CGFloat {
+        max(minimum, min(max(maximum, minimum), CGFloat(saved.isFinite ? saved : 260)))
+    }
     static func clamp(_ value: Double) -> Double {
         value.isFinite ? min(Double(maximum), max(Double(minimum), value)) : 260
     }

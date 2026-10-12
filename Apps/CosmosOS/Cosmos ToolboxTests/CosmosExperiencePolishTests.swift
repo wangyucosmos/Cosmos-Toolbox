@@ -200,7 +200,7 @@ final class CosmosExperiencePolishTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(500)); host.layoutSubtreeIfNeeded()
         // Visit the retained workspace before measuring reentry; fixture stores may initialize once.
         nav.selection = .zhuowang; try await Task.sleep(for: .milliseconds(500))
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeAcceptance-matrix")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosCloseAcceptance-matrix")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         var rows = ["from,to,fade_begin,fade_commit,host_remount,workspace_second_selection"]
         for from in pages {
@@ -249,10 +249,24 @@ final class CosmosExperiencePolishTests: XCTestCase {
         events = CosmosExperienceTrace.shared.finish()
         XCTAssertTrue(events.contains { $0.0 == "search.focus.true" })
         nav.selectSidebar(.projects); XCTAssertFalse(nav.searchFocusRequested)
-        nav.navigate(.search("")); XCTAssertTrue(nav.searchFocusRequested) // Dashboard shortcut.
+        nav.navigate(.search("")); XCTAssertFalse(nav.searchFocusRequested) // Dashboard now matches sidebar entry.
         let request = nav.searchFocusRequest
         nav.navigate(.search("活动")); XCTAssertTrue(nav.searchFocusRequested)
         XCTAssertEqual(nav.searchFocusRequest, request + 1)
+    }
+
+    func testWorkspaceMinimumUsesActualNamesFontBadgesAndOldPreference() {
+        let items: [CosmosWorkspaceSplitWidth.Item] = [.init(title: "推进工作台", count: 999, attention: true), .init(title: "知识与资产")]
+        let normal = CosmosWorkspaceSplitWidth.requiredMinimum(items: items, scale: 1)
+        let large = CosmosWorkspaceSplitWidth.requiredMinimum(items: items, scale: CosmosUIPreferences.TextSize.extraLarge.scale)
+        XCTAssertGreaterThan(large, normal)
+        let longer = CosmosWorkspaceSplitWidth.requiredMinimum(items: [.init(title: "省级福利中心运营工作模块", count: 9999, attention: true)], scale: 1)
+        XCTAssertGreaterThan(longer, normal)
+        XCTAssertEqual(CosmosWorkspaceSplitWidth.displayed(220, minimum: large), large)
+        XCTAssertEqual(CosmosWorkspaceSplitWidth.displayed(300, minimum: normal), max(300, normal))
+        XCTAssertEqual(CosmosWorkspaceSplitWidth.displayed(999, minimum: normal), max(360, normal))
+        let nameWidth = ("推进工作台" as NSString).size(withAttributes: [.font: CosmosWorkspaceSplitWidth.nameFont(scale: 1)]).width
+        XCTAssertGreaterThan(normal, nameWidth + 32 + 44) // Name, icon and both padding layers all fit.
     }
 
     func testWorkspaceSplitWidthBoundsMemoryAndNativeDivider() async throws {
@@ -278,6 +292,35 @@ final class CosmosExperiencePolishTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(150))
         XCTAssertEqual(prefs.workspaceSidebarWidth, 300, accuracy: 1)
         XCTAssertEqual(CosmosUIPreferences(defaults: defaults).workspaceSidebarWidth, prefs.workspaceSidebarWidth)
+    }
+
+    func testClosingWorkspaceTwoWidthsLightDarkAndTextSizes() async throws {
+        let root = try root(), (prefs, defaults) = try preferences(), nav = CosmosNavigator()
+        let province = ZhuowangProvince(id: UUID(), name: "河南", englishName: "Henan")
+        let module = ZhuowangModule(id: "national", name: "全国促活", englishName: "National", icon: "globe", usesProvinces: false)
+        let data = ZhuowangInMemoryPersistenceDataSource(storage: [ZhuowangCampaignStore.storageKey: Data("[]".utf8),
+            ZhuowangWorkspaceStore.storageKey: try JSONEncoder().encode(ZhuowangWorkspaceSnapshot(modules: [module], provinces: [province], categories: []))])
+        let config = ZhuowangStorePersistenceConfiguration(dataSource: data, isIsolated: true, workspaceFilesRootURL: root)
+        _ = ZhuowangWorkflowStore(persistenceConfiguration: config)
+        let before = data.storage
+        nav.selection = .zhuowang; nav.workspaceNavigation = .province(province.id)
+        prefs.workspaceSidebarWidth = 220 // Exercise an older preference below the measured minimum.
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosClose-workspace-screenshots")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        for width in [900, 1440] {
+            for dark in [false, true] {
+                for size in [CosmosUIPreferences.TextSize.standard, .extraLarge] {
+                    prefs.textSize = size
+                    let (window, host) = self.host(DashboardView(storePersistenceConfiguration: config), width: width, height: width == 900 ? 620 : 900, dark: dark, nav: nav, prefs: prefs, defaults: defaults)
+                    for _ in 0..<3 { host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(80)) }
+                    let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+                    host.cacheDisplay(in: host.bounds, to: bitmap)
+                    try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: out.appendingPathComponent("workspace-\(width)-\(dark ? "dark" : "light")-\(size.rawValue).png"))
+                    window.contentView = nil; window.close()
+                }
+            }
+        }
+        XCTAssertEqual(data.storage, before)
     }
 
     func testOffscreenSevenPagesThreeSizesLightDarkAndCategory() async throws {
@@ -315,7 +358,7 @@ final class CosmosExperiencePolishTests: XCTestCase {
         dashboard.distribution = ["河南", "浙江", "湖北", "全国"].enumerated().map { .init(id: String($0.offset), label: $0.element, count: [3,2,1,1][$0.offset]) }
         dashboard.workflow = [.init(id: "notStarted", label: "未开始", count: 8), .init(id: "ready", label: "可开始", count: 2), .init(id: "waitingForApproval", label: "等待确认", count: 3), .init(id: "approved", label: "已确认", count: 5), .init(id: "failed", label: "失败", count: 1)]
         dashboard.weeks = (0..<8).map { .init(id: String($0), label: "\($0 + 1)周", count: [1,3,2,4,1,5,2,3][$0]) }
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeAcceptance-screenshots")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosCloseAcceptance-screenshots")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         let before = source.storage
         for (width, height) in [(900,620),(1180,760),(1440,900),(2560,1440)] {

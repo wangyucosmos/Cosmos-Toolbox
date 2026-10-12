@@ -64,7 +64,11 @@ final class CosmosNavigator {
             pendingWorkbenchMetric = nil; selectSidebar(item)
         case .workbench(let metric): workspaceNavigation = .workbench; workspaceCategory = "overview"; pendingWorkbenchMetric = metric; selection = .zhuowang
         case .knowledge(let section): knowledgeSection = section; selection = .knowledgeBase
-        case .search(let text): searchText = text; requestSearchFocus(); selection = .unifiedSearch
+        case .search(let text):
+            searchText = text
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { searchFocusRequested = false }
+            else { requestSearchFocus() }
+            selection = .unifiedSearch
         case .settings(let tab): settingsTab = tab; settingsRequest += 1
         case .record(let row):
             if isolated && row.id.source == .campaign { navigate(.workbench(.all)) }
