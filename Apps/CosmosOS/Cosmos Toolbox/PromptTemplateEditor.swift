@@ -70,47 +70,52 @@ struct PromptTemplateEditorView: View {
     @ObservedObject var store: PromptVaultStore
     @State private var confirmReload = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(session.baseline == nil ? "新建提示词模板" : "编辑提示词模板").font(.title2)
-                Spacer()
-                Text(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存").foregroundStyle(.secondary)
-            }
-            TextField("名称", text: $session.draft.name)
-            HStack {
-                TextField("分类（可选）", text: Binding(get: { session.draft.category ?? "" }, set: { session.draft.category = $0 }))
-                Menu("已有分类") {
-                    Button("未分类") { session.draft.category = nil }
-                    ForEach(Array(Set(store.templates.compactMap(\.category))).sorted(), id: \.self) { category in
-                        Button(category) { session.draft.category = category }
+        Form {
+            Section("基本信息") {
+                LabeledContent("名称") { TextField("必填", text: $session.draft.name) }
+                HStack {
+                    TextField("分类（可选）", text: Binding(get: { session.draft.category ?? "" }, set: { session.draft.category = $0 }))
+                    Menu("已有分类") {
+                        Button("未分类") { session.draft.category = nil }
+                        ForEach(Array(Set(store.templates.compactMap(\.category))).sorted(), id: \.self) { category in
+                            Button(category) { session.draft.category = category }
+                        }
                     }
+                    Toggle("收藏", isOn: $session.draft.isFavorite)
                 }
-                Toggle("收藏", isOn: $session.draft.isFavorite)
             }
-            Text("正文 · {{变量名}}；\\{{变量名}} 保留字面量。变量值不保存到模板。")
-                .font(.caption).foregroundStyle(.secondary)
-            TextEditor(text: $session.draft.body).font(.system(.body, design: .monospaced))
-                .accessibilityIdentifier("prompt-editor-body")
-                .overlay(Rectangle().stroke(Color(nsColor: .separatorColor)))
-            Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
-                .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-            HStack {
-                Button("复制草稿正文") {
-                    NSPasteboard.general.clearContents()
-                    _ = NSPasteboard.general.setString(session.draft.body, forType: .string)
-                }
+            Section("内容") {
+                Text("正文 · {{变量名}}；\\{{变量名}} 保留字面量。变量值不保存到模板。")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextEditor(text: $session.draft.body).font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 300)
+                    .accessibilityIdentifier("prompt-editor-body")
+                    .overlay(Rectangle().stroke(Color(nsColor: .separatorColor)))
+                Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
+                    .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+        }
+            .formStyle(.grouped).scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(minWidth: 680, minHeight: 500)
+            .disabled(session.saving || session.terminationPending)
+            .navigationTitle(session.draft.name.isEmpty ? "新建提示词模板" : session.draft.name)
+            .navigationSubtitle(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存")
+            .toolbar {
+            ToolbarItemGroup {
+                Button("复制草稿", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); _ = NSPasteboard.general.setString(session.draft.body, forType: .string) }
+                    .disabled(session.saving || session.terminationPending)
                 if session.baseline != nil {
-                    Button("重新加载保存版本…") { confirmReload = true }
+                    Button("重新加载保存版本…", systemImage: "arrow.clockwise") { confirmReload = true }
+                        .disabled(session.saving || session.terminationPending)
                 }
-                Spacer()
-                Button("保存") { Task { await session.save() } }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(!store.canSave || session.saving)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("保存", systemImage: "square.and.arrow.down") { Task { await session.save() } }
+                    .cosmosWindowPrimaryAction().keyboardShortcut("s", modifiers: .command)
+                    .disabled(!store.canSave || session.saving || session.terminationPending)
                     .accessibilityIdentifier("prompt-editor-save")
             }
         }
-        .padding(24).frame(minWidth: 680, minHeight: 500)
-        .disabled(session.saving || session.terminationPending)
         .alert("放弃当前草稿并重新加载？", isPresented: $confirmReload) {
             Button("取消", role: .cancel) {}
             Button("重新加载", role: .destructive) { Task { await session.reload() } }
@@ -138,16 +143,14 @@ final class PromptTemplateWindowManager: NSObject, NSWindowDelegate {
         let session = PromptTemplateEditSession(store: store, template: template, prefill: prefill)
         let key = store.storageIdentity + "::" + session.draft.id.uuidString
         if let entry = entries[key] { entry.controller.window?.makeKeyAndOrderFront(nil); return }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = template?.name ?? "新建提示词模板"
-        window.identifier = NSUserInterfaceItemIdentifier(key)
-        window.minSize = NSSize(width: 700, height: 540)
-        window.contentViewController = NSHostingController(rootView: PromptTemplateEditorView(session: session, store: store))
-        window.delegate = self; window.isReleasedWhenClosed = false
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: template?.name ?? "新建提示词模板",
+                contentSize: NSSize(width: 860, height: 700), minSize: NSSize(width: 700, height: 540),
+                identifier: key, frameMemoryKey: "promptTemplateEditor", delegate: self),
+            rootView: PromptTemplateEditorView(session: session, store: store))
         let controller = NSWindowController(window: window)
         entries[key] = Entry(controller: controller, session: session)
-        window.center(); controller.showWindow(nil)
+        controller.showWindow(nil)
     }
     private func choice(for session: PromptTemplateEditSession) -> PromptTemplateEditSession.CloseChoice {
         let alert = NSAlert()

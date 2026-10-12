@@ -2620,7 +2620,7 @@ private final class ZhuowangArtifactWindowManager:
         controllers[windowKey] =
             controller
 
-        window.center()
+        CosmosWindowFrameMemory.attach(window, key: "artifactDetail")
 
         controller.showWindow(nil)
 

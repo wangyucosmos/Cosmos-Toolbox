@@ -10,11 +10,10 @@
 
 ## 1. 当前检查点
 
-- **日期：** 2026-10-12。**开发分支：** `native/batch2`，基线 main / origin/main=`8d4107f`。第二批主线 A–C 已实现并提交 `9ba998c`，隔离 Debug 构建与 53 个受影响唯一测试通过；窗口线未就绪，待集成，按本轮 D 节停止，不部署。
-- **范围：** 工作分类改为内容定宽的可横滚玻璃标签行（不再统一 segmented）；交付包 / 任务预览 / 执行结果 / 修改意见 sheet 使用 NavigationStack 与原生操作工具栏；设置备份 / 关于页改 grouped Form。业务方法、Store / schema、窗口与采用选择均不改。
-- **验证边界：** 本轮只测 A–C，未跑全量 / 72 对矩阵、未合并窗口线、未接入两个详情窗口位置记忆。12 张目标浅深截图已查看；分类栏玻璃容器离屏黑块、sheet 标题栏 / toolbar 未完整捕获，设置 TabView 离屏标签缺口仍在，不能据此证明实机观感或按钮位置。正式 14 文件 / 5 键指纹开工与测试后完全一致。
-- **日常 App：** 仍是已验收第一批部署 `00671aa`，回退副本 `Cosmos Toolbox-20261012-105302-6472e5de.app` 不变。下一步先继续第二批 D–F 集成验证与部署，再进入第三批。
-
+- **日期 / 分支：** 2026-10-12，`native/batch2`；main / origin/main=`8d4107f`。第二批已集成：主线 A–C `9ba998c` + Claude 工厂 / 位置记忆 `4f61f25` + Codex 八类窗口接线与两处详情记忆。工程验证通过，提交后部署；尚未由用户实机验收，不合入 main、不推送。
+- **范围：** 分类栏玻璃标签、三个 sheet 与修改意见原生 toolbar、设置 grouped Form；Review / 比较 / 快照 / 资产详情及项目 / 笔记 / 提示词 / 学习编辑接入工厂（学习分主题 / 记录）；活动详情与 Artifact 详情仅加位置记忆。身份键、关闭保护、Store / schema / 采用选择不改。
+- **本轮验证：** Debug 构建成功；隔离宿主 `com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch2` 全量 669/669、0失败/0跳过；72对互切通过。16张窗口浅深内容截图，Form / 正文区域可见；比较左窗格及资产外层离屏黑块、原生标题 / toolbar不在缓存内，不代表实机验收。开工 / 测试后 14文件与5业务键指纹一致，补齐窗口线结束复核。
+- **日常 App：** 当前仍第一批 `00671aa`；回退副本 `Cosmos Toolbox-20261012-105302-6472e5de.app` 保留。第二批部署结果在执行后补记。下一模块为第三批（§12），不自动启动。
 
 ---
 
@@ -41,7 +40,7 @@
 | 卓望工作区主页面改版（第三步 A） | 卓望工作 → 导航 / 概览 / 活动 / 推进工作台 / 资料 | 已验收、已合入 main | 71fb8ce；呈现修复 1d1ce51 | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效未实测；窄宽裁切与 A 深色标签已修复 |
 | 活动详情窗口改版（第三步 B） | 活动详情 → 概览 / Workflow / 工作产物 / 月度清单 / 交付包 | 已验收、已合入 main | 6d4a574；集成 953467e | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效、HTML Review 实际渲染未实测 |
 | 体验打磨轮 | 图表 / 响应式 / 导航记忆 / Prompt性能 / 日期 / AI引导 / 占位 | 已验收、已合入 main | 1e09b1c修复；bb722d2快进合入 | 2026-10-12 开发日志 | 合成离屏计时不等于Release体感；原生List已恢复；用户接受声明范围；拖动光标与重启记忆未增加工具验证 |
-| 原生化第二批（主线 A–C） | 卓望分类栏 / 三个sheet与修改意见 / 设置 | 已实现与局部验证，窗口线未就绪、待集成 | 9ba998c（未合入main） | 2026-10-12 开发日志 | 53唯一测试通过；未全量 / 72对 / 合并 / 部署；玻璃与toolbar离屏缺口 |
+| 原生化第二批 | 分类栏 / sheet / 设置 / 八类窗口与详情记忆 | 已集成、669测试与72对通过，待部署及实机验收 | A–C 9ba998c；工厂记忆 4f61f25；接线本轮提交（未合入main） | 2026-10-12 开发日志 | 身份/关闭保护保持；玻璃、toolbar、位置效果待实机；无业务格式变化 |
 | Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 已验收、已合入 main | 00671aa | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
@@ -95,6 +94,8 @@
 UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260pt，按当前文字大小、实际最长项名称/图标/计数徽标/内边距计算动态下限；旧保存值小于下限时按下限显示，常规上限360pt，必要下限超过360时优先完整名称；只属UI，不进入业务备份）。既有键为 `cosmos.ui.appearance`（system / light / dark）、`cosmos.ui.textSize`（standard / large / extraLarge）、`cosmos.ui.startup`（dashboard / lastPage）、`cosmos.ui.sidebarEnglish`（Bool，默认 false）、`cosmos.ui.motion`（system / reduced）、`cosmos.ui.lastPage`（侧栏模块白名单）。非法值只读回退默认值，不修复原键；不修改业务键，不进入核心备份。外观使用 NSApp.appearance；近期检索词与导航筛选只在内存。随机 suite 自动测试通过；第一步与第二步均已接受声明的体验范围。第三步 A 新增 `cosmos.ui.workspace.campaignLayout`（cards / list），仅保存活动呈现偏好，不进入业务备份。
 
 体验打磨轮新增 `cosmos.ui.aiWorkspace.guideCollapsed`，只保存使用引导折叠状态，不进入业务备份；卓望二级导航位置、一次自动检测标志和Prompt会话只保存在运行时内存。
+
+第二批新增 `cosmos.ui.window.<key>.frame`（frame descriptor）：artifactReview、versionCompare、handoffSnapshot、assetDetail、projectEditor、noteEditor、promptTemplateEditor、learningTopicEditor、learningEntryEditor、campaignDetail、artifactDetail。按类型记忆，第二个同类窗口错开；失效/断屏居中、尺寸不小于最小值，全屏/最小化不保存；仅 UI 偏好，不进入业务备份。
 
 ### 4.2 独立 JSON 文件存储（`~/Library/Application Support/Cosmos OS/…`）
 
@@ -192,9 +193,9 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 9. 非阻塞待办（按模块，去重）
 
-- **第二批 A–C：** 分类栏玻璃标签 / 横滚 / 自动显示选中项及减少动效、sheet toolbar按钮位置、设置 grouped Form 的真实滚动与标签需集成部署后实机验收。离屏分类栏玻璃容器显示黑块，不能核实标签布局；sheet native toolbar没有完整捕获；设置旧TabView标签胶囊缺口仍在。窗口线 D 未就绪，本阶段不部署，也不把第二批整体标记完成。
+- **原生化第二批：** 集成与自动验证已完成；分类栏玻璃/横滚、三个sheet与修改意见toolbar、设置Form、各窗口工具栏/标题/位置记忆/同类错开、未保存关闭提醒、减少动效与深浅色仍待用户实机验收。离屏分类玻璃、比较左窗格/资产外层黑块、设置TabView标签和原生toolbar缓存缺口保留；笔记历史/引用页与导出面板未新增视觉验收，不反复截图。设置原数据位置/恢复标题略重复是非阻塞细节。
 
-- **Mac 原生化第一批：** 现场玻璃 / 动效观感已由用户实机体验并接受声明范围，不再列为待验收。`KnowledgeHubView` 仍被 PersonalNotesTests 引用，未删除；设置页 TabView 标签离屏绘制缺口保留。独立窗口与 sheet 原生化留第二批，不扩大本次收尾。
+- **第一批：** 现场玻璃/动效已由用户接受声明范围；`KnowledgeHubView` 因 PersonalNotesTests 引用保留。活动详情打开即执行恢复的既有P1留第三批接线前核对，本批不处理。
 
 - **体验打磨轮：** 用户已接受声明的验收范围；后续若反馈问题，重点关注省份/模块重入与仪表盘筛选优先、Prompt冷/暖切换、短窗口设置与原生工具栏、超宽滚动条和深色控件。AppKit主侧栏在离屏缓存中未完整绘制，已改回完整原生List选中；侧栏与仪表盘快捷进入检索均不主动聚焦，页面提示按⌘F开始搜索；⌘F申请焦点，非空关键词跳转保留预填与既有焦点实现。取消快捷聚焦属于用户需求调整。真实拖动光标、重启宽度记忆未增加工具验证，用户接受该边界。Prompt外部修改须手动刷新显示快照；保存/恢复仍重读revision拒绝冲突。原生化的当前优先级统一见 §12。
 
@@ -206,7 +207,7 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 - **卓望 / 推进工作台：** 指标卡把列表挤出首屏；摘要每次渲染重算；第三步已移除省份 / 模块概览占位并保留真实指标；活动列表行不标省份停用；路由请求在编辑中到达不重放。
 - **资产中心：** F1–F5（打开的详情保留旧快照、详情与搜索共用代次、窗口身份被 Campaign Review 共用、读不到正文的资产在正文搜索中缺席无提示、隔离根过滤 / Review 关闭 / 并发测试覆盖不足）；失败读取不缓存。
 - **Prompt Vault / 提示词版本：** 解析警告位置文案未插值；任何替换阶段失败都按 `uncertainWrite` 保守锁定；窗口持有旧 Store 列表可能过期；无历史差异比较 / 导入 / 历史删除 / 历史变量填充。
-- **学习中心：** 条目不可删 / 归档；链接仅复制；窗口标题不随改名；侧栏名仍是“AI 学习中心”。
+- **学习中心：** 条目不可删 / 归档；链接仅复制；编辑窗口已由navigationTitle驱动；侧栏名仍是“AI 学习中心”。
 - **省份 / 月度会员促活：** 普通活动与月度活动不可互转；登记只追加；10 槽掌厅文案无结构化编辑；把 Word / Figma / 链接成品登记为受管 Artifact 是后续阶段。
 - **首页：** 大 Workflow 解码成本未测；AI 检测状态使用已有内存缓存，不在首页自动触发检测。
 - **AI 工作台：** Codex / Claude 内置路径随应用升级可能变；多安装只取第一个可运行者；交接历史无分页；资料正文大段直接 Text 呈现。
@@ -247,6 +248,6 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 12. 下一优先级
 
-**先完成第二批 D–F：窗口线集成与部署。** 本轮 A–C 提交后检查 `native/batch2-windows`：HEAD=`4f61f25`，尚无提交信息以 `[ready-for-integration]` 结尾；按任务 D 节完成局部验证后停止，不合并、不部署。用户之后继续 D 时，先检查就绪提交，再 `--no-ff` 合并窗口线、读取 `Docs/Reviews/2026-10-12_窗口原生化第二批接线记录.md`，给活动详情与 Artifact 详情接入 `CosmosWindowFrameMemory.attach`（campaignDetail / artifactDetail），集中全量验证并部署。窗口工厂与位置记忆文件归 Claude，本次未改。
+**第三批（另定范围后启动）：** 3.1 活动详情标签与操作进入原生窗口工具栏；3.2 卓望二级栏改 `List(.sidebar)`；3.3 笔记与知识库原生化。第二批工程已集成验证，部署后先由用户接受声明的实机验收范围，再收尾 Git；本轮不启动第三批，不合入 main / 推送 / 删除分支或 worktree。
 
-第二批集成完成后的下一模块是**第三批：3.1 活动详情标签与操作进窗口工具栏、3.2 卓望二级栏、3.3 笔记与知识库**，不提前启动。工作分类栏已按用户新决定改为导航层玻璃标签行；暂缓事项保持暂缓。
+3.1 开工前核对活动详情现有 onAppear 恢复 / 迁移的幂等性与触发时机；本批仅接位置记忆，没有改 header、标签或业务方法。暂缓事项保持暂缓。

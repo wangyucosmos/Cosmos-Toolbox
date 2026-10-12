@@ -157,13 +157,6 @@ struct ArtifactVersionCompareWorkspace: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            compareHeader
-                .background(.bar)
-            Divider()
-            compareToolbar
-                .background(.bar)
-            Divider()
-
             HStack(spacing: 0) {
                 comparePane(
                     sideTitle: "左侧版本",
@@ -184,67 +177,21 @@ struct ArtifactVersionCompareWorkspace: View {
         }
         .frame(minWidth: 1180, minHeight: 720)
         .background(Color(nsColor: .windowBackgroundColor))
+        .navigationTitle(artifactName)
+        .navigationSubtitle("基础并排比较 · 不包含 Diff")
+        .toolbar { compareToolbar }
         .modifier(CosmosMotionPolicy())
     }
 
-    private var compareHeader: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            Image(systemName: "rectangle.split.2x1")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.tint)
-                .frame(width: 40, height: 40)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(artifactName)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-
-                Text("Artifact Version Compare")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    @ToolbarContentBuilder
+    private var compareToolbar: some ToolbarContent {
+        if showsSharedViewport {
+            ToolbarItem(placement: .principal) {
+                Picker("Mobile Viewport", selection: $compareState.sharedMobileViewport) {
+                    ForEach(ArtifactReviewMobileViewport.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.segmented).frame(width: 170)
             }
-
-            Spacer()
-
-            CampaignUIStatusPill(
-                text: "基础并排比较 · 不包含 Diff",
-                icon: "info.circle",
-                tone: .neutral
-            )
         }
-        .padding(.horizontal, CosmosDesign.spacingL)
-        .padding(.vertical, CosmosDesign.spacingM)
-    }
-
-    private var compareToolbar: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            if showsSharedViewport {
-                Picker(
-                    "Mobile Viewport",
-                    selection: $compareState.sharedMobileViewport
-                ) {
-                    ForEach(ArtifactReviewMobileViewport.allCases) { viewport in
-                        Text(viewport.title).tag(viewport)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 170)
-            }
-
-            Spacer()
-
-            Button {
-                windowContext.close()
-            } label: {
-                Label("关闭", systemImage: "xmark")
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding(.horizontal, CosmosDesign.spacingL)
-        .padding(.vertical, CosmosDesign.spacingS)
     }
 
     private func comparePane(
@@ -481,36 +428,16 @@ final class ArtifactVersionCompareWindowManager:
             windowContext: windowContext,
             initialState: initialState
         )
-        let hostingController = NSHostingController(rootView: rootView)
-        let window = NSWindow(
-            contentRect: NSRect(
-                x: 0,
-                y: 0,
-                width: 1480,
-                height: 900
-            ),
-            styleMask: [
-                .titled,
-                .closable,
-                .miniaturizable,
-                .resizable
-            ],
-            backing: .buffered,
-            defer: false
-        )
-
-        window.title = "\(artifactName) · Version Compare"
-        window.minSize = NSSize(width: 1180, height: 720)
-        window.collectionBehavior.insert(.fullScreenPrimary)
-        window.contentViewController = hostingController
-        window.delegate = self
-        window.identifier = NSUserInterfaceItemIdentifier(identity.rawValue)
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: artifactName,
+                contentSize: NSSize(width: 1480, height: 900), minSize: NSSize(width: 1180, height: 720),
+                identifier: identity.rawValue, frameMemoryKey: "versionCompare", allowsFullScreen: true, delegate: self),
+            rootView: rootView)
         windowContext.window = window
 
         let controller = NSWindowController(window: window)
         controllers[identity] = controller
 
-        window.center()
         controller.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

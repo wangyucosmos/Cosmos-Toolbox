@@ -588,7 +588,7 @@ final class ZhuowangCampaignWindowManager:
         controllers[campaign.id] =
             controller
 
-        window.center()
+        CosmosWindowFrameMemory.attach(window, key: "campaignDetail")
 
         controller.showWindow(nil)
 

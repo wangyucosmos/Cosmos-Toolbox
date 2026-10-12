@@ -232,4 +232,73 @@ final class CosmosUIUpgradeTests: XCTestCase {
         print("UI acceptance screenshots: " + out.path)
         XCTAssertEqual(source.writeCount, 0, "mounting views must not write business data")
     }
+
+    /// Synthetic native-window contents; offscreen images cannot verify glass or frame restoration.
+    func testNativeBatch2WindowContentsLightAndDark() async throws {
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeBatch2-window-screenshots")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let root = URL(fileURLWithPath: "/private/tmp/CosmosNativeWindowFixtures-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (defaults, prefs) = try preferences(); prefs.motion = .reduced
+        let projects = ProjectsStore(storage: ProjectsFileStorage(root: root.appendingPathComponent("projects")))
+        let notes = PersonalNotesStore(storage: PersonalNotesFileStorage(root: root.appendingPathComponent("notes")))
+        let prompts = PromptVaultStore(root: root.appendingPathComponent("prompts"))
+        let learning = LearningStore(root: root.appendingPathComponent("learning"))
+        await projects.reload(); await notes.reload(); await prompts.reload(); await learning.reload()
+        let project = PersonalProject(name: "原生窗口验证", goal: "保留目标与进展历史", nextStep: "继续下一步")
+        let note = PersonalNote(title: "笔记窗口验证", body: "# 保留原文\n\n正文编辑区域应保持足够高度。")
+        let prompt = PromptTemplate(name: "提示词窗口验证", body: "为 {{主题}} 准备方案。\n保留变量与换行。")
+        let topic = LearningTopic(name: "学习窗口验证", goal: "原生工具栏与关闭保护")
+        let sample = campaign()
+        let artifact = ZhuowangArtifact(campaignID: sample.id, name: "验证正文", type: .markdown,
+            content: "# 原生 Review\n\n仅合成数据，无正式文件写入。", version: 2)
+        let oldArtifact = ZhuowangArtifact(campaignID: sample.id, name: artifact.name, type: .markdown,
+            content: "# 原生 Review v1\n\n合成旧版本。", version: 1)
+        let document = ArtifactReviewDocument(artifact: artifact)
+        let oldDocument = ArtifactReviewDocument(artifact: oldArtifact)
+        let items = [ArtifactVersionComparisonItem(artifactID: artifact.id, version: 2, isCurrent: true, document: document),
+                     ArtifactVersionComparisonItem(artifactID: oldArtifact.id, version: 1, isCurrent: false, document: oldDocument)]
+        let state = try XCTUnwrap(ArtifactVersionCompareState(items: items, selectedArtifactID: oldArtifact.id))
+        var workflow = ZhuowangCampaignWorkflow.standard(campaignID: sample.id)
+        workflow.artifacts = [artifact]
+        let source = ZhuowangInMemoryPersistenceDataSource(storage: [
+            ZhuowangCampaignStore.storageKey: try JSONEncoder().encode([sample]),
+            ZhuowangWorkflowStore.workflowStorageKey: try JSONEncoder().encode([workflow])])
+        let before = source.storage
+        let assets = ZhuowangAssetCatalogViewModel(dataSource: source, allowedRoot: root, requiresIsolatedRoot: true)
+        assets.refresh()
+        let asset = try XCTUnwrap(assets.entries.first)
+        var files: [String] = []
+        for (name, scheme) in [("light", ColorScheme.light), ("dark", ColorScheme.dark)] {
+            func save<V: View>(_ view: V, _ page: String, width: CGFloat = 960, height: CGFloat = 800) async throws {
+                let content = view.environment(\.cosmosPreferences, prefs).environment(\.cosmosNavigator, CosmosNavigator())
+                    .environment(\.colorScheme, scheme).defaultAppStorage(defaults).frame(width: width, height: height)
+                let host = CosmosWindowFactory.makeHostingController(rootView: content)
+                let window = NSWindow(contentViewController: host); window.isReleasedWhenClosed = false
+                window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
+                defer { window.contentViewController = nil; window.close() }
+                for _ in 0..<3 { host.view.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(80)) }
+                let bitmap = try XCTUnwrap(host.view.bitmapImageRepForCachingDisplay(in: host.view.bounds))
+                host.view.cacheDisplay(in: host.view.bounds, to: bitmap)
+                let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                XCTAssertGreaterThan(data.count, 1500)
+                let filename = "\(page)-\(name).png"; files.append(filename)
+                try data.write(to: out.appendingPathComponent(filename))
+            }
+            try await save(ArtifactReviewWorkspace(document: document, windowContext: ArtifactReviewWindowContext()), "review", width: 1240, height: 880)
+            try await save(ArtifactVersionCompareWorkspace(artifactName: artifact.name, items: items,
+                windowContext: ArtifactReviewWindowContext(), initialState: state), "compare", width: 1480, height: 900)
+            try await save(ZhuowangAssetDetailView(model: assets, groupID: asset.groupID, selectedID: asset.id,
+                actions: .init(copy: { _ in }, reveal: { _ in }, preview: { _ in })), "asset")
+            try await save(PersonalNoteEditorView(session: PersonalNoteEditSession(store: notes, note: note), store: notes), "note")
+            try await save(ProjectsEditorView(session: ProjectsEditSession(store: projects, project: project), store: projects, close: {}), "project")
+            try await save(PromptTemplateEditorView(session: PromptTemplateEditSession(store: prompts, template: prompt), store: prompts), "prompt")
+            try await save(LearningTopicEditorView(session: LearningTopicEditSession(store: learning, topic: topic), store: learning), "learning-topic")
+            try await save(LearningEntryEditorView(session: LearningEntryEditSession(store: learning, topic: topic, entry: nil), store: learning), "learning-entry")
+        }
+        try JSONEncoder().encode(files).write(to: out.appendingPathComponent("manifest.json"))
+        XCTAssertEqual(source.storage, before)
+        XCTAssertEqual(source.writeCount, 0)
+        print("Native batch2 window screenshots: " + out.path)
+    }
 }

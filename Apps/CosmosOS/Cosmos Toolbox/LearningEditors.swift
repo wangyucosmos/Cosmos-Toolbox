@@ -217,34 +217,45 @@ struct LearningTopicEditorView: View {
     @ObservedObject var store: LearningStore
     @State private var confirmReload = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(session.baseline == nil ? "新建学习主题" : "编辑学习主题").font(.title2)
-                Spacer()
-                Text(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存").foregroundStyle(.secondary)
+        Form {
+            Section("基本信息") {
+                LabeledContent("名称") {
+                    TextField("必填", text: $session.name).accessibilityIdentifier("learning-topic-name")
+                }
+                Picker("状态", selection: $session.status) {
+                    ForEach(LearningStatus.allCases, id: \.self) { Text($0.title).tag($0) }
+                }.pickerStyle(.segmented)
             }
-            TextField("名称", text: $session.name).accessibilityIdentifier("learning-topic-name")
-            Picker("状态", selection: $session.status) {
-                ForEach(LearningStatus.allCases, id: \.self) { Text($0.title).tag($0) }
-            }.pickerStyle(.segmented)
-            LearningTextArea(title: "学习目标（可选）", hint: "你想达到什么；按原文保存。", text: $session.goal)
-            LearningTextArea(title: "下一步（可选）", hint: "下一次从哪里继续；由你填写，不会推断截止时间。",
+            Section("内容") {
+                LearningTextArea(title: "学习目标（可选）", hint: "你想达到什么；按原文保存。", text: $session.goal)
+                LearningTextArea(title: "下一步（可选）", hint: "下一次从哪里继续；由你填写，不会推断截止时间。",
                 text: $session.nextStep, minHeight: 60)
-            TextField("资料链接（可选，仅 http/https；只做引用，不会抓取或自动打开）", text: $session.resource)
-            Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
-                .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-            HStack {
-                Button("复制草稿") { copyToPasteboard(session.draftText) }
-                if session.baseline != nil { Button("重新加载保存版本…") { confirmReload = true } }
-                Spacer()
-                Button("保存") { Task { await session.save() } }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(!store.canSave || session.saving)
+                TextField("资料链接（可选，仅 http/https；只做引用，不会抓取或自动打开）", text: $session.resource)
+                Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
+                    .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+        }
+            .formStyle(.grouped).scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(minWidth: 560, minHeight: 540)
+            .disabled(session.saving || session.terminationPending)
+            .navigationTitle(session.name.isEmpty ? "新建学习主题" : session.name)
+            .navigationSubtitle(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存")
+            .toolbar {
+            ToolbarItemGroup {
+                Button("复制草稿", systemImage: "doc.on.doc") { copyToPasteboard(session.draftText) }
+                    .disabled(session.saving || session.terminationPending)
+                if session.baseline != nil {
+                    Button("重新加载保存版本…", systemImage: "arrow.clockwise") { confirmReload = true }
+                        .disabled(session.saving || session.terminationPending)
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("保存", systemImage: "square.and.arrow.down") { Task { await session.save() } }
+                    .cosmosWindowPrimaryAction().keyboardShortcut("s", modifiers: .command)
+                    .disabled(!store.canSave || session.saving || session.terminationPending)
                     .accessibilityIdentifier("learning-topic-save")
             }
         }
-        .padding(24).frame(minWidth: 560, minHeight: 540)
-        .disabled(session.saving || session.terminationPending)
         .alert("放弃当前草稿并重新加载？", isPresented: $confirmReload) {
             Button("取消", role: .cancel) {}
             Button("重新加载", role: .destructive) { Task { await session.reload() } }
@@ -257,38 +268,47 @@ struct LearningEntryEditorView: View {
     @ObservedObject var store: LearningStore
     @State private var confirmReload = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(session.baseline == nil ? "记录学习" : "编辑学习记录").font(.title2)
-                Spacer()
-                Text(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存").foregroundStyle(.secondary)
-            }
-            Text("主题：\(session.topicName)").foregroundStyle(.secondary)
-            HStack {
-                DatePicker("日期", selection: Binding(
+        Form {
+            Section("基本信息") {
+                LabeledContent("主题", value: session.topicName)
+                HStack {
+                    DatePicker("日期", selection: Binding(
                     get: { session.day.date() }, set: { session.day = LearningDay(date: $0) }),
                     displayedComponents: .date)
-                TextField("时长（分钟，可选）", text: $session.durationText).frame(maxWidth: 180)
-                    .accessibilityIdentifier("learning-entry-duration")
+                    TextField("时长（分钟，可选）", text: $session.durationText).frame(maxWidth: 180)
+                        .accessibilityIdentifier("learning-entry-duration")
+                }
             }
-            LearningTextArea(title: "学习内容／笔记", hint: "按原文保存，包括空白和换行。", text: $session.body,
+            Section("内容") {
+                LearningTextArea(title: "学习内容／笔记", hint: "按原文保存，包括空白和换行。", text: $session.body,
                 minHeight: 160)
-            LearningTextArea(title: "下一步（可选，与本次记录一并保存）",
+                LearningTextArea(title: "下一步（可选，与本次记录一并保存）",
                 hint: "只有修改此处，才会同时更新主题的下一步。", text: $session.nextStep, minHeight: 60)
-            Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
-                .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-            HStack {
-                Button("复制草稿") { copyToPasteboard(session.draftText) }
-                if session.baseline != nil { Button("重新加载保存版本…") { confirmReload = true } }
-                Spacer()
-                Button("保存") { Task { await session.save() } }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(!store.canSave || session.saving)
+                Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
+                    .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+        }
+            .formStyle(.grouped).scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(minWidth: 600, minHeight: 600)
+            .disabled(session.saving || session.terminationPending)
+            .navigationTitle("学习记录 · " + session.topicName)
+            .navigationSubtitle(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存")
+            .toolbar {
+            ToolbarItemGroup {
+                Button("复制草稿", systemImage: "doc.on.doc") { copyToPasteboard(session.draftText) }
+                    .disabled(session.saving || session.terminationPending)
+                if session.baseline != nil {
+                    Button("重新加载保存版本…", systemImage: "arrow.clockwise") { confirmReload = true }
+                        .disabled(session.saving || session.terminationPending)
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("保存", systemImage: "square.and.arrow.down") { Task { await session.save() } }
+                    .cosmosWindowPrimaryAction().keyboardShortcut("s", modifiers: .command)
+                    .disabled(!store.canSave || session.saving || session.terminationPending)
                     .accessibilityIdentifier("learning-entry-save")
             }
         }
-        .padding(24).frame(minWidth: 600, minHeight: 600)
-        .disabled(session.saving || session.terminationPending)
         .alert("放弃当前草稿并重新加载？", isPresented: $confirmReload) {
             Button("取消", role: .cancel) {}
             Button("重新加载", role: .destructive) { Task { await session.reload() } }
@@ -314,7 +334,7 @@ final class LearningEditorWindowManager: NSObject, NSWindowDelegate {
         guard !terminationPending else { return }
         let session = LearningTopicEditSession(store: store, topic: topic)
         let key = store.storageIdentity + "::topic::" + session.topicID.uuidString
-        present(key: key, title: topic?.name ?? "新建学习主题", session: session, size: NSSize(width: 640, height: 640),
+        present(key: key, title: topic?.name ?? "新建学习主题", session: session, size: NSSize(width: 640, height: 640), frameMemoryKey: "learningTopicEditor",
             root: LearningTopicEditorView(session: session, store: store))
     }
 
@@ -323,22 +343,18 @@ final class LearningEditorWindowManager: NSObject, NSWindowDelegate {
         let session = LearningEntryEditSession(store: store, topic: topic, entry: entry)
         let key = store.storageIdentity + "::entry::" + session.entryID.uuidString
         present(key: key, title: (entry == nil ? "记录学习" : "编辑学习记录") + " · " + topic.name, session: session,
-            size: NSSize(width: 700, height: 680), root: LearningEntryEditorView(session: session, store: store))
+            size: NSSize(width: 700, height: 680), frameMemoryKey: "learningEntryEditor", root: LearningEntryEditorView(session: session, store: store))
     }
 
     private func present<Content: View>(key: String, title: String, session: any LearningEditSession,
-                                        size: NSSize, root: Content) {
+                                        size: NSSize, frameMemoryKey: String, root: Content) {
         if let entry = entries[key] { entry.controller.window?.makeKeyAndOrderFront(nil); return }
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = title
-        window.identifier = NSUserInterfaceItemIdentifier(key)
-        window.minSize = NSSize(width: 580, height: 520)
-        window.contentViewController = NSHostingController(rootView: root)
-        window.delegate = self; window.isReleasedWhenClosed = false
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: title, contentSize: size, minSize: NSSize(width: 580, height: 520),
+                identifier: key, frameMemoryKey: frameMemoryKey, delegate: self), rootView: root)
         let controller = NSWindowController(window: window)
         entries[key] = Entry(controller: controller, session: session)
-        window.center(); controller.showWindow(nil)
+        controller.showWindow(nil)
     }
 
     private static func askUser() -> LearningCloseChoice {

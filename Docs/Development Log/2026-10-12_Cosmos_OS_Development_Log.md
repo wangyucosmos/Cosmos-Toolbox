@@ -278,3 +278,42 @@
 - 本阶段部署：未执行，日常App仍第一批00671aa；回退副本Cosmos Toolbox-20261012-105302-6472e5de.app保持。Current Status记录真实局部进度，未将第二批或D–F声明完成。
 - 后续用户实机清单（集成部署后）：分类栏文字宽度/窄窗横滚/选中滚入/玻璃滑动/未接入标记；四类sheet按钮位置、running禁用与采用失败；设置Form滚动、标签、深浅色/减少动效；窗口线的重新打开记忆、同类第二窗口错开与toolbar等待D–F。
 - 可复用：分类名称与路由可用性分开呈现；迁移操作位置时逐函数比较业务方法；隔离宿主与UUID文件根一起注入；原生玻璃/toolbar离屏缓存缺口明确记录，绑定测试不代替实际观感验收。
+
+
+## Mac 原生化第二批接手窗口线、集成验证与待部署
+
+- 最新用户授权替代此前就绪标记门槛：Claude Code额度用完，仅完成工厂/位置记忆，Codex接手所有剩余窗口。沿用A–C成果9ba998c/a477bce，不重做。正式native/batch2=a477bce、main/origin/main=8d4107f、窗口线native/batch2-windows=4f61f25；正式与Claude worktree均干净。只读确认窗口线，无切换/修改/删除/prune。两WIP分支保持。
+- 正式开工指纹：/private/tmp/CosmosNativeBatch2-integration-before.json，14文件path/size/mtime_ns与5现存卓望主键Data SHA-256，与A–C基线一致。权威读取defaults export，不用磁盘plist代替；排除.backup与UI窗口偏好，不输出业务正文。
+- 用户授权git merge --no-ff native/batch2-windows，合并提交9e71fe9（merge: 合入窗口工厂与窗口位置记忆），无冲突。带入Claude新增工厂、frame memory、各自测试与历史迁移清单，未修改工厂与记忆实现。读当前API与施工图后接线，旧审计行号不直接套用。
+
+### 逐窗口接线（八类，学习分主题 / 记录）
+
+| 窗口 / 文件 | toolbar / 内容变更 | frameMemoryKey | identifier（原值保持） | 关闭保护 / 验证 |
+|---|---|---|---|---|
+| ArtifactReviewWorkspace.swift | 查看方式principal、Mobile Viewport、完整预览进toolbar；删除关闭/重复标题，元数据保留；title=name / subtitle=Artifact Review；复用用makeHostingController | artifactReview | artifact-review::document.id | close(documentID:)与context.window保留；Review测试通过 |
+| ArtifactVersionCompareWorkspace.swift | 共享Viewport进principal；删除自绘标题/关闭；subtitle基础并排比较·不包含Diff；左右版本与显示Picker留原位 | versionCompare | identity.rawValue（artifact-version-compare::campaignID::versionGroupKey） | Manager字典与windowWillClose保持；比较测试通过 |
+| AIWorkspaceHandoffHistoryView.swift | 只换工厂；补显式navigationTitle，快照内容/按钮不迁移 | handoffSnapshot | record.id.uuidString | UUID反查/复用保持；Handoff测试通过 |
+| ZhuowangAssetDetailView.swift | 安全预览/Finder/复制/刷新进toolbar，原禁用条件保留；标题navigationTitle；复用makeHostingController | assetDetail | asset-detail::groupID | perform方法与读回保护保持；资产测试通过 |
+| ProjectsEditor.swift | Form项目/进展/引用Sections与LabeledContent；重载/保存⌘S进toolbar，删取消关闭；大块文本编辑保留 | projectEditor | storageIdentity::project::draft.id | delegate/self、shouldClose/allowClose/退出保护逐方法不变；ProjectsTests关闭失败/取消/冻结通过 |
+| PersonalNotesEditor.swift | Form基本信息/当前tab/message；principal分段；复制/重载/已保存正文导出/保存⌘S进toolbar；删除titleSync sink；正文最少300pt | noteEditor | storageIdentity::note::draft.id | entries身份不变（只移除titleSync字段）；session字典/shouldClose/退出保护不变；PersonalNotesTests关闭/历史/身份通过 |
+| PromptTemplateEditor.swift | Form基本信息/内容与LabeledContent；复制/重载/保存⌘S进toolbar；正文最少300pt；删自绘header/按钮条 | promptTemplateEditor | storageIdentity::draft.id | shouldClose/allowClose/退出协调与syncCleanSession接口不变；PromptVaultStateTests保存/放弃/取消/失败通过 |
+| LearningEditors.swift | 主题/记录各Form Sections与LabeledContent；复制/重载/保存⌘S进toolbar；删自绘header/按钮条 | learningTopicEditor / learningEntryEditor | storageIdentity::topic::topicID / ::entry::entryID | present仅增UI记忆参数；LearningEditSession签名、openSessions、chooseClose、closing/approved/退出保护不变；LearningStateTests关闭与退出通过 |
+
+- 各编辑保存按钮使用cosmosWindowPrimaryAction/⌘S，显式.disabled(!store.canSave || session.saving || session.terminationPending)；复制/重载/笔记tab/toolbar导出也显式禁用saving/terminationPending。内容disabled保留；标题/保存状态由navigationTitle/navigationSubtitle驱动。没有新增绕过delegate的close按钮。
+- 主ScrollView/Form软顶边缘；Review完整预览图标使用cosmosSymbolReplacement（系统与Cosmos减少动效均降为identity）。默认原生toolbar玻璃，不用禁用API。只动UI，不改Store、schema、路径、Workflow/Artifact采用、交付/备份恢复；未运行Harness/Provider，正式采用选择不动。
+- 两处详情位置记忆：ZhuowangCampaignView.swift的center→attach(campaignDetail)，ZhuowangCampaignDetailView.swift私有Artifact Manager的center→attach(artifactDetail)。完整文件与a477bce逐字比较，只有这两处替换；不换工厂/fullSizeContentView，不改header/标签/identifier。活动详情打开即恢复的既有P1不扩展处理。
+- 自查：/private/tmp/CosmosNativeBatch2-window-audit.json记录36个受保护方法与4组键构造不变（共40检查）；/private/tmp/CosmosNativeBatch2-window-wiring.json逐处确认八类工厂、9个key、identifier表达式、delegate/title及两详情最小差异。逐文件diff与diff --check通过；这是Codex自查，不称独立第三方复审。
+
+### 本轮验证与边界
+
+- 沙箱外Xcode27，原project/scheme，Debug build-for-testing，CODE_SIGNING_ALLOWED=NO；新DerivedData路径见/private/tmp/CosmosNativeBatch2-int-build-root.txt。第一次唯一错误在新截图夹具：Artifact.id是let，赋新UUID不能编译；一次集中修复改为独立构造旧Artifact。应用窗口代码已编译，修复后只增量构建受影响测试目标，TEST BUILD SUCCEEDED；无产品代码修复轮。
+- 全量test-without-building只运行一次，隔离宿主com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch2；运行前核对实际Info.plist。新UUID Store suite与九个fixture roots，参数见/private/tmp/CosmosNativeBatch2-int-isolation.json。官方xcresult摘要669 total/669 passed/0 failed/0 skipped，与日志唯一计数一致；未把A–C 53或重复构建计入唯一数。包含工厂8项、记忆15项、分类4项与既有编辑关闭保护、持久化、恢复/交付测试。
+- 72对互切矩阵本轮通过，fade_begin/commit每行1/1；本轮副本/private/tmp/CosmosNativeBatch2-int-matrix.csv，原测试固定输出CosmosNativeBatch1-matrix（目录名不代表沿用旧结果）。关闭/身份保护依赖既有自动测试 + 本轮源码差异核对，不声明实机关闭弹窗已验收。
+- 本轮新增testNativeBatch2WindowContentsLightAndDark在CosmosUIUpgradeTests.swift：随机suite与临时JSON根、合成文本/内存卓望源、注入空外部动作；16张PNG在/private/tmp/CosmosNativeBatch2-window-screenshots，manifest含文件字节/mtime/SHA。浅深Review/比较/资产/项目/笔记/提示词/学习主题/学习记录，均通过内容缓存捕获并查看；正文/分组Form可读，大文本高度未被压扁，项目下部可滚动。原生title/toolbar不在缓存内，比较左窗格、资产外层有黑块，不据此宣称实机呈现；不反复尝试玻璃/位置捕获。笔记历史/引用页与导出面板本轮无新增截图。
+- A–C的53测试、12目标截图是上一阶段证据；全量本轮重新覆盖其测试，不重做实现。其分类GlassEffectContainer黑块、sheet标题/toolbar、设置TabView标签离屏缺口依然记录；设置数据位置/恢复标题轻微重复是非阻塞细节。
+- 证据：/private/tmp/CosmosNativeBatch2-int-build.log（首次夹具失败）、int-build-repair.log（成功）、int-tests.log、int-tests.xcresult、int-summary.json。既有Swift6隔离与离屏State/FocusState/QoS运行时警告非失败，不扩大本轮。
+- 测试后正式指纹/private/tmp/CosmosNativeBatch2-integration-after-tests.json，与integration-before以及A–C before完全一致：14个文件、5业务主键；同时补齐Claude未做的结束复核。部署前/后再记录；不把窗口偏好写入当作业务数据变化。
+- Git授权仅native/batch2合并与逐文件add中文提交；禁止push/main合并/分支worktree删除/reset/clean/stash/force/prune/git add .。Current Status只保留当前清单与限制、<=40KB；本日志追加历史，旧审计不重写，不同步外部知识库或四份重复文档。
+- 部署计划（此时尚未执行）：全部提交并确认干净后，原/usr/bin/python3 scripts/deploy-macos.py，Universal Release/dirty=false，正常旧App退出（被阻止即停，不强杀）。当前仍第一批00671aa和回退副本Cosmos Toolbox-20261012-105302-6472e5de.app，实际新部署/回退名执行后追加，不把计划当结果。
+- 实机验收范围：分类栏/横滚、窗口拖动缩放与关闭重开记忆/同类错开、toolbar玻璃与按钮位置、编辑未保存关闭提醒、三个sheet/修改意见与设置、系统/Cosmos减少动效、深浅色；工程可进入部署，实机尚未接受。下一模块第三批3.1详情toolbar、3.2 List.sidebar、3.3笔记/知识库，另定范围，不提前开发。
+- 可复用：fullSizeContentView与自绘header迁移同批；toolbar单独禁用不依赖内容disabled；视图驱动标题删除双写sink；窗口身份/关闭保护归Manager，位置偏好仅由工厂/FrameMemory管理。用户偏好是接手续作、沿用有效成果与一次集中验证，不因工具切换重做已完成模块。

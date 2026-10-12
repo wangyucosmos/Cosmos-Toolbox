@@ -36,13 +36,10 @@ struct ArtifactReviewWorkspace: View {
         VStack(spacing: 0) {
             if reviewState.presentationMode == .workspace {
                 metadataHeader
-                    .background(.bar)
+                    .background(Color(nsColor: .windowBackgroundColor))
                 Divider()
             }
 
-            workspaceToolbar
-                .background(.bar)
-            Divider()
 
             ArtifactReviewPane(
                 document: document,
@@ -53,6 +50,9 @@ struct ArtifactReviewWorkspace: View {
         }
         .frame(minWidth: 900, minHeight: 680)
         .background(Color(nsColor: .windowBackgroundColor))
+        .navigationTitle(document.name)
+        .navigationSubtitle("Artifact Review")
+        .toolbar { workspaceToolbar }
         .modifier(CosmosMotionPolicy())
         .campaignUIAnimation(value: reviewState.presentationMode)
     }
@@ -62,31 +62,8 @@ struct ArtifactReviewWorkspace: View {
 
     private var metadataHeader: some View {
         VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
-            HStack(alignment: .center, spacing: CosmosDesign.spacingM) {
-                Image(systemName: CampaignUIFormat.artifactIcon(document.type))
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.tint)
-                    .frame(width: 40, height: 40)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(document.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-
-                    Text("Artifact Review Workspace")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: CosmosDesign.spacingL)
-
-                CampaignUIStatusPill(
-                    text: document.versionLabel,
-                    tone: document.versionLabel == "Draft" ? .neutral : .accent
-                )
-            }
+            CampaignUIStatusPill(text: document.versionLabel,
+                tone: document.versionLabel == "Draft" ? .neutral : .accent)
 
             HStack(alignment: .top, spacing: CosmosDesign.spacingXL) {
                 metadataItem(
@@ -135,65 +112,32 @@ struct ArtifactReviewWorkspace: View {
 
     // MARK: - Toolbar
 
-    private var workspaceToolbar: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            if selectedRenderer.capabilities.supportsSource {
-                Picker(
-                    "Artifact 查看方式",
-                    selection: $reviewState.displayMode
-                ) {
-                    ForEach(ArtifactReviewDisplayMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 200)
+    @ToolbarContentBuilder
+    private var workspaceToolbar: some ToolbarContent {
+        if selectedRenderer.capabilities.supportsSource {
+            ToolbarItem(placement: .principal) {
+                Picker("Artifact 查看方式", selection: $reviewState.displayMode) {
+                    ForEach(ArtifactReviewDisplayMode.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.segmented).frame(width: 200)
             }
-
-            if reviewState.displayMode == .preview,
-               selectedRenderer.capabilities.supportsMobileViewport {
-                Picker(
-                    "Mobile Viewport",
-                    selection: $reviewState.mobileViewport
-                ) {
-                    ForEach(ArtifactReviewMobileViewport.allCases) { viewport in
-                        Text(viewport.title).tag(viewport)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 170)
-            }
-
-            Spacer()
-
-            if selectedRenderer.capabilities.supportsFullPreview {
-                Button {
-                    reviewState.toggleFullPreview()
-                } label: {
-                    Label(
-                        reviewState.presentationMode == .fullPreview
-                            ? "退出完整预览"
-                            : "完整预览",
-                        systemImage:
-                            reviewState.presentationMode == .fullPreview
-                            ? "arrow.down.right.and.arrow.up.left"
-                            : "arrow.up.left.and.arrow.down.right"
-                    )
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Button {
-                windowContext.close()
-            } label: {
-                Label("关闭", systemImage: "xmark")
-            }
-            .buttonStyle(.bordered)
         }
-        .padding(.horizontal, CosmosDesign.spacingL)
-        .padding(.vertical, CosmosDesign.spacingS)
+        if reviewState.displayMode == .preview, selectedRenderer.capabilities.supportsMobileViewport {
+            ToolbarItem {
+                Picker("Mobile Viewport", selection: $reviewState.mobileViewport) {
+                    ForEach(ArtifactReviewMobileViewport.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.segmented).frame(width: 170)
+            }
+        }
+        if selectedRenderer.capabilities.supportsFullPreview {
+            ToolbarItem(placement: .primaryAction) {
+                Button { reviewState.toggleFullPreview() } label: {
+                    Label(reviewState.presentationMode == .fullPreview ? "退出完整预览" : "完整预览",
+                        systemImage: reviewState.presentationMode == .fullPreview
+                            ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                        .cosmosSymbolReplacement()
+                }
+            }
+        }
     }
 
     private var selectedRenderer: any ArtifactPreviewRenderer {
@@ -382,13 +326,12 @@ final class ArtifactReviewWindowManager:
            let window = existing.window {
             let windowContext = ArtifactReviewWindowContext()
             windowContext.window = window
-            window.contentViewController = NSHostingController(
+            window.contentViewController = CosmosWindowFactory.makeHostingController(
                 rootView: ArtifactReviewWorkspace(
                     document: document,
                     windowContext: windowContext
                 )
             )
-            window.title = "\(document.name) · Artifact Review"
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -399,36 +342,16 @@ final class ArtifactReviewWindowManager:
             document: document,
             windowContext: windowContext
         )
-        let hostingController = NSHostingController(rootView: rootView)
-        let window = NSWindow(
-            contentRect: NSRect(
-                x: 0,
-                y: 0,
-                width: 1240,
-                height: 880
-            ),
-            styleMask: [
-                .titled,
-                .closable,
-                .miniaturizable,
-                .resizable
-            ],
-            backing: .buffered,
-            defer: false
-        )
-
-        window.title = "\(document.name) · Artifact Review"
-        window.minSize = NSSize(width: 900, height: 680)
-        window.collectionBehavior.insert(.fullScreenPrimary)
-        window.contentViewController = hostingController
-        window.delegate = self
-        window.identifier = NSUserInterfaceItemIdentifier(windowKey)
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: document.name,
+                contentSize: NSSize(width: 1240, height: 880), minSize: NSSize(width: 900, height: 680),
+                identifier: windowKey, frameMemoryKey: "artifactReview", allowsFullScreen: true, delegate: self),
+            rootView: rootView)
         windowContext.window = window
 
         let controller = NSWindowController(window: window)
         controllers[windowKey] = controller
 
-        window.center()
         controller.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

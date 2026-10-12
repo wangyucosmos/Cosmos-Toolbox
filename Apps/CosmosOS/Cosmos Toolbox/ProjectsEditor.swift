@@ -62,24 +62,23 @@ struct ProjectsEditorView: View {
     let close: () -> Void
     @State private var confirmReload = false
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack { Text(session.baseline == nil ? "新建个人项目" : "项目详情").font(.title); Spacer(); Text(session.isDirty ? "未保存" : "已保存").foregroundStyle(.secondary) }
-                TextField("项目名称（必填）", text: $session.draft.name)
+        Form {
+            Section("项目") {
+                LabeledContent("项目名称") { TextField("必填", text: $session.draft.name) }
                 Picker("状态", selection: $session.draft.status) { ForEach(ProjectsStatus.allCases, id: \.self) { Text($0.title).tag($0) } }.pickerStyle(.segmented)
                 area("目标 / 说明", text: $session.draft.goal)
                 area("下一步行动", text: $session.draft.nextStep)
                 Toggle("归档（保留全部历史，取消勾选可恢复）", isOn: $session.draft.isArchived)
                 if let saved = session.baseline { Text("创建：\(CosmosDate.timestamp(saved.createdAt)) · 更新：\(CosmosDate.timestamp(saved.updatedAt))").font(.caption).foregroundStyle(.secondary) }
-                Divider()
-                Text("进展记录（按原文追加，历史不改写）").font(.headline)
+            }
+            Section("进展记录（按原文追加，历史不改写）") {
                 ForEach(session.draft.progress.sorted { $0.recordedAt > $1.recordedAt }) { progress in
                     Text(CosmosDate.timestamp(progress.recordedAt)).font(.caption).foregroundStyle(.secondary)
                     Text(progress.body).textSelection(.enabled)
                 }
                 area("新增本次进展（可选，保存时一并追加）", text: $session.progressText)
-                Divider()
-                Text("文件 / 链接引用").font(.headline)
+            }
+            Section("文件 / 链接引用") {
                 ForEach(session.draft.references) { reference in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack { Text(reference.name); Spacer(); Button("打开") { session.open(reference) } }
@@ -92,14 +91,24 @@ struct ProjectsEditorView: View {
                 HStack { TextField("http / https 链接", text: $session.linkText); Button("加入链接") { session.addLink() } }
                 Text("只登记用户选取的文件路径或链接，不复制/移动文件、不抓取网页。备份与恢复只保留引用。").font(.caption).foregroundStyle(.secondary)
                 Text(session.message).foregroundStyle(.secondary).textSelection(.enabled)
-                HStack {
-                    Button("取消 / 关闭") { close() }
-                    if session.baseline != nil { Button("重新加载保存版本…") { confirmReload = true } }
-                    Spacer()
-                    Button("保存") { Task { await session.save() } }.keyboardShortcut("s", modifiers: .command).disabled(!store.canSave)
+            }
+        }.formStyle(.grouped).scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(minWidth: 620, minHeight: 560).disabled(session.saving || session.terminationPending)
+            .navigationTitle(session.draft.name.isEmpty ? "新建个人项目" : session.draft.name)
+            .navigationSubtitle(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存")
+            .toolbar {
+                ToolbarItemGroup {
+                    if session.baseline != nil {
+                        Button("重新加载保存版本…", systemImage: "arrow.clockwise") { confirmReload = true }
+                            .disabled(session.saving || session.terminationPending)
+                    }
                 }
-            }.padding(24)
-        }.scrollEdgeEffectStyle(.soft, for: .top).frame(minWidth: 620, minHeight: 560).disabled(session.saving || session.terminationPending)
+                ToolbarItem(placement: .primaryAction) {
+                    Button("保存", systemImage: "square.and.arrow.down") { Task { await session.save() } }
+                        .cosmosWindowPrimaryAction().keyboardShortcut("s", modifiers: .command)
+                        .disabled(!store.canSave || session.saving || session.terminationPending)
+                }
+            }
             .alert("放弃本窗口未保存修改并重新加载？", isPresented: $confirmReload) {
                 Button("取消", role: .cancel) {}
                 Button("重新加载", role: .destructive) { Task { await session.reload() } }
@@ -127,12 +136,13 @@ final class ProjectsWindowManager: NSObject, NSWindowDelegate, CosmosTermination
         let session = ProjectsEditSession(store: store, project: project, prefill: prefill)
         let key = store.storageIdentity + "::project::" + session.draft.id.uuidString
         if let old = entries[key] { old.controller.window?.makeKeyAndOrderFront(nil); return }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 780), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-        window.title = project?.name ?? "新建个人项目"; window.identifier = NSUserInterfaceItemIdentifier(key)
-        window.minSize = NSSize(width: 660, height: 600); window.isReleasedWhenClosed = false; window.delegate = self
-        window.contentViewController = NSHostingController(rootView: ProjectsEditorView(session: session, store: store, close: { [weak window] in window?.performClose(nil) }))
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: project?.name ?? "新建个人项目",
+                contentSize: NSSize(width: 760, height: 780), minSize: NSSize(width: 660, height: 600),
+                identifier: key, frameMemoryKey: "projectEditor", delegate: self),
+            rootView: ProjectsEditorView(session: session, store: store, close: {}))
         let controller = NSWindowController(window: window); entries[key] = Entry(controller: controller, session: session)
-        window.center(); controller.showWindow(nil)
+        controller.showWindow(nil)
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard let key = sender.identifier?.rawValue, let entry = entries[key] else { return true }

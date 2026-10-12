@@ -178,61 +178,78 @@ struct PersonalNoteEditorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(session.baseline == nil ? "新建个人笔记" : "个人笔记").font(.title2)
-                Spacer()
-                Text(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存").foregroundStyle(.secondary)
-            }
-            TextField("标题（必填）", text: $session.draft.title).textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("note-editor-title")
-            HStack {
-                TextField("分类（可选，单一文本）", text: Binding(
-                    get: { session.draft.category ?? "" }, set: { session.draft.category = $0.isEmpty ? nil : $0 }))
-                    .accessibilityIdentifier("note-editor-category")
-                Menu("已有分类") {
-                    Button("未分类") { session.draft.category = nil }
-                    ForEach(PersonalNotesQuery.categories(store.notes), id: \.self) { name in
-                        Button(name) { session.draft.category = name }
-                    }
+        Form {
+            Section("笔记") {
+                LabeledContent("标题") {
+                    TextField("必填", text: $session.draft.title)
+                        .accessibilityIdentifier("note-editor-title")
                 }
-                Toggle("收藏", isOn: $session.draft.isFavorite)
-                if session.baseline != nil { Toggle("归档", isOn: $session.draft.isArchived) }
+                HStack {
+                    TextField("分类（可选，单一文本）", text: Binding(
+                    get: { session.draft.category ?? "" }, set: { session.draft.category = $0.isEmpty ? nil : $0 }))
+                        .accessibilityIdentifier("note-editor-category")
+                    Menu("已有分类") {
+                        Button("未分类") { session.draft.category = nil }
+                        ForEach(PersonalNotesQuery.categories(store.notes), id: \.self) { name in
+                            Button(name) { session.draft.category = name }
+                        }
+                    }
+                    Toggle("收藏", isOn: $session.draft.isFavorite)
+                    if session.baseline != nil { Toggle("归档", isOn: $session.draft.isArchived) }
+                }
+                if let saved = session.baseline {
+                    Text("创建 \(CosmosDate.timestamp(saved.createdAt)) · 更新 \(CosmosDate.timestamp(saved.updatedAt)) · 已保存 r\(saved.revision) · 内容 v\(saved.contentVersion ?? 0)\(saved.isArchived ? " · 已归档" : "")")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
-            if let saved = session.baseline {
-                Text("创建 \(CosmosDate.timestamp(saved.createdAt)) · 更新 \(CosmosDate.timestamp(saved.updatedAt)) · 已保存 r\(saved.revision) · 内容 v\(saved.contentVersion ?? 0)\(saved.isArchived ? " · 已归档" : "")")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Picker("", selection: $tab) { ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
-                .pickerStyle(.segmented).labelsHidden()
-            Group {
+            Section(tab.rawValue) {
                 switch tab {
                 case .body: bodyTab
                 case .history: historyTab
                 case .references: referencesTab
                 }
-            }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            if let saved = session.baseline, tab != .history {
-                ContentExportSingleButton(title: "导出已保存正文（.md）…",
-                    request: ContentExportSingleRequest(source: .personalNote, id: saved.id,
-                        version: .current(expectedVersionID: saved.currentVersionID)),
-                    libraries: store.exportLibraries, hasUnsavedDraft: session.isDirty, identifier: "note-export-current")
             }
-            Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
-                .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-                .accessibilityIdentifier("note-editor-message")
-            HStack {
-                Button("复制完整正文", systemImage: "doc.on.doc") { session.copyBody() }
-                    .accessibilityIdentifier("note-editor-copy")
-                if session.baseline != nil { Button("重新加载保存版本…") { confirmReload = true } }
-                Spacer()
-                Button("保存") { Task { await session.save() } }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(!store.canSave || session.saving).accessibilityIdentifier("note-editor-save")
+            Section {
+                Text(session.message.isEmpty ? (store.error?.localizedDescription ?? "") : session.message)
+                    .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                    .accessibilityIdentifier("note-editor-message")
             }
         }
-        .padding(24).frame(minWidth: 720, minHeight: 560)
-        .disabled(session.saving || session.terminationPending)
+            .formStyle(.grouped).scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(minWidth: 720, minHeight: 560)
+            .disabled(session.saving || session.terminationPending)
+            .navigationTitle(session.draft.title.isEmpty ? "新建个人笔记" : session.draft.title)
+            .navigationSubtitle(session.saving ? "保存中…" : session.isDirty ? "未保存" : "已保存")
+            .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("笔记页面", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }.pickerStyle(.segmented).labelsHidden()
+                    .disabled(session.saving || session.terminationPending)
+            }
+            ToolbarItemGroup {
+                Button("复制完整正文", systemImage: "doc.on.doc") { session.copyBody() }
+                    .disabled(session.saving || session.terminationPending)
+                    .accessibilityIdentifier("note-editor-copy")
+                if session.baseline != nil {
+                    Button("重新加载保存版本…", systemImage: "arrow.clockwise") { confirmReload = true }
+                        .disabled(session.saving || session.terminationPending)
+                }
+                if let saved = session.baseline, tab != .history {
+                    ContentExportSingleButton(title: "导出已保存正文（.md）…",
+                    request: ContentExportSingleRequest(source: .personalNote, id: saved.id,
+                    version: .current(expectedVersionID: saved.currentVersionID)),
+                    libraries: store.exportLibraries, hasUnsavedDraft: session.isDirty, identifier: "note-export-current")
+                        .disabled(session.saving || session.terminationPending)
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("保存", systemImage: "square.and.arrow.down") { Task { await session.save() } }
+                    .cosmosWindowPrimaryAction().keyboardShortcut("s", modifiers: .command)
+                    .disabled(!store.canSave || session.saving || session.terminationPending)
+                    .accessibilityIdentifier("note-editor-save")
+            }
+        }
         .alert("放弃当前草稿并重新加载？", isPresented: $confirmReload) {
             Button("取消", role: .cancel) {}
             Button("重新加载", role: .destructive) { Task { await session.reload() } }
@@ -246,6 +263,7 @@ struct PersonalNoteEditorView: View {
             Text("正文 · 纯文本 / Markdown 源文，不渲染、不联网、不执行脚本；空白与换行按原样保存，正文可暂时留空。")
                 .font(.caption).foregroundStyle(.secondary)
             TextEditor(text: $session.draft.body).font(.system(.body, design: .monospaced))
+                .frame(minHeight: 300)
                 .accessibilityIdentifier("note-editor-body")
                 .overlay(Rectangle().stroke(Color(nsColor: .separatorColor)))
             Text("\(session.draft.body.utf8.count) / \(PersonalNotesLimits.bodyBytes) 字节").font(.caption).foregroundStyle(.secondary)
@@ -378,7 +396,6 @@ final class PersonalNoteWindowManager: NSObject, NSWindowDelegate, CosmosTermina
     private struct Entry {
         let controller: NSWindowController
         let session: PersonalNoteEditSession
-        let titleSync: AnyCancellable
     }
     private var entries: [String: Entry] = [:]
     private var closing: Set<String> = [], approved: Set<String> = []
@@ -410,19 +427,14 @@ final class PersonalNoteWindowManager: NSObject, NSWindowDelegate, CosmosTermina
         let session = PersonalNoteEditSession(store: store, note: note)
         let key = key(store: store, noteID: session.draft.id)
         if let old = entries[key] { old.controller.window?.makeKeyAndOrderFront(nil); return old.session }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 740),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = note?.title ?? "新建个人笔记"
-        window.identifier = NSUserInterfaceItemIdentifier(key)
-        window.minSize = NSSize(width: 720, height: 600)
-        window.contentViewController = NSHostingController(rootView: PersonalNoteEditorView(session: session, store: store))
-        window.delegate = self; window.isReleasedWhenClosed = false
-        let titleSync = session.$baseline.sink { [weak window] saved in
-            if let saved { window?.title = saved.title }
-        }
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: note?.title ?? "新建个人笔记",
+                contentSize: NSSize(width: 880, height: 740), minSize: NSSize(width: 720, height: 600),
+                identifier: key, frameMemoryKey: "noteEditor", delegate: self),
+            rootView: PersonalNoteEditorView(session: session, store: store))
         let controller = NSWindowController(window: window)
-        entries[key] = Entry(controller: controller, session: session, titleSync: titleSync)
-        window.center(); controller.showWindow(nil)
+        entries[key] = Entry(controller: controller, session: session)
+        controller.showWindow(nil)
         return session
     }
 

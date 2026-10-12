@@ -25,8 +25,7 @@ struct ZhuowangAssetDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            CosmosPageHeader(entry?.artifact.name ?? "选中版本已不可用", subtitle: "工作产物 · 版本与来源核对",
-                info: "刷新重新核对数据并关闭本中心打开的旧预览。未核对不会标记一致，不改变采用版本。")
+            CosmosInfoButton(text: "刷新重新核对数据并关闭本中心打开的旧预览。未核对不会标记一致，不改变采用版本。")
             Picker("具体版本", selection: $selectedID) {
                 if entry == nil { Text("原版本已消失，请显式选择").tag(selectedID) }
                 ForEach(versions) { version in
@@ -60,23 +59,29 @@ struct ZhuowangAssetDetailView: View {
                         ContentUnavailableView("此版本没有可展示的文本正文", systemImage: "doc",
                             description: Text("可使用受支持的文件预览；不提取 Word / PDF 正文。"))
                     }
-                    HStack {
-                        Button("安全预览", systemImage: "macwindow") { perform(.preview) }
-                            .disabled(bodyResult.text == nil && bodyResult.admittedPath == nil)
-                        Button("Finder 定位", systemImage: "folder") { perform(.reveal) }
-                            .disabled(bodyResult.admittedPath == nil)
-                        Button("复制完整正文", systemImage: "doc.on.doc") { perform(.copy) }
-                            .disabled(!bodyResult.canCopy)
-                    }
                 } else { ProgressView("正在重新核对版本和正文…") }
             } else {
                 Text(model.error ?? "刷新后原版本已消失；不会自动切换到其他版本或沿用旧正文。")
                 Spacer()
             }
             Text(message).font(.caption).foregroundStyle(.secondary)
-            Button("刷新并重新核对") { bodyResult = nil; message = "数据已刷新，请核对当前版本。"; model.refresh() }
         }
         .padding(24).frame(minWidth: 620, minHeight: 520)
+        .navigationTitle(entry.map { $0.campaignName + " · " + $0.artifact.name } ?? "选中版本已不可用")
+        .navigationSubtitle("工作产物 · 版本与来源核对")
+        .toolbar {
+            ToolbarItemGroup {
+                Button("安全预览", systemImage: "macwindow") { perform(.preview) }
+                    .disabled(bodyResult == nil || (bodyResult?.text == nil && bodyResult?.admittedPath == nil))
+                Button("Finder 定位", systemImage: "folder") { perform(.reveal) }
+                    .disabled(bodyResult?.admittedPath == nil)
+                Button("复制完整正文", systemImage: "doc.on.doc") { perform(.copy) }
+                    .disabled(bodyResult?.canCopy != true)
+                Button("刷新并重新核对", systemImage: "arrow.clockwise") {
+                    bodyResult = nil; message = "数据已刷新，请核对当前版本。"; model.refresh()
+                }
+            }
+        }
         .task(id: requestIdentity) {
             bodyResult = nil; message = ""
             bodyResult = await model.resolveDetail(id: selectedID)
@@ -113,18 +118,16 @@ final class ZhuowangAssetDetailWindowManager: NSObject, NSWindowDelegate {
         let key = "asset-detail::" + entry.groupID
         let view = ZhuowangAssetDetailView(model: model, groupID: entry.groupID, selectedID: entry.id)
         if let window = controllers[key]?.window {
-            window.contentViewController = NSHostingController(rootView: view)
+            window.contentViewController = CosmosWindowFactory.makeHostingController(rootView: view)
             window.makeKeyAndOrderFront(nil); return
         }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = entry.campaignName + " · " + entry.artifact.name
-        window.minSize = NSSize(width: 800, height: 620)
-        window.identifier = NSUserInterfaceItemIdentifier(key)
-        window.contentViewController = NSHostingController(rootView: view)
-        window.delegate = self; window.collectionBehavior.insert(.fullScreenPrimary)
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: entry.campaignName + " · " + entry.artifact.name,
+                contentSize: NSSize(width: 960, height: 760), minSize: NSSize(width: 800, height: 620),
+                identifier: key, frameMemoryKey: "assetDetail", allowsFullScreen: true, delegate: self),
+            rootView: view)
         let controller = NSWindowController(window: window); controllers[key] = controller
-        window.center(); controller.showWindow(nil)
+        controller.showWindow(nil)
     }
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, let key = window.identifier?.rawValue else { return }

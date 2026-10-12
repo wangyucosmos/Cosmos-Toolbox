@@ -122,6 +122,7 @@ struct AIWorkspaceHandoffDetailView: View {
                 Button("核对当前关联") { associationMessage = association() }
             }
         }.padding(24).frame(minWidth: 760, minHeight: 560)
+            .navigationTitle("交接快照 · " + record.campaignName + " · " + record.stepName)
             .task { associationMessage = association() }
     }
 }
@@ -131,16 +132,14 @@ final class AIWorkspaceHandoffDetailWindowManager: NSObject, NSWindowDelegate {
     private var controllers: [UUID: NSWindowController] = [:]
     func open(record: AIWorkspaceHandoffRecord, association: @escaping () -> String) {
         if let window = controllers[record.id]?.window { window.makeKeyAndOrderFront(nil); return }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 740),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "交接快照 · " + record.campaignName + " · " + record.stepName
-        window.minSize = NSSize(width: 800, height: 600)
-        window.identifier = NSUserInterfaceItemIdentifier(record.id.uuidString)
-        window.contentViewController = NSHostingController(rootView: AIWorkspaceHandoffDetailView(record: record, association: association))
-        window.delegate = self
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(title: "交接快照 · " + record.campaignName + " · " + record.stepName,
+                contentSize: NSSize(width: 980, height: 740), minSize: NSSize(width: 800, height: 600),
+                identifier: record.id.uuidString, frameMemoryKey: "handoffSnapshot", delegate: self),
+            rootView: AIWorkspaceHandoffDetailView(record: record, association: association))
         let controller = NSWindowController(window: window)
         controllers[record.id] = controller
-        window.center(); controller.showWindow(nil)
+        controller.showWindow(nil)
     }
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, let raw = window.identifier?.rawValue,
