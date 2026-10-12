@@ -10,10 +10,10 @@
 
 ## 1. 当前检查点
 
-- **日期 / 分支：** 2026-10-12，`native/batch2`；main / origin/main=`8d4107f`。第二批已集成：主线 A–C `9ba998c` + Claude 工厂 / 位置记忆 `4f61f25` + Codex 八类窗口接线与两处详情记忆。工程验证通过，提交后部署；尚未由用户实机验收，不合入 main、不推送。
+- **日期 / 分支：** 2026-10-12，`native/batch2`；main / origin/main=`8d4107f`。第二批已集成：主线 A–C `9ba998c` + Claude 工厂 / 位置记忆 `4f61f25` + Codex 八类窗口接线与两处详情记忆。工程验证通过，部署 `217120f`（Universal Release、dirty=false）；尚未由用户实机验收，不合入 main、不推送。
 - **范围：** 分类栏玻璃标签、三个 sheet 与修改意见原生 toolbar、设置 grouped Form；Review / 比较 / 快照 / 资产详情及项目 / 笔记 / 提示词 / 学习编辑接入工厂（学习分主题 / 记录）；活动详情与 Artifact 详情仅加位置记忆。身份键、关闭保护、Store / schema / 采用选择不改。
-- **本轮验证：** Debug 构建成功；隔离宿主 `com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch2` 全量 669/669、0失败/0跳过；72对互切通过。16张窗口浅深内容截图，Form / 正文区域可见；比较左窗格及资产外层离屏黑块、原生标题 / toolbar不在缓存内，不代表实机验收。开工 / 测试后 14文件与5业务键指纹一致，补齐窗口线结束复核。
-- **日常 App：** 当前仍第一批 `00671aa`；回退副本 `Cosmos Toolbox-20261012-105302-6472e5de.app` 保留。第二批部署结果在执行后补记。下一模块为第三批（§12），不自动启动。
+- **本轮验证：** Debug 构建成功；隔离宿主 `com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch2` 全量 669/669、0失败/0跳过；72对互切通过。16张窗口浅深内容截图，Form / 正文区域可见；比较左窗格及资产外层离屏黑块、原生标题 / toolbar不在缓存内，不代表实机验收。开工 / 测试后 / 部署前后 14文件与5业务键指纹一致，补齐窗口线结束复核。
+- **日常 App：** 第二批 `217120f` 已安装并启动；最近回退副本 `Cosmos Toolbox-20261012-213020-7e4b6733.app`（第一批00671aa），既有副本保留。下一模块为第三批（§12），不自动启动。
 
 ---
 
@@ -40,7 +40,7 @@
 | 卓望工作区主页面改版（第三步 A） | 卓望工作 → 导航 / 概览 / 活动 / 推进工作台 / 资料 | 已验收、已合入 main | 71fb8ce；呈现修复 1d1ce51 | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效未实测；窄宽裁切与 A 深色标签已修复 |
 | 活动详情窗口改版（第三步 B） | 活动详情 → 概览 / Workflow / 工作产物 / 月度清单 / 交付包 | 已验收、已合入 main | 6d4a574；集成 953467e | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效、HTML Review 实际渲染未实测 |
 | 体验打磨轮 | 图表 / 响应式 / 导航记忆 / Prompt性能 / 日期 / AI引导 / 占位 | 已验收、已合入 main | 1e09b1c修复；bb722d2快进合入 | 2026-10-12 开发日志 | 合成离屏计时不等于Release体感；原生List已恢复；用户接受声明范围；拖动光标与重启记忆未增加工具验证 |
-| 原生化第二批 | 分类栏 / sheet / 设置 / 八类窗口与详情记忆 | 已集成、669测试与72对通过，待部署及实机验收 | A–C 9ba998c；工厂记忆 4f61f25；接线本轮提交（未合入main） | 2026-10-12 开发日志 | 身份/关闭保护保持；玻璃、toolbar、位置效果待实机；无业务格式变化 |
+| 原生化第二批 | 分类栏 / sheet / 设置 / 八类窗口与详情记忆 | 已集成部署、669测试与72对通过，待实机验收 | A–C 9ba998c；工厂记忆 4f61f25；接线/部署217120f（未合入main） | 2026-10-12 开发日志 | 身份/关闭保护保持；玻璃、toolbar、位置效果待实机；无业务格式变化 |
 | Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 已验收、已合入 main | 00671aa | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
@@ -146,7 +146,7 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261012-105302-6472e5de.app`；历史副本不自动清理。本轮部署代码 `00671aa`（Universal Release、dirty=false），回退副本为开工前正式 App；没有业务格式变化，历史 schema 降级风险仍按 §5。
+- **最近一次回退副本：** `Cosmos Toolbox-20261012-213020-7e4b6733.app`（第一批00671aa）；历史副本不清理。当前部署 `217120f`（Universal Release、dirty=false），没有业务格式变化；schema降级风险按§5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -248,6 +248,6 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 12. 下一优先级
 
-**第三批（另定范围后启动）：** 3.1 活动详情标签与操作进入原生窗口工具栏；3.2 卓望二级栏改 `List(.sidebar)`；3.3 笔记与知识库原生化。第二批工程已集成验证，部署后先由用户接受声明的实机验收范围，再收尾 Git；本轮不启动第三批，不合入 main / 推送 / 删除分支或 worktree。
+**第三批（另定范围后启动）：** 3.1 活动详情标签与操作进入原生窗口工具栏；3.2 卓望二级栏改 `List(.sidebar)`；3.3 笔记与知识库原生化。第二批工程已集成验证并部署，先由用户接受声明的实机验收范围，再收尾 Git；本轮不启动第三批，不合入 main / 推送 / 删除分支或 worktree。
 
 3.1 开工前核对活动详情现有 onAppear 恢复 / 迁移的幂等性与触发时机；本批仅接位置记忆，没有改 header、标签或业务方法。暂缓事项保持暂缓。

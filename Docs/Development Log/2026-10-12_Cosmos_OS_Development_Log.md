@@ -317,3 +317,13 @@
 - 部署计划（此时尚未执行）：全部提交并确认干净后，原/usr/bin/python3 scripts/deploy-macos.py，Universal Release/dirty=false，正常旧App退出（被阻止即停，不强杀）。当前仍第一批00671aa和回退副本Cosmos Toolbox-20261012-105302-6472e5de.app，实际新部署/回退名执行后追加，不把计划当结果。
 - 实机验收范围：分类栏/横滚、窗口拖动缩放与关闭重开记忆/同类错开、toolbar玻璃与按钮位置、编辑未保存关闭提醒、三个sheet/修改意见与设置、系统/Cosmos减少动效、深浅色；工程可进入部署，实机尚未接受。下一模块第三批3.1详情toolbar、3.2 List.sidebar、3.3笔记/知识库，另定范围，不提前开发。
 - 可复用：fullSizeContentView与自绘header迁移同批；toolbar单独禁用不依赖内容disabled；视图驱动标题删除双写sink；窗口身份/关闭保护归Manager，位置偏好仅由工厂/FrameMemory管理。用户偏好是接手续作、沿用有效成果与一次集中验证，不因工具切换重做已完成模块。
+
+
+### 第二批部署完成与结束确认
+
+- 实现 / 截图验证 / 状态与待部署日志提交：217120f892443ea95966bad2a3a6583b3896fe34（feat: 完成原生化第二批窗口接线与集成验证，13文件）；逐文件add，提交后status干净才执行部署。合并提交9e71fe9，窗口线4f61f25纳入主线，main/origin/main仍8d4107f，无push/删除/清理。
+- 原脚本/usr/bin/python3 scripts/deploy-macos.py exit0；Universal Release BUILD SUCCEEDED、双架构arm64+x86_64与codesign校验由脚本确认；旧App正常退出，无强杀。安装/启动/Users/rainiesmac-15/Applications/Cosmos Toolbox.app，确认PID18226；实际Info.plist复核正式Bundle=com.wangyucosmos.Cosmos-Toolbox，CosmosBuildCommit=217120f892443ea95966bad2a3a6583b3896fe34、CosmosBuildDirty=false、CosmosBuildConfiguration=Release。
+- 新回退副本：/Users/rainiesmac-15/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261012-213020-7e4b6733.app，实际读取其Info.plist确认是已验收第一批00671aa；既有Cosmos Toolbox-20261012-105302-6472e5de.app与其他历史副本保留。部署日志/private/tmp/CosmosNativeBatch2-int-deploy.log，Release日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-jyghozra/build.log，安装元数据/private/tmp/CosmosNativeBatch2-installed-build.json。
+- 正式指纹integration-before / integration-after-tests / integration-before-deploy / integration-after-deploy四份精确一致：14个Workspaces文件路径/大小/mtime_ns与5个主业务键Data SHA-256；与此前A–C原始before亦一致。完成Claude结束复核与本轮部署后核对；不声明整份plist相同（UI偏好可变）。无业务数据变化或采用选择变化。
+- Current Status更新实际部署与回退副本，体积38901字节≤40KB。部署后二次提交仅文档，不改代码、不重复部署；部署版本明确保持217120f，分支HEAD将是文档收尾提交。保留native/batch2-windows worktree与native/window-factory、两WIP分支。
+- 结论：第二批工程实现、集中验证、提交与本地部署完成；用户实机尚未验收，main未合入、远端未推送。非阻塞离屏玻璃/title/toolbar/标签/部分窗格黑块、笔记历史/引用页与文件面板无新增视觉证据、既有技术债不扩大本轮。第三批范围与实机验收见当前状态§9/§12，本轮不自动启动。
