@@ -128,3 +128,5 @@
 - 原deploy-macos.py沙箱外构建Universal Release成功，正常退出旧App、保留回退并启动安装路径新版；源码1e09b1c，dirty=false，PID71068。回退 Cosmos Toolbox-20261012-101228-3221e7d2.app；日志 /private/tmp/CosmosClose-deploy.log。未修改工程、scheme、xcconfig或仓库测试宿主配置。
 - 正式数据shell快照 close-before、close-after-tests、close-after-deploy：14工作文件path/size/mtime_ns及5个卓望业务键SHA-256完全一致。证据 /private/tmp/CosmosStep3Integration-close-*.json；无数据格式变化，不改业务Store/Workflow/恢复/采用，不运行Provider/Harness。
 - 正式文档只更新Current Status与本日志，保留历史失败记录并消除当前阻塞描述。main/origin/main仍fee48c5，不移动、不推送、不删除分支/worktree。本轮可工程收口，等待用户体验验收。
+
+- 正式收尾：用户已体验验收体验打磨轮并接受声明范围；开工polish/ui-round4 @bb722d2、干净、main/origin/main fee48c5且唯一正式worktree；main快进至bb722d2并正常推送，ls-remote一致、0/0、干净，git branch -d安全删除polish/ui-round4；未触碰两个指定WIP分支。下一步Mac版原生化改造（依据Claude Code原生化审计报告），之后卓望分类内容接入。此次只更新Current Status与本日志并以“docs: 记录体验打磨轮验收与合并”提交推送，不重新构建、部署或测试。
