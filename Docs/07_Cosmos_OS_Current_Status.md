@@ -11,8 +11,8 @@
 ## 1. 当前检查点
 
 - **日期：** 2026-10-12。**开发分支：** `native/batch1`，开工 main / origin/main = `515c795`；本轮不合并、不推送。
-- **状态：** Mac 原生化第一批 1.1–1.6 实现与集中验证完成，准备 Universal Release 部署；用户实机观感待验收。系统工具栏取代自绘玻璃组，五套分段改为原生 Picker，内容按钮 / 表面统一系统样式，空状态使用 ContentUnavailableView；删除悬停缩放、错峰入场和侧栏弹跳，加入系统滚动 / 数字 / 图标效果，遵循系统与 Cosmos 减少动效。
-- **本轮验证：** Debug build-for-testing 成功；641 个唯一测试通过（全量一次）；72 对有向页面切换通过，卓望工具栏选中时 1 项、切走 0 项。目标五页浅 / 深共 10 张离屏截图已自查，正式 14 文件与 5 个业务键 SHA-256 与开工前一致。离屏不证明标题栏 / 玻璃 / 动效实机表现；设置 TabView 标签离屏绘制缺口保留。业务数据 / Store / 路径 / Workflow / 渲染器不改；Prompt Store 来源、保留工作区与检索聚焦不变。
+- **状态：** Mac 原生化第一批 1.1–1.6 实现、集中验证与 Universal Release 部署完成（代码 00671aa，dirty=false）；用户实机观感待验收。系统工具栏取代自绘玻璃组，五套分段改为原生 Picker，内容按钮 / 表面统一系统样式，空状态使用 ContentUnavailableView；删除悬停缩放、错峰入场和侧栏弹跳，加入系统滚动 / 数字 / 图标效果，遵循系统与 Cosmos 减少动效。
+- **本轮验证：** Debug build-for-testing 成功；641 个唯一测试通过（全量一次）；72 对有向页面切换通过，卓望工具栏选中时 1 项、切走 0 项。目标五页浅 / 深共 10 张离屏截图已自查，测试后 / 部署后正式 14 文件与 5 个业务键 SHA-256 均与开工前一致。离屏不证明标题栏 / 玻璃 / 动效实机表现；设置 TabView 标签离屏绘制缺口保留。业务数据 / Store / 路径 / Workflow / 渲染器不改；Prompt Store 来源、保留工作区与检索聚焦不变。
 
 
 ---
@@ -40,7 +40,7 @@
 | 卓望工作区主页面改版（第三步 A） | 卓望工作 → 导航 / 概览 / 活动 / 推进工作台 / 资料 | 已验收、已合入 main | 71fb8ce；呈现修复 1d1ce51 | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效未实测；窄宽裁切与 A 深色标签已修复 |
 | 活动详情窗口改版（第三步 B） | 活动详情 → 概览 / Workflow / 工作产物 / 月度清单 / 交付包 | 已验收、已合入 main | 6d4a574；集成 953467e | 2026-10-12 开发日志 | 真实点击、玻璃效果、动效、HTML Review 实际渲染未实测 |
 | 体验打磨轮 | 图表 / 响应式 / 导航记忆 / Prompt性能 / 日期 / AI引导 / 占位 | 已验收、已合入 main | 1e09b1c修复；bb722d2快进合入 | 2026-10-12 开发日志 | 合成离屏计时不等于Release体感；原生List已恢复；用户接受声明范围；拖动光标与重启记忆未增加工具验证 |
-| Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 集中验证完成、待部署与实机体验 | 本轮分支 native/batch1 | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
+| Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 已部署、待用户实机体验 | 00671aa（未合入main） | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
 | AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
@@ -143,7 +143,7 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261012-001037-0bc8876a.app`；历史副本不自动清理。第三步没有业务数据格式变化，本副本回到此前第二步程序；历史 schema 降级风险仍按 §5。
+- **最近一次回退副本：** `Cosmos Toolbox-20261012-105302-6472e5de.app`；历史副本不自动清理。本轮部署代码 `00671aa`（Universal Release、dirty=false），回退副本为开工前正式 App；没有业务格式变化，历史 schema 降级风险仍按 §5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -241,4 +241,4 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 12. 下一优先级
 
-**Mac 原生化第一批已完成集中验证，部署与用户实机体验后再授权 main 合并 / 推送；下一批是窗口与 sheet 原生化。** 第二批按新提示词接入窗口工厂、独立窗口工具栏和 sheet 原生导航；Claude 的 native/window-factory worktree 与新增文件保持独立，不自动整合。随后再推进第三批与卓望分类内容接入；暂缓事项不恢复。
+**Mac 原生化第一批已验证并部署；用户实机体验后再另行授权 main 合并 / 推送。下一批是窗口与 sheet 原生化。** 第二批按新提示词接入窗口工厂、独立窗口工具栏和 sheet 原生导航；Claude 的 native/window-factory worktree 与新增文件保持独立，不自动整合。随后再推进第三批与卓望分类内容接入；暂缓事项不恢复。

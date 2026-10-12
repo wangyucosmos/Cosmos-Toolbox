@@ -225,3 +225,24 @@
 - `Apps/CosmosOS/Cosmos ToolboxTests/CosmosStep2ATests.swift`
 
 文档：`Docs/Reviews/2026-10-12_Mac原生化审计.md`、`Docs/07_Cosmos_OS_Current_Status.md`、本当日日志；按 §23 不重复维护 PROJECT_BRIEF / PAGE_MAP / DATA_MAP / CHANGELOG。
+
+
+### 第一批部署与收尾确认
+
+- 实现 / 验证 / 审计与待部署文档提交：00671aa39e7e88395adb373cb3340b9e7d13da14（feat: 完成Mac原生化第一批与系统动效替换，47文件）；提交后干净才执行原脚本。之后只补记部署结果，代码不变，文档提交不重新部署。
+- /usr/bin/python3 scripts/deploy-macos.py 成功（exit0）：Universal Release BUILD SUCCEEDED，lipo=x86_64 arm64；codesign校验通过。旧 App 正常退出（或原本未运行），未强杀；安装 /Users/rainiesmac-15/Applications/Cosmos Toolbox.app 并确认启动 PID80061。正式 Bundle=com.wangyucosmos.Cosmos-Toolbox；CosmosBuildCommit=00671aa39e7e88395adb373cb3340b9e7d13da14、CosmosBuildDirty=false、CosmosBuildConfiguration=Release。
+- 实际回退副本：/Users/rainiesmac-15/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-20261012-105302-6472e5de.app。部署日志 /private/tmp/CosmosNativeBatch1-deploy.log；Release构建日志 /var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-x9ykns97/build.log；安装元数据 /private/tmp/CosmosNativeBatch1-installed-build.json。
+- xcresulttool正式摘要确认 641 total / 641 passed / 0 failed / 0 skipped，与日志唯一用例计数一致。本轮全部验证为实测，未用历史测试替代；历史只用于开工指纹 / 边界校准。结果缓存读取需沙箱外，不重新执行测试。
+- 正式数据 before / after-tests / before-deploy / after-deploy 四份快照完全一致：14文件path / size / mtime_ns、5现存业务主键逐键SHA-256。完整清单 /private/tmp/CosmosNativeBatch1-*.json；不声明整份plist一致（窗口偏好允许变化）。具体主键如下（四次相同）：
+
+| 主键 | 开工 / 测试后 / 部署前 / 部署后 SHA-256 |
+|---|---|
+| `cosmos.zhuowang.ai.connections.v1` | `848fab49d50bdb500db1be2cf42ba64550d17a1a5c5141f069c8371909352575` |
+| `cosmos.zhuowang.ai.providers.v1` | `4d9a62428d34daafd72337a6ae9efeafa1073a50e1d6377db0eddc39abd92576` |
+| `cosmos.zhuowang.campaigns.v1` | `fdba5400eea8b0a0423db9e1e326fa83c0f57fb7404638cccbcb0617333e5db6` |
+| `cosmos.zhuowang.workflows.v1` | `6e0ac59f6057039d71150483a9ea69f9e693cafa89c5d60a4f542f9ffac5b6bc` |
+| `cosmos.zhuowang.workspace.v1` | `e3fde02252223fa335e0a4a32d9b809240cd044289f46712eef52d4570c2789e` |
+
+- 当前 Current Status 体积 <40KB；§1 / §3 / §6 / §9 / §12已更新。正式数据没有变更。仅提交本轮分支，不推送、不快进main；main / origin/main仍515c795；Word与PDF WIP分支保留。Claude此时已建立 /Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox-window-factory（native/window-factory），未触碰。
+- 阶段结论：工程实现、自动验证与部署可收尾，用户实机观感待验收。实机逐页建议：仪表盘（工具栏玻璃分组、滚动边缘 / 入场、指标数字）；卓望（管理项随页面显隐、分类segmented、指标 / 活动卡片）；Prompt（工具栏、正文系统按钮、滚动）；设置（TabView / toolbar、减少动效、深浅色）；活动详情（原位segmented、正文按钮 / 滚动、Workflow状态图标）；补看个人笔记收藏、Mac刷新与AI检测中效果；AI检测不代表Provider任务，不需执行真实Provider。全局减少动效开启后检查原生效果降级。
+- 非阻塞：离屏设置TabView标签绘制缺口、真实玻璃 / 动效未验收、KnowledgeHubView测试引用未清理、既有Swift6隔离警告、窗口与sheet原生化留第二批；不增加本轮修复或测试。
