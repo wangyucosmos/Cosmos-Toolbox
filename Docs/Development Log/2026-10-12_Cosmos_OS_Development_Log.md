@@ -114,3 +114,17 @@
 - 停止时未提交2文件：UnifiedSearchView.swift、CosmosExperiencePolishTests.swift。保留尝试，不重置、不清理；当前安装仍阶段5c37008，未部署这些尝试。
 - shell快照 /private/tmp/CosmosStep3Integration-native-{before,after-tests,stopped}.json：14工作文件path/size/mtime_ns及5业务键SHA-256完全一致。无格式/存储/Workflow/恢复算法变化；未运行Provider或Harness。
 - 修改文件：CosmosExperienceUI.swift、CosmosNavigator.swift、CosmosUIPreferences.swift、CosmosWorkspaceUI.swift、DashboardView.swift、KnowledgeSourceViews.swift、ProjectsView.swift、PromptVaultView.swift、UnifiedSearchView.swift、ZhuowangWorkspaceView.swift、CosmosExperiencePolishTests.swift；正式文档仅Current Status与本日志。未改工程、scheme、xcconfig或仓库测试宿主配置。
+
+
+## 本轮收口：检索聚焦与动态二级栏宽度（1e09b1c）
+
+- 用户追加一轮集中收口，基线 polish/ui-round4 @e9ef4f3，两个未提交焦点尝试文件符合交接；按授权 git restore --source=e9ef4f3 恢复 UnifiedSearchView.swift 与 CosmosExperiencePolishTests.swift，不使用 reset/clean/stash。
+- 用户明确取消仪表盘快捷进入检索自动聚焦，属于需求调整，不是削弱测试。空白关键词导航与侧栏进入均不主动聚焦，保留页面“按⌘F开始搜索”、⌘F聚焦；非空关键词跳转仍预填并沿用既有焦点实现，不再调时序。
+- 卓望最小栏宽由实际最长行计算：当前文字大小字体、名称（以选中semibold测量）、图标、计数徽标、注意点、内边距和系统滚动条占位。渲染与测量使用同一字体；旧保存宽度低于新下限时按下限显示，常规上限360pt，必要下限优先。原生分栏拖动观察与页面切换修复不改。
+- 源码/测试四文件：CosmosNavigator.swift、CosmosWorkspaceUI.swift、ZhuowangWorkspaceView.swift、CosmosExperiencePolishTests.swift；逐文件提交 `fix: 收口统一检索聚焦与卓望二级栏宽度` @1e09b1c7c08f70d147730182b680a3ac71247d33。UnifiedSearchView.swift恢复后无diff。
+- Debug build-for-testing通过。串行23个唯一测试通过：ExperiencePolish受影响5项、UnifiedSearch12项、WorkspaceUI6项。保留侧栏不聚焦、命令聚焦断言，空白快捷入口预期为不聚焦；新增动态下限、文字大小、长名称、徽标、旧偏好与上限验证。
+- 72对有向切换均 fade_begin=1、fade_commit=1、host_remount=0、workspace_second_selection=0，页面切换代码未动。矩阵 /private/tmp/CosmosCloseAcceptance-matrix/matrix.csv；测试日志 /private/tmp/CosmosClose-tests.log。
+- 8张离屏图（900/1440宽 × 浅/深 × 标准/特大文字）已查看，推进工作台等名称完整单行、900宽无右侧溢出。目录 /private/tmp/CosmosClose-workspace-screenshots，拼图 /private/tmp/CosmosClose-workspace-review.png。离屏图不证明真实拖动光标与重启宽度记忆，这两项按用户要求列为待用户体验验收，不继续工具尝试。
+- 原deploy-macos.py沙箱外构建Universal Release成功，正常退出旧App、保留回退并启动安装路径新版；源码1e09b1c，dirty=false，PID71068。回退 Cosmos Toolbox-20261012-101228-3221e7d2.app；日志 /private/tmp/CosmosClose-deploy.log。未修改工程、scheme、xcconfig或仓库测试宿主配置。
+- 正式数据shell快照 close-before、close-after-tests、close-after-deploy：14工作文件path/size/mtime_ns及5个卓望业务键SHA-256完全一致。证据 /private/tmp/CosmosStep3Integration-close-*.json；无数据格式变化，不改业务Store/Workflow/恢复/采用，不运行Provider/Harness。
+- 正式文档只更新Current Status与本日志，保留历史失败记录并消除当前阻塞描述。main/origin/main仍fee48c5，不移动、不推送、不删除分支/worktree。本轮可工程收口，等待用户体验验收。
