@@ -40,16 +40,15 @@ struct CosmosSettingsView: View {
     }
     private var about: some View {
         let info = Bundle.main.infoDictionary ?? [:]
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                CosmosPageHeader("Cosmos OS", subtitle: "本地优先的个人工作操作系统")
+        return Form {
+            Section {
+                LabeledContent("应用", value: "Cosmos OS")
                 LabeledContent("版本", value: (info["CFBundleShortVersionString"] as? String ?? "未知") + "（构建 " + (info["CFBundleVersion"] as? String ?? "未知") + "）")
                 LabeledContent("Commit", value: info["CosmosBuildCommit"] as? String ?? "未记录（非部署构建）")
                 LabeledContent("源码状态", value: (info["CosmosBuildDirty"] as? Bool).map { $0 ? "含未提交改动" : "已提交源码" } ?? "未记录")
-                Divider()
-                storageLocations
-            }.font(CosmosDesign.font(.body)).textSelection(.enabled).padding(16)
-        }.scrollEdgeEffectStyle(.soft, for: .top)
+            } header: { Text("关于 Cosmos OS") } footer: { Text("本地优先的个人工作操作系统") }
+            Section("数据位置") { storageLocations }
+        }.formStyle(.grouped).textSelection(.enabled)
     }
     private var storageLocations: some View { CosmosSettingsLocations(source: source, restoreTarget: restoreTarget) }
 }
@@ -88,37 +87,35 @@ struct CosmosSettingsBackupView: View {
         _model = StateObject(wrappedValue: CoreBackupViewModel(source: source))
     }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                CosmosPageHeader("数据与备份", subtitle: "手动导出核心元数据，或只读校验已有备份。",
-                    info: "Cosmos 核心元数据 ZIP V3，不压缩，兼容读取 V1/V2。V1 不含 Projects 与个人笔记，V2 不含个人笔记。单源最多 16 MiB，包最多 128 MiB，清单最多 256 KiB。缺失主数据记为尚未建立，真实空库保留为已建立。源错误或变化时中止。读取前后检查修订、发布前逐源复读；不是跨进程事务，不能保证外部进程在最终检查后不再写入。SHA-256 不是签名或加密。")
-                Text("备份不包含文件实体，也不加密。已保存正文保留原文，请妥善保管备份；登记路径仍依赖原文件。").font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
-                GroupBox("包含范围") {
-                    Text("Campaign 与引用登记、Workspace / 省份配置、Workflow / Artifact / Run / Approval、AI 非敏感配置、提示词及版本、学习主题和记录、AI 交接、项目及进展、个人笔记正文及全部版本与引用登记。")
-                        .font(CosmosDesign.font(.body)).frame(maxWidth: .infinity, alignment: .leading).padding(8)
-                }
-                DisclosureGroup("不包含与安全排除（不是完整换机恢复）") {
-                    ForEach(CoreBackupSource.currentExclusions, id: \.self) { Text($0).font(CosmosDesign.font(.body)).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 4) }
+        Form {
+            Section {
+                Button("导出核心数据备份", systemImage: "square.and.arrow.up") { chooseExport() }.disabled(model.busy)
+                Button("校验备份", systemImage: "checkmark.shield") { chooseVerify() }.disabled(model.busy)
+                if let result = model.result {
+                    Button("在 Finder 中查看", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([result.url]) }
                 }
                 if model.busy { ProgressView() }
-                if let status = model.status { Text(status).font(CosmosDesign.font(.body)).textSelection(.enabled).accessibilityIdentifier("core-backup-status") }
+                if let status = model.status { Text(status).textSelection(.enabled).accessibilityIdentifier("core-backup-status") }
                 if let result = model.result {
                     ForEach(result.manifest.sources, id: \.id) { item in
-                        Text("\(item.id)：\(item.status == "missing" ? "尚未建立" : "已建立 · \(item.bytes) 字节")\(item.transformation == nil ? "" : " · 已安全转换")").font(CosmosDesign.font(.caption))
+                        LabeledContent(item.id, value: item.status == "missing" ? "尚未建立" : "已建立 · \(item.bytes) 字节")
+                        if let transformation = item.transformation { Text(transformation).font(.caption).foregroundStyle(.secondary) }
                     }
                 }
-                Divider()
-                CoreRestoreView(target: restoreTarget)
-                Divider()
-                CosmosSettingsLocations(source: source, restoreTarget: restoreTarget)
-            }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-        }.scrollEdgeEffectStyle(.soft, for: .top).accessibilityIdentifier("core-backup-settings")
-        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
-                    Button("导出核心数据备份", systemImage: "square.and.arrow.up") { chooseExport() }.disabled(model.busy).help("导出核心数据备份").labelStyle(.iconOnly)
-                    Button("校验备份", systemImage: "checkmark.shield") { chooseVerify() }.disabled(model.busy).help("校验备份").labelStyle(.iconOnly)
-                    if let result = model.result { Button("在 Finder 中查看", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([result.url]) }.help("在 Finder 中查看").labelStyle(.iconOnly) }
-
-        } }
+            } header: { Text("数据与备份") } footer: {
+                Text("手动导出核心元数据，或只读校验已有备份。备份不包含文件实体，也不加密；登记路径仍依赖原文件。")
+            }
+            Section {
+                Text("Campaign 与引用登记、Workspace / 省份配置、Workflow / Artifact / Run / Approval、AI 非敏感配置、提示词及版本、学习主题和记录、AI 交接、项目及进展、个人笔记正文及全部版本与引用登记。")
+                DisclosureGroup("不包含与安全排除") {
+                    ForEach(CoreBackupSource.currentExclusions, id: \.self) { Text($0) }
+                }
+            } header: { Text("包含范围") } footer: {
+                Text("Cosmos 核心元数据 ZIP V3，不压缩，兼容读取 V1/V2。V1 不含 Projects 与个人笔记，V2 不含个人笔记。单源最多 16 MiB，包最多 128 MiB，清单最多 256 KiB。缺失主数据记为尚未建立，真实空库保留为已建立。源错误或变化时中止。读取前后检查修订、发布前逐源复读；不是跨进程事务，不能保证外部进程在最终检查后不再写入。SHA-256 不是签名或加密。")
+            }
+            Section("核心数据恢复") { CoreRestoreView(target: restoreTarget) }
+            Section("数据位置") { CosmosSettingsLocations(source: source, restoreTarget: restoreTarget) }
+        }.formStyle(.grouped).accessibilityIdentifier("core-backup-settings")
     }
     private func chooseExport() {
         let panel = NSSavePanel(); panel.title = "导出核心数据备份（已有目标不会覆盖）"

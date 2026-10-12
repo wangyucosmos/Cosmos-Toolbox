@@ -208,13 +208,8 @@ struct ZhuowangWorkspaceView: View {
         }.scrollEdgeEffectStyle(.soft, for: .top)
     }
     private var categoryNavigation: some View {
-        Picker("工作分类", selection: Binding(get: { selectedCategoryID }, set: { assetDestination = nil; selectedCategoryID = $0 })) {
-            Text("概览").tag("overview")
-            Text("活动").tag("campaign")
-            ForEach(store.categories.filter { $0.id != "overview" && $0.id != "campaign" }) {
-                Text($0.name + (ZhuowangCategoryRoute(categoryID: $0.id) == .unsupported ? " · 未接入" : "")).tag($0.id)
-            }
-        }.pickerStyle(.segmented).accessibilityLabel("工作分类")
+        ZhuowangCategoryBar(items: ZhuowangCategoryBarItem.items(categories: store.categories),
+            selection: Binding(get: { selectedCategoryID }, set: { assetDestination = nil; selectedCategoryID = $0 }))
     }
     private func select(_ navigation: ZhuowangNavigationItem) {
         guard publicResources || selectedNavigation != navigation else { return }

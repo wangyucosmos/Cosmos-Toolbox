@@ -40,142 +40,132 @@ struct ZhuowangTaskPackagePreviewView: View {
 
 
     var body: some View {
+        NavigationStack {
 
-        VStack(spacing: 0) {
 
-            header
-                .background(.bar)
+            VStack(spacing: 0) {
 
-            Divider()
+                ScrollView {
 
-            ScrollView {
+                    VStack(
+                        alignment: .leading,
+                        spacing: CosmosDesign.spacingL
+                    ) {
 
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingL
-                ) {
+                        summaryCard
+                            .cosmosScrollReveal()
 
-                    summaryCard
-                        .cosmosScrollReveal()
+                        executionSection
+                            .cosmosScrollReveal()
 
-                    executionSection
-                        .cosmosScrollReveal()
+                        instructionSection
+                            .cosmosScrollReveal()
 
-                    instructionSection
-                        .cosmosScrollReveal()
+                        ViewThatFits(in: .horizontal) {
 
-                    ViewThatFits(in: .horizontal) {
+                            HStack(
+                                alignment: .top,
+                                spacing: CosmosDesign.spacingL
+                            ) {
+                                contextSection
+                                outputSection
+                            }
 
-                        HStack(
-                            alignment: .top,
-                            spacing: CosmosDesign.spacingL
-                        ) {
-                            contextSection
-                            outputSection
+                            VStack(
+                                alignment: .leading,
+                                spacing: CosmosDesign.spacingL
+                            ) {
+                                contextSection
+                                outputSection
+                            }
                         }
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: CosmosDesign.spacingL
-                        ) {
-                            contextSection
-                            outputSection
-                        }
+                        .cosmosScrollReveal()
                     }
-                    .cosmosScrollReveal()
-                }
-                .padding(
-                    .horizontal,
-                    CosmosDesign.spacingXL + 4
-                )
-                .padding(
-                    .vertical,
-                    CosmosDesign.spacingXL
-                )
-                .frame(
-                    maxWidth: 860
-                )
-                .frame(maxWidth: .infinity)
-            }.scrollEdgeEffectStyle(.soft, for: .top)
-
-            Divider()
-
-            footer
-                .background(.bar)
-        }
-        .frame(
-            minWidth: 780,
-            minHeight: 720
-        )
-        .background(Color(nsColor: .windowBackgroundColor))
-        .modifier(CosmosMotionPolicy())
-        .sheet(
-            isPresented:
-                $showExecutionResult
-        ) {
-
-            ZhuowangAIExecutionResultView(
-                taskPackage:
-                    taskPackage,
-                provider:
-                    provider,
-                connection:
-                    connection,
-                artifactDraft:
-                    artifactDraft,
-                resultText:
-                    executionResultText,
-                errorText:
-                    executionErrorText,
-                state:
-                    executionState,
-                onAdopt: {
-
-                    let result = onAdoptResult(
-                        executionResultText,
-                        workflowExecutionResult
+                    .padding(
+                        .horizontal,
+                        CosmosDesign.spacingXL + 4
                     )
-
-                    if result.succeeded {
-                        showExecutionResult = false
-                        dismiss()
-                    }
-
-                    return result
-                },
-                onRequestRevision: {
-                    feedback in
-
-                    runRevision(
-                        feedback:
-                            feedback
+                    .padding(
+                        .vertical,
+                        CosmosDesign.spacingXL
                     )
-                },
-                onRegenerate: {
-
-                    runSelectedConnection()
-                }
+                    .frame(
+                        maxWidth: 860
+                    )
+                    .frame(maxWidth: .infinity)
+                }.scrollEdgeEffectStyle(.soft, for: .top)
+            }
+            .frame(
+                minWidth: 780,
+                minHeight: 720
             )
+            .background(Color(nsColor: .windowBackgroundColor))
+            .modifier(CosmosMotionPolicy())
+            .sheet(
+                isPresented:
+                    $showExecutionResult
+            ) {
+
+                ZhuowangAIExecutionResultView(
+                    taskPackage:
+                        taskPackage,
+                    provider:
+                        provider,
+                    connection:
+                        connection,
+                    artifactDraft:
+                        artifactDraft,
+                    resultText:
+                        executionResultText,
+                    errorText:
+                        executionErrorText,
+                    state:
+                        executionState,
+                    onAdopt: {
+
+                        let result = onAdoptResult(
+                            executionResultText,
+                            workflowExecutionResult
+                        )
+
+                        if result.succeeded {
+                            showExecutionResult = false
+                            dismiss()
+                        }
+
+                        return result
+                    },
+                    onRequestRevision: {
+                        feedback in
+
+                        runRevision(
+                            feedback:
+                                feedback
+                        )
+                    },
+                    onRegenerate: {
+
+                        runSelectedConnection()
+                    }
+                )
+            }
+
+    .navigationTitle("任务预览")
+    .toolbar {
+    ToolbarItem(placement: .cancellationAction) { Button("返回") { dismiss() } }
+    ToolbarItem(placement: .primaryAction) {
+        Button(copied ? "已复制" : "复制任务", systemImage: copied ? "checkmark" : "doc.on.doc") { copyTaskPackage() }
+    }
+    ToolbarItem(placement: .confirmationAction) {
+        Button(confirmationButtonTitle, systemImage: "arrow.right") { runSelectedConnection() }
+            .buttonStyle(.glassProminent).disabled(!canContinue)
+    }
+    }
         }
     }
 
 
     // MARK: - Header
-
-    private var header: some View {
-
-        CampaignUIHeader(
-            icon: "doc.text.magnifyingglass",
-            title: "任务预览",
-            subtitle: "Task Package Preview",
-            info: "任务包是发给 AI 的完整任务：任务正文、参考上下文和预期输出。确认后才会执行；执行结果还需要你审核，之后才能采用。"
-        ) {
-            Button("关闭") {
-                dismiss()
-            }
-            .buttonStyle(.bordered)
-        }
-    }
 
 
     // MARK: - Summary
@@ -492,64 +482,6 @@ struct ZhuowangTaskPackagePreviewView: View {
 
 
     // MARK: - Footer
-
-    private var footer: some View {
-
-        HStack(
-            spacing: CosmosDesign.spacingM
-        ) {
-
-            Button {
-
-                copyTaskPackage()
-
-            } label: {
-
-                Label(
-                    copied
-                    ? "已复制"
-                    : "复制任务",
-                    systemImage:
-                        copied
-                        ? "checkmark"
-                        : "doc.on.doc"
-                )
-            }
-            .buttonStyle(.bordered)
-
-            Spacer()
-
-            Button("返回") {
-                dismiss()
-            }
-            .buttonStyle(.bordered)
-
-            Button {
-
-                runSelectedConnection()
-
-            } label: {
-
-                Label(
-                    confirmationButtonTitle,
-                    systemImage:
-                        "arrow.right"
-                )
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(
-                !canContinue
-            )
-        }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
-    }
 
 
     // MARK: - Execute Selected Connection

@@ -45,118 +45,120 @@ struct ZhuowangAIExecutionResultView: View {
 
 
     var body: some View {
+        NavigationStack {
 
-        VStack(spacing: 0) {
 
-            header
-                .background(.bar)
+            VStack(spacing: 0) {
 
-            Divider()
+                ScrollView {
 
-            ScrollView {
+                    VStack(
+                        alignment: .leading,
+                        spacing: CosmosDesign.spacingL
+                    ) {
 
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingL
-                ) {
+                        executionSummary
 
-                    executionSummary
+                        ZStack(alignment: .top) {
 
-                    ZStack(alignment: .top) {
+                            switch state {
 
-                        switch state {
+                            case .running:
+                                runningContent
+                                    .transition(.opacity)
 
-                        case .running:
-                            runningContent
-                                .transition(.opacity)
+                            case .succeeded:
+                                successContent
+                                    .transition(.opacity)
 
-                        case .succeeded:
-                            successContent
-                                .transition(.opacity)
-
-                        case .failed:
-                            failureContent
-                                .transition(.opacity)
+                            case .failed:
+                                failureContent
+                                    .transition(.opacity)
+                            }
                         }
+                        .campaignUIAnimation(
+                            .smooth(duration: CosmosDesign.animationNormal),
+                            value: state
+                        )
                     }
-                    .campaignUIAnimation(
-                        .smooth(duration: CosmosDesign.animationNormal),
-                        value: state
+                    .padding(
+                        .horizontal,
+                        CosmosDesign.spacingXL + 4
                     )
-                }
-                .padding(
-                    .horizontal,
-                    CosmosDesign.spacingXL + 4
-                )
-                .padding(
-                    .vertical,
-                    CosmosDesign.spacingXL
-                )
-                .frame(
-                    maxWidth: 880
-                )
-                .frame(maxWidth: .infinity)
-            }.scrollEdgeEffectStyle(.soft, for: .top)
-
-            Divider()
-
-            footer
-                .background(.bar)
-        }
-        .frame(
-            minWidth: 820,
-            minHeight: 720
-        )
-        .background(Color(nsColor: .windowBackgroundColor))
-        .modifier(CosmosMotionPolicy())
-        .sheet(
-            isPresented:
-                $showRevisionSheet
-        ) {
-
-            ZhuowangAIRevisionRequestView {
-
-                feedback in
-
-                onRequestRevision(
-                    feedback
-                )
-
-                showRevisionSheet =
-                    false
+                    .padding(
+                        .vertical,
+                        CosmosDesign.spacingXL
+                    )
+                    .frame(
+                        maxWidth: 880
+                    )
+                    .frame(maxWidth: .infinity)
+                }.scrollEdgeEffectStyle(.soft, for: .top)
             }
+            .frame(
+                minWidth: 820,
+                minHeight: 720
+            )
+            .background(Color(nsColor: .windowBackgroundColor))
+            .modifier(CosmosMotionPolicy())
+            .sheet(
+                isPresented:
+                    $showRevisionSheet
+            ) {
+
+                ZhuowangAIRevisionRequestView {
+
+                    feedback in
+
+                    onRequestRevision(
+                        feedback
+                    )
+
+                    showRevisionSheet =
+                        false
+                }
+            }
+
+    .navigationTitle(headerTitle)
+    .navigationSubtitle(headerSubtitle)
+    .toolbar {
+    ToolbarItem(placement: .cancellationAction) {
+        Button("关闭") { dismiss() }.disabled(state == .running)
+    }
+    ToolbarItemGroup(placement: .primaryAction) {
+        if state == .succeeded {
+            Button(copied ? "已复制" : "复制结果", systemImage: copied ? "checkmark" : "doc.on.doc") { copyResult() }
+            Button("要求修改", systemImage: "text.bubble") { showRevisionSheet = true }
+            Button("重新生成", systemImage: "arrow.clockwise") { onRegenerate() }
+        }
+    }
+    ToolbarItem(placement: .confirmationAction) {
+        if state == .succeeded {
+            Button("采用结果", systemImage: "checkmark.circle") {
+                let result = onAdopt()
+                if result.succeeded {
+                    adoptionErrorMessage = nil
+                    dismiss()
+                } else {
+                    adoptionErrorMessage = result.errorMessage ?? "采用失败。Workflow 状态未改变，请检查后重试。"
+                }
+            }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+        } else if state == .failed {
+            Button("重新执行", systemImage: "arrow.clockwise") { onRegenerate() }.buttonStyle(.glassProminent)
+        }
+    }
+    ToolbarItem(placement: .status) {
+        if state == .running {
+            Label("执行过程中请保持 Cosmos OS 运行", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+            ProgressView().controlSize(.small)
+        }
+    }
+    }
         }
     }
 
 
     // MARK: - Header
-
-    private var header: some View {
-
-        CampaignUIHeader(
-            icon: headerIcon,
-            title: headerTitle,
-            subtitle: headerSubtitle,
-            tone: headerTone
-        ) {
-
-            if state == .running {
-
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.trailing, 4)
-            }
-
-            Button("关闭") {
-
-                dismiss()
-            }
-            .buttonStyle(.bordered)
-            .disabled(
-                state == .running
-            )
-        }
-    }
 
 
     // MARK: - Summary
@@ -648,177 +650,6 @@ struct ZhuowangAIExecutionResultView: View {
     // MARK: - Footer
 
     @ViewBuilder
-    private var footer: some View {
-
-        switch state {
-
-        case .running:
-
-            HStack {
-
-                Label(
-                    "执行过程中请保持 Cosmos OS 运行",
-                    systemImage:
-                        "info.circle"
-                )
-                .font(.caption)
-                .foregroundStyle(
-                    .secondary
-                )
-
-                Spacer()
-
-                ProgressView()
-                    .controlSize(.small)
-
-                Text("执行中…")
-                    .font(.callout)
-                    .foregroundStyle(
-                        .secondary
-                    )
-            }
-            .padding(
-                .horizontal,
-                CosmosDesign.spacingL
-            )
-            .padding(
-                .vertical,
-                CosmosDesign.spacingM
-            )
-
-
-        case .succeeded:
-
-            HStack(
-                spacing:
-                    CosmosDesign.spacingM
-            ) {
-
-                Button {
-
-                    copyResult()
-
-                } label: {
-
-                    Label(
-                        copied
-                        ? "已复制"
-                        : "复制结果",
-                        systemImage:
-                            copied
-                            ? "checkmark"
-                            : "doc.on.doc"
-                    )
-                }
-                .buttonStyle(.bordered)
-
-                Spacer()
-
-                Button {
-
-                    showRevisionSheet =
-                        true
-
-                } label: {
-
-                    Label(
-                        "要求修改",
-                        systemImage:
-                            "text.bubble"
-                    )
-                }
-                .buttonStyle(.bordered)
-
-                Button {
-
-                    onRegenerate()
-
-                } label: {
-
-                    Label(
-                        "重新生成",
-                        systemImage:
-                            "arrow.clockwise"
-                    )
-                }
-                .buttonStyle(.bordered)
-
-                Button {
-
-                    let result = onAdopt()
-
-                    if result.succeeded {
-                        adoptionErrorMessage = nil
-                        dismiss()
-                    } else {
-                        adoptionErrorMessage =
-                            result.errorMessage
-                            ?? "采用失败。Workflow 状态未改变，请检查后重试。"
-                    }
-
-                } label: {
-
-                    Label(
-                        "采用结果",
-                        systemImage:
-                            "checkmark.circle"
-                    )
-                }
-                .buttonStyle(
-                    .glassProminent
-                )
-                .keyboardShortcut(
-                    .defaultAction
-                )
-            }
-            .padding(
-                .horizontal,
-                CosmosDesign.spacingL
-            )
-            .padding(
-                .vertical,
-                CosmosDesign.spacingM
-            )
-
-
-        case .failed:
-
-            HStack {
-
-                Button("关闭") {
-
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-
-                Spacer()
-
-                Button {
-
-                    onRegenerate()
-
-                } label: {
-
-                    Label(
-                        "重新执行",
-                        systemImage:
-                            "arrow.clockwise"
-                    )
-                }
-                .buttonStyle(
-                    .glassProminent
-                )
-            }
-            .padding(
-                .horizontal,
-                CosmosDesign.spacingL
-            )
-            .padding(
-                .vertical,
-                CosmosDesign.spacingM
-            )
-        }
-    }
 
 
     // MARK: - Status Badge
@@ -1105,128 +936,106 @@ struct ZhuowangAIRevisionRequestView:
 
 
     var body: some View {
-
-        VStack(spacing: 0) {
-
-            CampaignUIHeader(
-                icon: "text.bubble",
-                title: "要求修改",
-                subtitle: "Revision Request"
-            ) {
-                Button("取消") {
-
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-            }
-            .background(.bar)
+        NavigationStack {
 
 
-            Divider()
+            VStack(spacing: 0) {
 
+                VStack(
+                    alignment: .leading,
+                    spacing:
+                        CosmosDesign.spacingM
+                ) {
 
-            VStack(
-                alignment: .leading,
-                spacing:
-                    CosmosDesign.spacingM
-            ) {
+                    Text("告诉 AI 需要修改什么")
+                        .font(.headline)
 
-                Text("告诉 AI 需要修改什么")
-                    .font(.headline)
-
-                TextEditor(
-                    text: $feedback
-                )
-                .frame(
-                    minHeight: 180
-                )
-                .padding(10)
-                .background(
-                    Color.primary
-                        .opacity(0.025),
-                    in: RoundedRectangle(
-                        cornerRadius:
-                            CosmosDesign.cornerRadiusSmall,
-                        style: .continuous
+                    TextEditor(
+                        text: $feedback
                     )
-                )
-                .overlay {
-
-                    RoundedRectangle(
-                        cornerRadius:
-                            CosmosDesign.cornerRadiusSmall,
-                        style: .continuous
+                    .frame(
+                        minHeight: 180
                     )
-                    .stroke(
+                    .padding(10)
+                    .background(
                         Color.primary
-                            .opacity(0.07),
-                        lineWidth: 1
+                            .opacity(0.025),
+                        in: RoundedRectangle(
+                            cornerRadius:
+                                CosmosDesign.cornerRadiusSmall,
+                            style: .continuous
+                        )
                     )
-                }
+                    .overlay {
 
-                Text("例如：玩法太复杂，保留签到和抽奖，减少排行榜内容，并重新优化 Slogan。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                        RoundedRectangle(
+                            cornerRadius:
+                                CosmosDesign.cornerRadiusSmall,
+                            style: .continuous
+                        )
+                        .stroke(
+                            Color.primary
+                                .opacity(0.07),
+                            lineWidth: 1
+                        )
+                    }
+
+                    Text("例如：玩法太复杂，保留签到和抽奖，减少排行榜内容，并重新优化 Slogan。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(20)
+
+
             }
-            .padding(20)
+            .frame(
+                minWidth: 560,
+                minHeight: 420
+            )
+            .background(Color(nsColor: .windowBackgroundColor))
 
+    .navigationTitle("要求修改")
+    .toolbar {
+        ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+        ToolbarItem(placement: .confirmationAction) {
+                    Button("提交修改意见") {
 
-            Divider()
+                        let cleanFeedback =
+                            feedback
+                            .trimmingCharacters(
+                                in:
+                                    .whitespacesAndNewlines
+                            )
 
+                        guard
+                            !cleanFeedback.isEmpty
+                        else {
+                            return
+                        }
 
-            HStack {
+                        onSubmit(
+                            cleanFeedback
+                        )
 
-                Spacer()
-
-                Button("取消") {
-
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-
-                Button("提交修改意见") {
-
-                    let cleanFeedback =
+                        dismiss()
+                    }
+                    .buttonStyle(
+                        .glassProminent
+                    )
+                    .keyboardShortcut(
+                        .defaultAction
+                    )
+                    .disabled(
                         feedback
                         .trimmingCharacters(
                             in:
                                 .whitespacesAndNewlines
                         )
-
-                    guard
-                        !cleanFeedback.isEmpty
-                    else {
-                        return
-                    }
-
-                    onSubmit(
-                        cleanFeedback
+                        .isEmpty
                     )
 
-                    dismiss()
-                }
-                .buttonStyle(
-                    .glassProminent
-                )
-                .keyboardShortcut(
-                    .defaultAction
-                )
-                .disabled(
-                    feedback
-                    .trimmingCharacters(
-                        in:
-                            .whitespacesAndNewlines
-                    )
-                    .isEmpty
-                )
-            }
-            .padding(20)
-            .background(.bar)
         }
-        .frame(
-            minWidth: 560,
-            minHeight: 420
-        )
-        .background(Color(nsColor: .windowBackgroundColor))
+    }
+        }
     }
 }

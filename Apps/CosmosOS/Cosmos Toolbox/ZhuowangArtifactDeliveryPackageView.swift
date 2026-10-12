@@ -37,56 +37,54 @@ struct ZhuowangArtifactDeliveryPackageView: View {
         ZhuowangArtifactDeliveryPackageService()
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .background(.bar)
-            Divider()
+        NavigationStack {
 
-            ScrollView {
-                VStack(
-                    alignment: .leading,
-                    spacing: CosmosDesign.spacingL
-                ) {
-                    summaryCard
-                    candidateList
-                    statusArea
-                }
-                .padding(CosmosDesign.spacingL)
-            }.scrollEdgeEffectStyle(.soft, for: .top)
+            VStack(spacing: 0) {
 
-            Divider()
-            footer
-                .background(.bar)
-        }
-        .frame(
-            minWidth: 760,
-            idealWidth: 820,
-            minHeight: 560,
-            idealHeight: 640
-        )
-        .background(Color(nsColor: .windowBackgroundColor))
-        .modifier(CosmosMotionPolicy())
-        .onAppear {
-            refreshCandidates()
+                ScrollView {
+                    VStack(
+                        alignment: .leading,
+                        spacing: CosmosDesign.spacingL
+                    ) {
+                        summaryCard
+                        candidateList
+                        statusArea
+                    }
+                    .padding(CosmosDesign.spacingL)
+                }.scrollEdgeEffectStyle(.soft, for: .top)
+            }
+            .frame(
+                minWidth: 760,
+                idealWidth: 820,
+                minHeight: 560,
+                idealHeight: 640
+            )
+            .background(Color(nsColor: .windowBackgroundColor))
+            .modifier(CosmosMotionPolicy())
+            .onAppear {
+                refreshCandidates()
+            }
+
+    .navigationTitle("导出 Campaign 交付包")
+    .navigationSubtitle(campaign.name)
+    .toolbar {
+    ToolbarItem(placement: .cancellationAction) {
+        Button("关闭") { dismiss() }.disabled(isExporting)
+    }
+    ToolbarItem(placement: .confirmationAction) {
+        Button("选择位置并导出", systemImage: "square.and.arrow.up") { chooseDestinationAndExport() }
+            .buttonStyle(.glassProminent).disabled(selectedGroupKeys.isEmpty || isExporting)
+    }
+    ToolbarItem(placement: .status) {
+        if isExporting { ProgressView().controlSize(.small) }
+        else { Text("ZIP 包含所选文件、交付清单.md 和 manifest.json。").font(.caption).foregroundStyle(.secondary) }
+    }
+    }
         }
     }
 
 
     // MARK: Header
-
-    private var header: some View {
-        CampaignUIHeader(
-            icon: "archivebox",
-            title: "导出 Campaign 交付包",
-            subtitle: campaign.name
-        ) {
-            Button("关闭") {
-                dismiss()
-            }
-            .buttonStyle(.bordered)
-            .disabled(isExporting)
-        }
-    }
 
 
     // MARK: Summary
@@ -338,42 +336,6 @@ struct ZhuowangArtifactDeliveryPackageView: View {
             )
             .transition(.opacity)
         }
-    }
-
-
-    private var footer: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-            Label(
-                "ZIP 内包含所选文件、交付清单.md 和 manifest.json。",
-                systemImage: "shippingbox"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            Spacer()
-
-            if isExporting {
-                ProgressView()
-                    .controlSize(.small)
-            }
-
-            Button("选择位置并导出") {
-                chooseDestinationAndExport()
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(
-                selectedGroupKeys.isEmpty
-                    || isExporting
-            )
-        }
-        .padding(
-            .horizontal,
-            CosmosDesign.spacingL
-        )
-        .padding(
-            .vertical,
-            CosmosDesign.spacingM
-        )
     }
 
 
