@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Company content and progress are supplied by the caller.
 struct CosmosWorkspaceNavigationRow: View {
@@ -19,7 +20,7 @@ struct CosmosWorkspaceNavigationRow: View {
             HStack(spacing: 10) {
                 CosmosSquareIcon(letter: letter, symbol: icon, identity: iconIdentity ?? title, subdued: subdued)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(.body, weight: selected ? .semibold : .medium))
+                    Text(title).font(.system(.body, weight: selected ? .semibold : .medium)).lineLimit(1).truncationMode(.tail)
                     if !subtitle.isEmpty { Text(subtitle).font(.caption2).foregroundStyle(.secondary) }
                 }
                 Spacer(minLength: 4)
@@ -82,5 +83,53 @@ struct CosmosWorkCard<Status: View>: View {
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.buttonStyle(CosmosInteractiveCardStyle()).accessibilityLabel(title + "，" + scope + (attention ? "，需关注" : ""))
+    }
+}
+
+nonisolated enum CosmosWorkspaceSplitWidth {
+    static let minimum: CGFloat = 220
+    static let maximum: CGFloat = 360
+    static func clamp(_ value: Double) -> Double {
+        value.isFinite ? min(Double(maximum), max(Double(minimum), value)) : 260
+    }
+}
+
+/// Observe the existing native split without replacing SwiftUI's delegate or child hosts.
+struct CosmosNativeSplitWidth: NSViewRepresentable {
+    @Binding var width: Double
+    func makeNSView(context: Context) -> Probe { Probe(width: $width) }
+    func updateNSView(_ view: Probe, context: Context) { view.width = $width }
+    final class Probe: NSView {
+        var width: Binding<Double>
+        private weak var split: NSSplitView?
+        init(width: Binding<Double>) { self.width = width; super.init(frame: .zero) }
+        required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window == nil { NotificationCenter.default.removeObserver(self); split = nil; return }
+            DispatchQueue.main.async { [weak self] in self?.attach() }
+        }
+        private func attach() {
+            var parent = superview
+            while let current = parent {
+                if let candidate = current as? NSSplitView {
+                    guard split !== candidate else { return }
+                    NotificationCenter.default.removeObserver(self)
+                    split = candidate; candidate.dividerStyle = .thin
+                    candidate.setPosition(CGFloat(width.wrappedValue), ofDividerAt: 0)
+                    NotificationCenter.default.addObserver(self, selector: #selector(resized), name: NSSplitView.didResizeSubviewsNotification, object: candidate)
+                    return
+                }
+                parent = current.superview
+            }
+        }
+        @objc private func resized() {
+            guard let split, let sidebar = split.subviews.first, sidebar.frame.width > 0 else { return }
+            let value = CosmosWorkspaceSplitWidth.clamp(Double(sidebar.frame.width))
+            guard abs(value - width.wrappedValue) > 0.5 else { return }
+            // Leave AppKit's resize transaction before publishing the UI preference.
+            DispatchQueue.main.async { [weak self] in self?.width.wrappedValue = value }
+        }
+        deinit { NotificationCenter.default.removeObserver(self) }
     }
 }

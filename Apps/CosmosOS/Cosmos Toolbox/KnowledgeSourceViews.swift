@@ -180,15 +180,15 @@ struct KnowledgeSourcesRootView: View {
     private func panes(source: KnowledgeSource, index: KnowledgeIndex) -> some View {
         GeometryReader { geo in
             let showTree = geo.size.width >= 1020 && !treeCollapsed
-            HStack(spacing: 0) {
+            HSplitView {
                 if showTree {
-                    KnowledgeFolderTreeView(index: index, selection: $folder).frame(width: 210)
-                    Divider()
+                    KnowledgeFolderTreeView(index: index, selection: $folder).frame(minWidth: 180, idealWidth: 220, maxWidth: 340)
                 }
                 listColumn(source: source, index: index, showTree: geo.size.width >= 1020)
-                    .frame(width: geo.size.width >= 1020 ? 330 : 290)
-                Divider()
-                reader(source: source, index: index).frame(maxWidth: .infinity)
+                    .frame(minWidth: 220, idealWidth: 290, maxWidth: 420)
+                GeometryReader { content in
+                    reader(source: source, index: index).frame(width: content.size.width, height: content.size.height)
+                }.frame(minWidth: 260, maxWidth: .infinity)
             }
         }
     }

@@ -39,7 +39,7 @@ struct UnifiedSearchView: View {
                 info: "仅检索元数据：活动名称与说明；Artifact 名称、类型、活动、省份或模块；引用名称、版本、备注与位置；项目及学习主题的名称、目标、下一步；Prompt 名称与分类；个人笔记标题与分类；知识库文档：标题、路径、标签，不检索正文。不检索文件、Prompt、笔记正文与历史、项目进展或学习历史。空查询不读取业务库；搜索词只保存在本次运行的内存。点击结果按 UUID 核验后打开，引用不会自动打开。")
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
-                TextField("输入关键词跨模块搜索", text: $query.text).textFieldStyle(.plain)
+                TextField("按 ⌘F 开始搜索，或点击输入关键词", text: $query.text).textFieldStyle(.plain)
                     .font(CosmosDesign.font(.section)).focused($searchFocused)
                     .accessibilityIdentifier("unified-search-query")
                 if !query.text.isEmpty {
@@ -105,14 +105,22 @@ struct UnifiedSearchView: View {
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) { Button("聚焦搜索", systemImage: "magnifyingglass") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).labelStyle(.iconOnly).help("聚焦搜索").buttonStyle(.glass) }
+                ToolbarItem(placement: .primaryAction) { Button("聚焦搜索", systemImage: "magnifyingglass") { appNavigator.requestSearchFocus() }.keyboardShortcut("f", modifiers: .command).labelStyle(.iconOnly).help("聚焦搜索").buttonStyle(.glass) }
                 ToolbarItem(placement: .primaryAction) { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.labelStyle(.iconOnly).help("刷新").buttonStyle(.glass).disabled(query.keyword.isEmpty) }
             }
             .task {
-                searchFocused = true
+                searchFocused = followsNavigation && appNavigator.searchFocusRequested
+#if DEBUG
+                CosmosExperienceTrace.shared.mark("search.focus.entry." + String(searchFocused))
+#endif
                 if followsNavigation && !appNavigator.searchText.isEmpty { query.text = appNavigator.searchText }
             }
-            .onChange(of: appNavigator.searchText) { _, text in if followsNavigation { query.text = text; searchFocused = true } }
+            .onChange(of: appNavigator.searchText) { _, text in if followsNavigation { query.text = text } }
+            .onChange(of: appNavigator.searchFocusRequest) { _, _ in searchFocused = true }
+            .onChange(of: appNavigator.searchFocusRequested) { _, requested in if !requested { searchFocused = false } }
+#if DEBUG
+            .onChange(of: searchFocused) { _, focused in CosmosExperienceTrace.shared.mark("search.focus." + String(focused)) }
+#endif
             .onChange(of: query) { _, value in
                 model.search(value)
                 if !value.keyword.isEmpty { appNavigator.lastSearchText = value.keyword }

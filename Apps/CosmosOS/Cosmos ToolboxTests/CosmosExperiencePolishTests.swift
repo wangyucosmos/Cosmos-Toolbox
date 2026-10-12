@@ -200,7 +200,7 @@ final class CosmosExperiencePolishTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(500)); host.layoutSubtreeIfNeeded()
         // Visit the retained workspace before measuring reentry; fixture stores may initialize once.
         nav.selection = .zhuowang; try await Task.sleep(for: .milliseconds(500))
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosAcceptance-matrix")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeAcceptance-matrix")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         var rows = ["from,to,fade_begin,fade_commit,host_remount,workspace_second_selection"]
         for from in pages {
@@ -229,33 +229,55 @@ final class CosmosExperiencePolishTests: XCTestCase {
         try rows.joined(separator: "\n").write(to: out.appendingPathComponent("matrix.csv"), atomically: true, encoding: .utf8)
     }
 
-    func testSelectedSidebarAccentSurvivesSearchFocusLightAndDark() throws {
+    func testSearchFocusDependsOnExplicitEntryAndCommandRequest() async throws {
+        let root = try root(), (prefs, defaults) = try preferences(), nav = CosmosNavigator()
+        let config = ZhuowangStorePersistenceConfiguration(dataSource: ZhuowangInMemoryPersistenceDataSource(), isIsolated: true, workspaceFilesRootURL: root)
+        nav.navigate(.search("旧关键词")); nav.selectSidebar(.unifiedSearch)
+        XCTAssertFalse(nav.searchFocusRequested)
+        let search = UnifiedSearchView(configuration: config, projects: .init(root: nil, error: .unsafePath),
+            prompts: .init(root: nil, error: .unsafePath), learning: .init(root: nil, error: .unsafePath),
+            notes: .init(root: nil, error: .unsafePath), knowledge: .init(root: nil, error: .unsafePath, isolated: true), assetRoot: root)
+        CosmosExperienceTrace.shared.start()
+        let (window, host) = self.host(search, width: 900, height: 620, dark: false, nav: nav, prefs: prefs, defaults: defaults)
+        defer { window.contentView = nil; window.close() }
+        host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(150))
+        var events = CosmosExperienceTrace.shared.finish()
+        XCTAssertTrue(events.contains { $0.0 == "search.focus.entry.false" })
+        XCTAssertFalse(events.contains { $0.0 == "search.focus.true" })
+        CosmosExperienceTrace.shared.start(); nav.requestSearchFocus() // Same action as the ⌘F toolbar command.
+        try await Task.sleep(for: .milliseconds(150)); host.layoutSubtreeIfNeeded()
+        events = CosmosExperienceTrace.shared.finish()
+        XCTAssertTrue(events.contains { $0.0 == "search.focus.true" })
+        nav.selectSidebar(.projects); XCTAssertFalse(nav.searchFocusRequested)
+        nav.navigate(.search("")); XCTAssertTrue(nav.searchFocusRequested) // Dashboard shortcut.
+        let request = nav.searchFocusRequest
+        nav.navigate(.search("活动")); XCTAssertTrue(nav.searchFocusRequested)
+        XCTAssertEqual(nav.searchFocusRequest, request + 1)
+    }
+
+    func testWorkspaceSplitWidthBoundsMemoryAndNativeDivider() async throws {
         let (prefs, defaults) = try preferences(), nav = CosmosNavigator()
-        for dark in [false, true] {
-            let view = VStack {
-                Text("统一检索").frame(width: 220, height: 40).modifier(CosmosSidebarSelection(selected: true))
-                TextField("检索", text: .constant(""))
-            }.accentColor(.blue).padding(20)
-            let (window, host) = self.host(view, width: 300, height: 150, dark: dark, nav: nav, prefs: prefs, defaults: defaults)
-            defer { window.contentView = nil; window.close() }
-            window.makeKeyAndOrderFront(nil); host.layoutSubtreeIfNeeded()
-            func fields(_ view: NSView) -> [NSTextField] {
-                (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap { fields($0) }
-            }
-            func bluePixels() throws -> Int {
-                let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-                host.cacheDisplay(in: host.bounds, to: bitmap)
-                var count = 0
-                for y in 0..<bitmap.pixelsHigh { for x in 0..<bitmap.pixelsWide {
-                    if let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB), c.blueComponent > 0.5, c.blueComponent > c.redComponent * 1.5 { count += 1 }
-                } }
-                return count
-            }
-            window.makeFirstResponder(host); let before = try bluePixels()
-            let field = try XCTUnwrap(fields(host).first); XCTAssertTrue(window.makeFirstResponder(field))
-            host.layoutSubtreeIfNeeded(); let after = try bluePixels()
-            XCTAssertGreaterThan(before, 2000); XCTAssertLessThanOrEqual(abs(before - after), 150)
+        XCTAssertEqual(prefs.workspaceSidebarWidth, 260)
+        prefs.workspaceSidebarWidth = 100; XCTAssertEqual(prefs.workspaceSidebarWidth, 220)
+        prefs.workspaceSidebarWidth = 900; XCTAssertEqual(prefs.workspaceSidebarWidth, 360)
+        prefs.workspaceSidebarWidth = 280
+        XCTAssertEqual(CosmosUIPreferences(defaults: defaults).workspaceSidebarWidth, 280)
+        XCTAssertEqual(CosmosWorkspaceSplitWidth.clamp(.nan), 260)
+        let view = HSplitView {
+            Text("推进工作台").lineLimit(1).frame(minWidth: 220, idealWidth: prefs.workspaceSidebarWidth, maxWidth: 360)
+                .background(CosmosNativeSplitWidth(width: Binding(get: { prefs.workspaceSidebarWidth }, set: { prefs.workspaceSidebarWidth = $0 })))
+            GeometryReader { _ in Color.clear }.frame(minWidth: 320)
         }
+        let (window, host) = self.host(view, width: 900, height: 620, dark: false, nav: nav, prefs: prefs, defaults: defaults)
+        defer { window.contentView = nil; window.close() }
+        host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(150))
+        func splits(_ view: NSView) -> [NSSplitView] { (view as? NSSplitView).map { [$0] } ?? view.subviews.flatMap { splits($0) } }
+        let split = try XCTUnwrap(splits(host).first)
+        XCTAssertEqual(split.dividerStyle, .thin); XCTAssertLessThanOrEqual(split.dividerThickness, 1)
+        split.setPosition(300, ofDividerAt: 0)
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(prefs.workspaceSidebarWidth, 300, accuracy: 1)
+        XCTAssertEqual(CosmosUIPreferences(defaults: defaults).workspaceSidebarWidth, prefs.workspaceSidebarWidth)
     }
 
     func testOffscreenSevenPagesThreeSizesLightDarkAndCategory() async throws {
@@ -293,7 +315,7 @@ final class CosmosExperiencePolishTests: XCTestCase {
         dashboard.distribution = ["河南", "浙江", "湖北", "全国"].enumerated().map { .init(id: String($0.offset), label: $0.element, count: [3,2,1,1][$0.offset]) }
         dashboard.workflow = [.init(id: "notStarted", label: "未开始", count: 8), .init(id: "ready", label: "可开始", count: 2), .init(id: "waitingForApproval", label: "等待确认", count: 3), .init(id: "approved", label: "已确认", count: 5), .init(id: "failed", label: "失败", count: 1)]
         dashboard.weeks = (0..<8).map { .init(id: String($0), label: "\($0 + 1)周", count: [1,3,2,4,1,5,2,3][$0]) }
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosAcceptance-screenshots")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeAcceptance-screenshots")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         let before = source.storage
         for (width, height) in [(900,620),(1180,760),(1440,900),(2560,1440)] {
@@ -311,7 +333,13 @@ final class CosmosExperiencePolishTests: XCTestCase {
                 try await save(PromptVaultView(session: prompts), "prompts")
                 try await save(AIWorkspaceView(model: .init(detect: { nil })), "ai")
                 try await save(ProjectsView(store: projects), "projects")
+                let emptyProjects = ProjectsStore(location: .init(root: root.appendingPathComponent("empty-projects"), error: nil)); await emptyProjects.reload()
+                try await save(ProjectsView(store: emptyProjects), "projects-empty")
                 try await save(KnowledgeSourcesRootView(store: knowledge), "knowledge")
+                nav.selectSidebar(.unifiedSearch)
+                try await save(DashboardView(storePersistenceConfiguration: config), "search-sidebar")
+                nav.navigate(.search(""))
+                try await save(DashboardView(storePersistenceConfiguration: config), "search-shortcut")
                 try await save(UnifiedSearchView(model: search, navigator: searchNav), "search")
                 try await save(ZhuowangWorkspaceView(persistenceConfiguration: config, isolatedAssetRoot: root, initialNavigation: .province(province.id), initialCategoryID: "banner"), "category")
                 nav.workspaceNavigation = .province(province.id); nav.selection = .zhuowang

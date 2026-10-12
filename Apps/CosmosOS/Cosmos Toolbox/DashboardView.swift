@@ -150,7 +150,7 @@ struct DashboardView: View {
     private var navigationContent: some View {
         return NavigationSplitView {
             VStack(spacing: 0) {
-            List(selection: Binding(get: { selection }, set: { navigator.pendingWorkbenchMetric = nil; selection = $0 })) {
+            List(selection: Binding(get: { selection }, set: { navigator.pendingWorkbenchMetric = nil; navigator.selectSidebar($0) })) {
 
                 Section("首页") {
                     sidebarRow(.dashboard)
@@ -436,7 +436,7 @@ struct DashboardView: View {
                 Text(item.chineseName).font(CosmosDesign.font(.body))
 
                 if preferences.sidebarEnglish {
-                    Text(item.englishName).font(CosmosDesign.font(.caption)).foregroundStyle(selection == item ? Color.white.opacity(0.85) : Color.secondary)
+                    Text(item.englishName).font(CosmosDesign.font(.caption)).foregroundStyle(Color.secondary)
                 }
             }
 
@@ -446,8 +446,7 @@ struct DashboardView: View {
                 .symbolEffect(.bounce, options: .nonRepeating, value: sidebarPulse[item, default: 0])
                 .symbolEffectsRemoved(preferences.reducesMotion(system: systemMotion))
         }
-        .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
-        .modifier(CosmosSidebarSelection(selected: selection == item))
+        .frame(minHeight: 30)
         .tag(item)
     }
 }

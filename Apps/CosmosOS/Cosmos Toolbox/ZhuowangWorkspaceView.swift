@@ -73,16 +73,15 @@ struct ZhuowangWorkspaceView: View {
             if let message = store.persistenceState.userMessage {
                 ContentUnavailableView("工作区暂不可编辑", systemImage: "lock.trianglebadge.exclamationmark", description: Text(message))
             } else {
-                GeometryReader { geometry in
-                HStack(spacing: 0) {
-                    sidebar.frame(width: min(190, max(160, geometry.size.width * 0.28)))
-                    Divider()
-                    // Only the outer shell transitions; local selection changes keep their host.
-                    ZStack(alignment: .topLeading) {
-                        detail.id(contentIdentity)
-                    }
-                        .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
-                }.frame(width: geometry.size.width, height: geometry.size.height)
+                GeometryReader { bounds in
+                HSplitView {
+                    sidebar.frame(minWidth: CosmosWorkspaceSplitWidth.minimum, idealWidth: preferences.workspaceSidebarWidth, maxWidth: CosmosWorkspaceSplitWidth.maximum)
+                        .background(CosmosNativeSplitWidth(width: Binding(get: { preferences.workspaceSidebarWidth }, set: { preferences.workspaceSidebarWidth = $0 })))
+                    // Keep the existing detail identity and shell-owned transition unchanged.
+                    GeometryReader { geometry in
+                        detail.id(contentIdentity).frame(width: geometry.size.width, height: geometry.size.height)
+                    }.frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+                }.frame(width: bounds.size.width, height: bounds.size.height)
                 }
             }
         }.background(Color(nsColor: .windowBackgroundColor))

@@ -55,7 +55,8 @@ struct ProjectsView: View {
     }
     private var starters: some View {
         VStack(alignment: .leading, spacing: 14) {
-            CosmosEmptyState(icon: "folder.badge.plus", title: "从一个长期目标开始", detail: "开发软件、整理作品集，或做一个边学边用的小工具。")
+            Label("从一个长期目标开始", systemImage: "folder.badge.plus").font(CosmosDesign.font(.section))
+            Text("开发软件、整理作品集，或做一个边学边用的小工具。").font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
             Text("从模板开始").font(CosmosDesign.font(.section))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 14)], spacing: 14) {
                 ForEach(Array(CosmosProjectStarter.allCases.enumerated()), id: \.element.id) { index, starter in

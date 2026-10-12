@@ -48,6 +48,10 @@ final class CosmosNavigator {
     var pendingWorkbenchMetric: CosmosWorkbenchMetric?
     var knowledgeSection: CosmosKnowledgeSection = .notes
     var searchText = ""
+    var searchFocusRequested = false
+    var searchFocusRequest = 0
+    func selectSidebar(_ item: SidebarItem?) { searchFocusRequested = false; selection = item }
+    func requestSearchFocus() { searchFocusRequested = true; searchFocusRequest += 1 }
     var lastSearchText = ""
     var settingsTab: CosmosSettingsTab = .general
     var settingsRequest = 0
@@ -57,10 +61,10 @@ final class CosmosNavigator {
         switch destination {
         case .module(let name):
             guard let item = SidebarItem(rawValue: name), item != .settings else { return }
-            pendingWorkbenchMetric = nil; selection = item
+            pendingWorkbenchMetric = nil; selectSidebar(item)
         case .workbench(let metric): workspaceNavigation = .workbench; workspaceCategory = "overview"; pendingWorkbenchMetric = metric; selection = .zhuowang
         case .knowledge(let section): knowledgeSection = section; selection = .knowledgeBase
-        case .search(let text): searchText = text; selection = .unifiedSearch
+        case .search(let text): searchText = text; requestSearchFocus(); selection = .unifiedSearch
         case .settings(let tab): settingsTab = tab; settingsRequest += 1
         case .record(let row):
             if isolated && row.id.source == .campaign { navigate(.workbench(.all)) }

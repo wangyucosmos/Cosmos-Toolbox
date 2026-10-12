@@ -105,7 +105,7 @@ struct PromptVaultView: View {
     private var categories: some View {
         List(selection: $model.category) {
             Label("全部分类", systemImage: "square.grid.2x2").tag("")
-            ForEach(categoryNames, id: \.self) { Label($0, systemImage: "folder").tag($0) }
+            ForEach(categoryNames, id: \.self) { Label($0, systemImage: "folder").lineLimit(1).truncationMode(.tail).tag($0) }
         }.listStyle(.sidebar)
     }
     private var content: some View {
@@ -120,7 +120,7 @@ struct PromptVaultView: View {
                         ForEach(visible) { template in
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
-                                    Text(template.name).fontWeight(.medium)
+                                    Text(template.name).fontWeight(.medium).lineLimit(1).truncationMode(.tail)
                                     if template.isFavorite { Image(systemName: "star.fill").foregroundStyle(.yellow) }
                                 }
                                 Text(template.category ?? "未分类").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)

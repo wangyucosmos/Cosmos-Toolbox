@@ -19,8 +19,13 @@ final class CosmosUIPreferences {
     enum Motion: String, CaseIterable { case system, reduced
         var title: String { self == .system ? "跟随系统" : "始终减少" }
     }
-    static let keys = ["appearance", "textSize", "startup", "sidebarEnglish", "motion", "lastPage"].map { "cosmos.ui." + $0 }
+    static let keys = ["appearance", "textSize", "startup", "sidebarEnglish", "motion", "lastPage", "workspace.sidebarWidth"].map { "cosmos.ui." + $0 }
     private let defaults: UserDefaults
+    private var storedWorkspaceSidebarWidth: Double
+    var workspaceSidebarWidth: Double {
+        get { storedWorkspaceSidebarWidth }
+        set { storedWorkspaceSidebarWidth = CosmosWorkspaceSplitWidth.clamp(newValue); write(storedWorkspaceSidebarWidth, "workspace.sidebarWidth") }
+    }
     var appearance: Appearance { didSet { write(appearance.rawValue, "appearance"); applyAppearance() } }
     var textSize: TextSize { didSet { write(textSize.rawValue, "textSize") } }
     var startup: Startup { didSet { write(startup.rawValue, "startup") } }
@@ -30,6 +35,7 @@ final class CosmosUIPreferences {
     static let validPages = ["dashboard", "unifiedSearch", "zhuowang", "projects", "knowledgeBase", "aiWorkspace", "promptVault", "learningCenter", "macOptimizer"]
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        storedWorkspaceSidebarWidth = CosmosWorkspaceSplitWidth.clamp((defaults.object(forKey: "cosmos.ui.workspace.sidebarWidth") as? NSNumber)?.doubleValue ?? 260)
         appearance = Appearance(rawValue: defaults.string(forKey: "cosmos.ui.appearance") ?? "") ?? .system
         textSize = TextSize(rawValue: defaults.string(forKey: "cosmos.ui.textSize") ?? "") ?? .standard
         startup = Startup(rawValue: defaults.string(forKey: "cosmos.ui.startup") ?? "") ?? .dashboard
