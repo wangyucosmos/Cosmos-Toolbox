@@ -28,13 +28,41 @@ final class CosmosStep2ATests: XCTestCase {
         let suite = "CosmosStep2A.UI." + UUID().uuidString; suites.append(suite)
         return CosmosUIPreferences(defaults: try XCTUnwrap(UserDefaults(suiteName: suite)))
     }
-    func testMotionTokensReduceAllStaggerAndPageAnimation() throws {
+    func testMotionTokensReducePageAnimation() throws {
         let prefs = try preferences()
         XCTAssertNotNil(CosmosDesign.pageAnimation(reduced: false)); XCTAssertNil(CosmosDesign.pageAnimation(reduced: true))
-        XCTAssertEqual(CosmosDesign.entranceDelay(index: 7, reduced: false), 0.224, accuracy: 0.001)
-        XCTAssertEqual(CosmosDesign.entranceDelay(index: 8, reduced: false), 0)
-        for index in 0..<20 { XCTAssertEqual(CosmosDesign.entranceDelay(index: index, reduced: true), 0) }
         XCTAssertTrue(prefs.reducesMotion(system: true)); prefs.motion = .reduced; XCTAssertTrue(prefs.reducesMotion(system: false))
+    }
+    func testEmptyStateMappingRendersAllOptionalBranches() throws {
+        let state = CosmosEmptyState(icon: "doc.text", title: "没有文档", detail: "添加第一份文档", actionTitle: "添加", action: {})
+        XCTAssertEqual(state.icon, "doc.text"); XCTAssertEqual(state.title, "没有文档")
+        XCTAssertEqual(state.detail, "添加第一份文档"); XCTAssertEqual(state.actionTitle, "添加")
+        for content in [AnyView(state), AnyView(CosmosEmptyState(icon: "doc", title: "空"))] {
+            let host = NSHostingView(rootView: content); host.frame = NSRect(x: 0, y: 0, width: 600, height: 300)
+            host.layoutSubtreeIfNeeded(); XCTAssertGreaterThan(host.fittingSize.height, 0)
+        }
+    }
+    func testNativeKnowledgeSegmentUpdatesBindingWithoutPreferenceWrites() async throws {
+        let prefs = try preferences(), nav = CosmosNavigator(), root = try root()
+        let before = prefs.motion
+        let config = ZhuowangStorePersistenceConfiguration(dataSource: ZhuowangInMemoryPersistenceDataSource(), isIsolated: true, workspaceFilesRootURL: root)
+        let view = CosmosKnowledgeDestinationView(configuration: config, isolatedRoot: root,
+            notesLocation: .init(root: root.appendingPathComponent("notes"), error: nil),
+            promptLocation: .init(root: root.appendingPathComponent("prompts"), error: nil),
+            knowledgeSourcesLocation: .init(root: root.appendingPathComponent("sources"), error: nil))
+            .environment(\.cosmosNavigator, nav).environment(\.cosmosPreferences, prefs)
+        let host = NSHostingView(rootView: view); host.frame = NSRect(x: 0, y: 0, width: 1000, height: 700)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = host
+        defer { window.contentView = nil; window.close() }
+        try await Task.sleep(for: .milliseconds(150)); host.layoutSubtreeIfNeeded()
+        func segments(_ view: NSView) -> [NSSegmentedControl] {
+            (view as? NSSegmentedControl).map { [$0] } ?? view.subviews.flatMap(segments)
+        }
+        let control = try XCTUnwrap(segments(host).first { $0.segmentCount == 3 })
+        control.selectedSegment = 2; control.sendAction(control.action, to: control.target)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(nav.knowledgeSection, .sources); XCTAssertEqual(prefs.motion, before)
     }
     func testCancelledPageLoadDoesNotStartReader() async {
         let task = Task { await CosmosDesign.beginPageLoad(reduced: false) }; task.cancel()

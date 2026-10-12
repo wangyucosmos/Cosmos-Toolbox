@@ -87,7 +87,7 @@ struct CoreRestoreStartupView:View {
                             Button("退出 Cosmos OS") { NSApplication.shared.terminate(nil) }
                         } else { Text(model.message ?? "数据状态无法确认，业务加载已阻止。") }
                     }.padding(28).frame(maxWidth:.infinity,alignment:.leading)
-                }
+                }.scrollEdgeEffectStyle(.soft, for: .top)
             }
         }.task { if model.state == "checking" { await model.check() } }
     }

@@ -96,7 +96,7 @@ struct ZhuowangAIExecutionResultView: View {
                     maxWidth: 880
                 )
                 .frame(maxWidth: .infinity)
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
 
             Divider()
 
@@ -151,7 +151,7 @@ struct ZhuowangAIExecutionResultView: View {
 
                 dismiss()
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .disabled(
                 state == .running
             )
@@ -367,7 +367,7 @@ struct ZhuowangAIExecutionResultView: View {
                             : "doc.on.doc"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
                 .controlSize(.small)
             }
         ) {
@@ -427,7 +427,7 @@ struct ZhuowangAIExecutionResultView: View {
                         systemImage: "macwindow"
                     )
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.borderedProminent)
             }
         }
         .padding(CosmosDesign.spacingM)
@@ -459,7 +459,7 @@ struct ZhuowangAIExecutionResultView: View {
                     alignment: .leading
                 )
                 .padding(CosmosDesign.spacingM)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
         .frame(minHeight: artifactDraft?.type == .html ? 420 : 180)
         .background(
             Color.primary.opacity(0.018),
@@ -597,7 +597,7 @@ struct ZhuowangAIExecutionResultView: View {
                                 "doc.on.doc"
                         )
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
             ) {
@@ -710,7 +710,7 @@ struct ZhuowangAIExecutionResultView: View {
                             : "doc.on.doc"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Spacer()
 
@@ -727,7 +727,7 @@ struct ZhuowangAIExecutionResultView: View {
                             "text.bubble"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Button {
 
@@ -741,7 +741,7 @@ struct ZhuowangAIExecutionResultView: View {
                             "arrow.clockwise"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Button {
 
@@ -789,7 +789,7 @@ struct ZhuowangAIExecutionResultView: View {
 
                     dismiss()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Spacer()
 
@@ -1117,7 +1117,7 @@ struct ZhuowangAIRevisionRequestView:
 
                     dismiss()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
             }
             .background(.bar)
 
@@ -1182,7 +1182,7 @@ struct ZhuowangAIRevisionRequestView:
 
                     dismiss()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Button("提交修改意见") {
 

@@ -45,16 +45,13 @@ struct DashboardHomeView: View {
             VStack(alignment: .leading, spacing: 22) {
                 CosmosPageHeader(DashboardGreeting.text(now: model.now), subtitle: DashboardGreeting.dateText(now: model.now),
                     info: "汇总本地已保存数据。图表表示数量，Workflow 仅统计启用步骤；学习按未归档主题的学习日期计次数。归档笔记与提示词不计入。交付资格沿用推进工作台检查。")
-                ViewThatFits(in: .horizontal) {
-                    quickActions
-                    quickActions.labelStyle(.iconOnly)
-                }
+
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: CosmosAdaptiveLayout.columns(width: min(geometry.size.width, CosmosDesign.contentMaxWidth) - 48, minimum: 145)), spacing: 12) {
                     metric(.campaigns, "megaphone", "活动总数", data.total, data.errors["campaigns"])
                     metric(.ongoing, "calendar", "活动日期内", data.ongoing, data.errors["campaigns"])
                     metric(.attention, "exclamationmark.triangle", "失败或需修改", data.attention, data.errors["workflow"] ?? data.errors["campaigns"])
                     CosmosMetricTile(icon: "shippingbox", title: "可以交付", value: model.delivery.value,
-                        detail: model.delivery.error, loading: model.delivery.isLoading) { go(.deliverable) }
+                        detail: model.delivery.error, loading: model.delivery.isLoading) { go(.deliverable) }.cosmosScrollReveal()
                     metric(.notes, "note.text", "个人笔记", data.noteCount, data.errors["notes"])
                     metric(.prompts, "text.book.closed", "提示词", data.promptCount, data.errors["prompts"])
                     metric(.learning, "graduationcap", "近 7 天学习记录", data.learningCount, data.errors["learning"])
@@ -111,7 +108,7 @@ struct DashboardHomeView: View {
                                         Text(CosmosDate.day(item.updatedAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
                                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                                     }
-                                }.buttonStyle(CosmosInteractiveCardStyle())
+                                }.buttonStyle(CosmosInteractiveCardStyle()).cosmosScrollReveal()
                             }
                         }
                     }
@@ -122,9 +119,23 @@ struct DashboardHomeView: View {
                 }
                 if let readAt = data.readAt { Text("读取于 " + CosmosDate.timestamp(readAt)).font(CosmosDesign.font(.caption)).foregroundStyle(.tertiary) }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth).frame(maxWidth: .infinity)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
         }.background(Color(nsColor: .windowBackgroundColor))
-            .toolbar { ToolbarItem { Button("刷新", systemImage: "arrow.clockwise") { model.refresh(); mac.refresh() }.buttonStyle(.glass).disabled(model.loading).accessibilityIdentifier("dashboard-refresh") } }
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+            Button { navigator.navigate(.module("zhuowang")) } label: { Label("新建活动", systemImage: "plus.circle") }.help("打开卓望工作，在活动分类新建")
+            Button { navigator.newRecordRequest = .note } label: { Label("新建笔记", systemImage: "square.and.pencil") }.help("打开原生新建笔记窗口")
+            Button { navigator.newRecordRequest = .prompt } label: { Label("新建提示词", systemImage: "text.badge.plus") }.help("打开原生新建模板窗口")
+            Button { navigator.navigate(.search("")) } label: { Label("统一检索", systemImage: "magnifyingglass") }.help("统一检索").labelStyle(.iconOnly)
+
+                }
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) {
+                    Button("刷新", systemImage: "arrow.clockwise") { model.refresh(); mac.refresh() }.help("刷新").labelStyle(.iconOnly)
+                        .disabled(model.loading).accessibilityIdentifier("dashboard-refresh")
+                        .symbolEffect(.rotate, isActive: model.loading && !preferences.reducesMotion(system: systemMotion))
+                }
+            }
              .task {
                 appeared = true
                 if autoRefresh, await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { model.refresh(); mac.loadIfNeeded() }
@@ -143,16 +154,8 @@ struct DashboardHomeView: View {
         default: return .gray
         }
     }
-    private var quickActions: some View {
-        CosmosGlassToolbarGroup {
-            Button { navigator.navigate(.module("zhuowang")) } label: { Label("新建活动", systemImage: "plus.circle").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开卓望工作，在活动分类新建")
-            Button { navigator.newRecordRequest = .note } label: { Label("新建笔记", systemImage: "square.and.pencil").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开原生新建笔记窗口")
-            Button { navigator.newRecordRequest = .prompt } label: { Label("新建提示词", systemImage: "text.badge.plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.help("打开原生新建模板窗口")
-            Button { navigator.navigate(.search("")) } label: { Label("统一检索", systemImage: "magnifyingglass").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
-        }
-    }
     private func metric(_ link: CosmosDashboardLink, _ icon: String, _ title: String, _ value: Int?, _ error: String?) -> some View {
-        CosmosMetricTile(icon: icon, title: title, value: value, detail: error, loading: model.loading) { go(link) }
+        CosmosMetricTile(icon: icon, title: title, value: value, detail: error, loading: model.loading) { go(link) }.cosmosScrollReveal()
     }
     @ViewBuilder private var statusCards: some View {
         CosmosCard(icon: "desktopcomputer", title: "Mac 环境", action: { go(.mac) }) { Text(macText).font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }

@@ -56,13 +56,13 @@ struct ZhuowangTaskPackagePreviewView: View {
                 ) {
 
                     summaryCard
-                        .campaignUIEntrance(0)
+                        .cosmosScrollReveal()
 
                     executionSection
-                        .campaignUIEntrance(1)
+                        .cosmosScrollReveal()
 
                     instructionSection
-                        .campaignUIEntrance(2)
+                        .cosmosScrollReveal()
 
                     ViewThatFits(in: .horizontal) {
 
@@ -82,7 +82,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                             outputSection
                         }
                     }
-                    .campaignUIEntrance(3)
+                    .cosmosScrollReveal()
                 }
                 .padding(
                     .horizontal,
@@ -96,7 +96,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                     maxWidth: 860
                 )
                 .frame(maxWidth: .infinity)
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
 
             Divider()
 
@@ -173,7 +173,7 @@ struct ZhuowangTaskPackagePreviewView: View {
             Button("关闭") {
                 dismiss()
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
         }
     }
 
@@ -515,14 +515,14 @@ struct ZhuowangTaskPackagePreviewView: View {
                         : "doc.on.doc"
                 )
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
 
             Spacer()
 
             Button("返回") {
                 dismiss()
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
 
             Button {
 
@@ -536,7 +536,7 @@ struct ZhuowangTaskPackagePreviewView: View {
                         "arrow.right"
                 )
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .disabled(
                 !canContinue
             )

@@ -49,7 +49,7 @@ struct CosmosSettingsView: View {
                 Divider()
                 storageLocations
             }.font(CosmosDesign.font(.body)).textSelection(.enabled).padding(16)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
     }
     private var storageLocations: some View { CosmosSettingsLocations(source: source, restoreTarget: restoreTarget) }
 }
@@ -100,11 +100,6 @@ struct CosmosSettingsBackupView: View {
                 DisclosureGroup("不包含与安全排除（不是完整换机恢复）") {
                     ForEach(CoreBackupSource.currentExclusions, id: \.self) { Text($0).font(CosmosDesign.font(.body)).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 4) }
                 }
-                CosmosGlassToolbarGroup {
-                    Button("导出核心数据备份", systemImage: "square.and.arrow.up") { chooseExport() }
-                    Button("校验备份", systemImage: "checkmark.shield") { chooseVerify() }
-                    if let result = model.result { Button("在 Finder 中查看", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([result.url]) } }
-                }.disabled(model.busy)
                 if model.busy { ProgressView() }
                 if let status = model.status { Text(status).font(CosmosDesign.font(.body)).textSelection(.enabled).accessibilityIdentifier("core-backup-status") }
                 if let result = model.result {
@@ -117,7 +112,13 @@ struct CosmosSettingsBackupView: View {
                 Divider()
                 CosmosSettingsLocations(source: source, restoreTarget: restoreTarget)
             }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-        }.accessibilityIdentifier("core-backup-settings")
+        }.scrollEdgeEffectStyle(.soft, for: .top).accessibilityIdentifier("core-backup-settings")
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+                    Button("导出核心数据备份", systemImage: "square.and.arrow.up") { chooseExport() }.disabled(model.busy).help("导出核心数据备份").labelStyle(.iconOnly)
+                    Button("校验备份", systemImage: "checkmark.shield") { chooseVerify() }.disabled(model.busy).help("校验备份").labelStyle(.iconOnly)
+                    if let result = model.result { Button("在 Finder 中查看", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([result.url]) }.help("在 Finder 中查看").labelStyle(.iconOnly) }
+
+        } }
     }
     private func chooseExport() {
         let panel = NSSavePanel(); panel.title = "导出核心数据备份（已有目标不会覆盖）"

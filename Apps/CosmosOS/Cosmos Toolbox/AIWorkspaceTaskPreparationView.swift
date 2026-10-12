@@ -19,7 +19,7 @@ struct AIWorkspaceTaskPreparationView: View {
                 ForEach(1...3, id: \.self) { number in
                     Button { stage = number } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: guide.status(number) == .complete ? "checkmark.circle.fill" : "\(number).circle.fill")
+                            Image(systemName: guide.status(number) == .complete ? "checkmark.circle.fill" : "\(number).circle.fill").cosmosSymbolReplacement()
                                 .foregroundStyle(guide.status(number) == .waiting ? Color.secondary : Color.accentColor)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(["选择活动与步骤", "填写本次目标", "预览并交接"][number - 1]).font(CosmosDesign.font(.body))
@@ -61,7 +61,7 @@ struct AIWorkspaceTaskPreparationView: View {
             }.disabled(model.steps.isEmpty).accessibilityIdentifier("ai-task-step")
             if !guide.selectionComplete { Text(model.validation ?? "请选择活动与步骤。").font(CosmosDesign.font(.body)).foregroundStyle(.secondary).accessibilityIdentifier("ai-task-empty") }
             if let step = model.step { Text("\(model.workflow?.name ?? "") / \(step.title) · \(step.status.title)").font(CosmosDesign.font(.body)); if !step.notes.isEmpty { Text(step.notes).foregroundStyle(.secondary).textSelection(.enabled) } }
-            Button("下一步：填写目标", systemImage: "arrow.right") { stage = 2 }.buttonStyle(.glass).disabled(!guide.selectionComplete)
+            Button("下一步：填写目标", systemImage: "arrow.right") { stage = 2 }.buttonStyle(.bordered).disabled(!guide.selectionComplete)
         }
     }
     private func goalStep(_ guide: CosmosAITaskGuide) -> some View {
@@ -77,7 +77,7 @@ struct AIWorkspaceTaskPreparationView: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor))).accessibilityIdentifier("ai-task-requirements")
             DisclosureGroup("参考资料（可选，明确选择后才读取）") { AIWorkspaceTaskReferencesView(selection: model.referenceSelection) }
             if let reason = model.validation { Text(reason).font(CosmosDesign.font(.body)).foregroundStyle(.secondary) }
-            HStack { Button("上一步") { stage = 1 }; Spacer(); Button("下一步：预览提示词", systemImage: "arrow.right") { stage = 3 }.buttonStyle(.glass).disabled(!guide.permits(3)) }
+            HStack { Button("上一步") { stage = 1 }; Spacer(); Button("下一步：预览提示词", systemImage: "arrow.right") { stage = 3 }.buttonStyle(.bordered).disabled(!guide.permits(3)) }
         }
     }
     private func previewStep(_ preview: String?) -> some View {
@@ -86,7 +86,7 @@ struct AIWorkspaceTaskPreparationView: View {
                 Text("③ 预览完整提示词").font(CosmosDesign.font(.section))
                 Spacer()
                 Button("复制给 \(model.tool.rawValue)", systemImage: "doc.on.doc") { model.copyPreview() }
-                    .buttonStyle(.glass).disabled(preview == nil || model.copying).accessibilityIdentifier("ai-task-copy")
+                    .buttonStyle(.bordered).disabled(preview == nil || model.copying).accessibilityIdentifier("ai-task-copy")
             }
             if copied { Label("已复制：粘贴到 Claude Code / Codex 执行；完成后回到这里点“记录交接”。", systemImage: "checkmark.circle.fill").foregroundStyle(.green).accessibilityIdentifier("ai-task-copy-feedback") }
             else if let feedback = model.copyFeedback, feedback != "已复制当前任务提示词" { Text(feedback).foregroundStyle(.orange).accessibilityIdentifier("ai-task-copy-feedback") }

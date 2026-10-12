@@ -159,7 +159,7 @@ struct KnowledgeDocumentReaderView: View {
                 Text(document.rawText.isEmpty ? " " : document.rawText).font(KnowledgeReaderFont.mono())
                     .textSelection(.enabled)
                     .padding(24).frame(maxWidth: .infinity, alignment: .topLeading)
-            }.accessibilityIdentifier("knowledge-source-text")
+            }.scrollEdgeEffectStyle(.soft, for: .top).accessibilityIdentifier("knowledge-source-text")
         } else if let blocks {
             if blocks.isEmpty {
                 CosmosEmptyState(icon: "doc", title: "正文为空", detail: "这个文件没有正文内容。")
@@ -223,7 +223,7 @@ struct KnowledgeAttachmentView: View {
                 Button("在 Obsidian 中打开", systemImage: "arrow.up.forward.app") {
                     if let url = fileURL, !KnowledgeSourceSystem.openInObsidian(url) { onMessage("无法打开 Obsidian。") }
                 }.disabled(!obsidianAvailable || fileURL == nil)
-            }.buttonStyle(.glass)
+            }.buttonStyle(.bordered)
             Spacer()
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(24)
             .background(Color(nsColor: .textBackgroundColor))

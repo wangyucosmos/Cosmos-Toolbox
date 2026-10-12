@@ -298,7 +298,7 @@ struct PersonalNoteEditorView: View {
                     Text("笔记保存后建立首个内容版本 v1。").foregroundStyle(.secondary)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
         .alert("将 v\(pendingRestore?.number ?? 0) 恢复为新的当前版本？", isPresented: Binding(
             get: { pendingRestore != nil }, set: { if !$0 { pendingRestore = nil } })) {
             Button("取消", role: .cancel) { pendingRestore = nil }
@@ -368,7 +368,7 @@ struct PersonalNoteEditorView: View {
                 Text("只登记你选取的文件路径或链接：不复制、移动、删除文件，不读取文件内容，不抓取网页；点击「打开」才交给系统。失效引用会保留并说明原因。恢复历史正文不会撤销引用或更正记录；复制正文不含引用位置。核心备份只含引用登记记录，不含文件实体。")
                     .font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
     }
 }
 

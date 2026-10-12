@@ -56,12 +56,7 @@ struct KnowledgeSourcesRootView: View {
         VStack(spacing: 0) {
             CosmosPageHeader("我的知识库", subtitle: "只读浏览本地知识库文件夹，并同步 GitHub 更新。",
                 info: "选择你的知识库文件夹（如 Obsidian 库）后，Cosmos 会在后台读取其中的 Markdown 与文本，附件只显示名称。\n\n只读：不会修改、移动或删除文件夹里的任何内容（包括 .obsidian 配置）。隐藏文件、.gitignore 排除项、嵌套仓库，以及疑似密钥的文件（type: secret 或文件名含密钥 / secret / token / password / .env）都不会被读取，也不会出现在列表、搜索或统一检索中。索引只保存在内存里。") {
-                CosmosGlassToolbarGroup {
-                    Button { pickFolder() } label: { Label("添加文件夹", systemImage: "folder.badge.plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
-                        .disabled(!store.canSave).accessibilityIdentifier("knowledge-add-folder")
-                    Button { store.rescanAll() } label: { Label("重新扫描", systemImage: "arrow.clockwise").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
-                        .disabled(enabledSources.isEmpty).help("重新扫描已启用的来源")
-                }
+
             }.padding(.horizontal, CosmosDesign.pagePadding).padding(.top, CosmosDesign.spacingXL).padding(.bottom, CosmosDesign.spacingM)
             if let error = store.error {
                 HStack {
@@ -80,6 +75,13 @@ struct KnowledgeSourcesRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+                    Button { pickFolder() } label: { Label("添加文件夹", systemImage: "folder.badge.plus") }.help("添加文件夹").labelStyle(.iconOnly)
+                        .disabled(!store.canSave).accessibilityIdentifier("knowledge-add-folder")
+                    Button { store.rescanAll() } label: { Label("重新扫描", systemImage: "arrow.clockwise") }.help("重新扫描").labelStyle(.iconOnly)
+                        .disabled(enabledSources.isEmpty).help("重新扫描已启用的来源")
+
+        } }
         .overlay(alignment: .bottom) { toastView }
         .background { Button("") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).opacity(0).accessibilityHidden(true) }
         .task {
@@ -118,10 +120,10 @@ struct KnowledgeSourcesRootView: View {
                 .font(CosmosDesign.font(.body)).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 520)
             HStack(spacing: 12) {
                 Button("添加文件夹…", systemImage: "folder.badge.plus") { pickFolder() }
-                    .buttonStyle(.glassProminent).disabled(!store.canSave).accessibilityIdentifier("knowledge-onboarding-add")
+                    .buttonStyle(.borderedProminent).disabled(!store.canSave).accessibilityIdentifier("knowledge-onboarding-add")
                 if let suggestedFolder {
                     Button("添加『我的知识库』", systemImage: "lightbulb") { Task { await add(suggestedFolder) } }
-                        .buttonStyle(.glass).disabled(!store.canSave).accessibilityIdentifier("knowledge-onboarding-suggestion")
+                        .buttonStyle(.bordered).disabled(!store.canSave).accessibilityIdentifier("knowledge-onboarding-suggestion")
                         .help("检测到 \(suggestedFolder.path)；点击才会添加")
                 }
             }.controlSize(.large)
@@ -356,12 +358,17 @@ struct KnowledgeSourcesRootView: View {
         toast = message
         Task { try? await Task.sleep(for: .seconds(3)); if toast == message { toast = nil } }
     }
+    @Namespace private var toastGlass
     @ViewBuilder private var toastView: some View {
+        GlassEffectContainer {
         if let toast {
             Text(toast).font(CosmosDesign.font(.body)).padding(.horizontal, 14).padding(.vertical, 8)
-                .glassEffect(.regular, in: Capsule()).padding(.bottom, 18)
-                .transition(reduced ? .opacity : .opacity.combined(with: .move(edge: .bottom)))
+                .glassEffect(.regular, in: Capsule())
+                .glassEffectID("knowledge-toast", in: toastGlass)
+                .glassEffectTransition(reduced ? .identity : .matchedGeometry).padding(.bottom, 18)
+                .transition(.opacity)
                 .accessibilityIdentifier("knowledge-toast")
+        }
         }
     }
 }
@@ -486,7 +493,7 @@ struct KnowledgeExclusionPopover: View {
                     ForEach(index.unsupportedIgnoreLines, id: \.self) { Text($0).font(.caption.monospaced()) }
                 }
             }.padding(16).textSelection(.enabled)
-        }.frame(width: 440, height: 360)
+        }.scrollEdgeEffectStyle(.soft, for: .top).frame(width: 440, height: 360)
     }
 }
 
@@ -632,7 +639,7 @@ struct KnowledgeGitPanelView: View {
                     Button("取消", action: onCancel).buttonStyle(.borderless)
                 }
                 Spacer(minLength: 0)
-            }.buttonStyle(.glass).controlSize(.small)
+            }.buttonStyle(.bordered).controlSize(.small)
             if !decision.allowed, s.failure == nil, let reason = decision.reason {
                 Label(reason, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("knowledge-git-pull-reason")
             }

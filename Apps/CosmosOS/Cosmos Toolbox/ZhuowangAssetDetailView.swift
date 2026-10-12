@@ -54,7 +54,7 @@ struct ZhuowangAssetDetailView: View {
                             ScrollView([.horizontal, .vertical]) {
                                 Text(text).font(.system(.body, design: .monospaced)).textSelection(.enabled)
                                     .frame(minWidth: max(0, geometry.size.width - 24), alignment: .topLeading).padding(12)
-                            }
+                            }.scrollEdgeEffectStyle(.soft, for: .top)
                         }.background(Color(nsColor: .textBackgroundColor)).accessibilityIdentifier("asset-body")
                     } else {
                         ContentUnavailableView("此版本没有可展示的文本正文", systemImage: "doc",

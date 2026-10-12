@@ -43,7 +43,7 @@ struct PromptVaultView: View {
             if !layoutReady || store.loading || (!store.loaded && store.error == nil) {
                 CosmosLoadingSkeleton(title: "正在读取提示词库…").frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else if store.loaded && store.templates.isEmpty && store.error == nil {
-                ScrollView { starters }
+                ScrollView { starters }.scrollEdgeEffectStyle(.soft, for: .top)
             } else {
                 ViewThatFits(in: .horizontal) {
                     HSplitView {
@@ -63,11 +63,11 @@ struct PromptVaultView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.pageAnimation(reduced: false), value: store.loaded)
-        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
-            Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }.disabled(!store.canSave).accessibilityIdentifier("prompt-new")
-            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("prompt-export-batch")
-            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-        }.labelStyle(.iconOnly) } }
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+            Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }.disabled(!store.canSave).accessibilityIdentifier("prompt-new").help("新建模板").labelStyle(.iconOnly)
+            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("prompt-export-batch").help("批量导出…").labelStyle(.iconOnly)
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving).help("刷新").labelStyle(.iconOnly)
+        } }
         .task {
             await Task.yield(); layoutReady = true
             if let session { await session.loadIfNeeded() }
@@ -90,7 +90,7 @@ struct PromptVaultView: View {
                     }) {
                         Text(starter.draft.body).font(CosmosDesign.font(.body)).foregroundStyle(.secondary).lineLimit(4)
                         Text("预填编辑器 · 保存后才创建").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
-                    }.disabled(!store.canSave).cosmosEntrance(index)
+                    }.disabled(!store.canSave).cosmosScrollReveal()
                 }
             }
         }.padding(.vertical, 12)
@@ -191,7 +191,7 @@ struct PromptVaultView: View {
                 Divider()
                 history(template)
             }.padding(12)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
     }
     private func timeLabel(_ entry: PromptVersionEntry, _ template: PromptTemplate) -> String {
         switch entry.kind {

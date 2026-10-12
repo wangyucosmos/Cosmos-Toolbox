@@ -19,7 +19,7 @@ struct CampaignReferencesView: View {
             info: "登记活动资料和外部成果的位置，只追加历史。登记不代表 Artifact、采用、已落盘或可交付，也不影响 ZIP 资格。月度清单的七项成品仍在「月度清单」中登记与确认。\n\n备份仅包含引用记录，不包含原文件或网页。文件移动后记录仍保留，不自动修复。",
             trailing: {
                 Button { begin() } label: { Label("追加引用", systemImage: "plus") }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.bordered)
                     .help("追加文件或链接引用")
                     .disabled(!store.persistenceState.allowsMutations)
             }
@@ -53,10 +53,10 @@ struct CampaignReferencesView: View {
                 Spacer()
                 if record.kind != .correction {
                     Button(record.kind == .file ? "打开原文件" : "打开链接") { open(record) }
-                        .buttonStyle(.glass).controlSize(.small)
+                        .buttonStyle(.bordered).controlSize(.small)
                 }
                 Button("追加更正说明") { begin(correcting: record.id) }
-                    .buttonStyle(.glass).controlSize(.small)
+                    .buttonStyle(.bordered).controlSize(.small)
                     .disabled(!store.persistenceState.allowsMutations)
             }
             Text(CosmosDate.timestamp(record.recordedAt))
@@ -97,7 +97,7 @@ struct CampaignReferencesView: View {
             TextField("名称", text: $draft.name)
             TextField("版本标签（可选）", text: $draft.versionLabel)
             if draft.kind == .file {
-                Button("选择原文件…") { chooseFile() }.buttonStyle(.glass)
+                Button("选择原文件…") { chooseFile() }.buttonStyle(.bordered)
                 Text(draft.location.isEmpty ? "尚未选择文件" : draft.location).textSelection(.enabled)
                     .font(.callout).foregroundStyle(.secondary)
             } else if draft.kind == .link {
@@ -110,11 +110,11 @@ struct CampaignReferencesView: View {
                 .overlay { RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusSmall, style: .continuous).stroke(Color.primary.opacity(0.07), lineWidth: 1) }
             if let message = draft.message { Text(message).foregroundStyle(.orange) }
             HStack {
-                Button("取消") { registering = false }.buttonStyle(.glass)
+                Button("取消") { registering = false }.buttonStyle(.bordered)
                 Spacer()
                 Button("保存登记") {
                     if draft.save(store: store, campaignID: campaignID) { registering = false }
-                }.buttonStyle(.glassProminent).disabled(!store.persistenceState.allowsMutations)
+                }.buttonStyle(.borderedProminent).disabled(!store.persistenceState.allowsMutations)
             }
         }.padding(24).frame(width: 530)
     }

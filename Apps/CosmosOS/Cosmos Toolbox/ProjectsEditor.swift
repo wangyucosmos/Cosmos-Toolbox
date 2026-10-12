@@ -99,7 +99,7 @@ struct ProjectsEditorView: View {
                     Button("保存") { Task { await session.save() } }.keyboardShortcut("s", modifiers: .command).disabled(!store.canSave)
                 }
             }.padding(24)
-        }.frame(minWidth: 620, minHeight: 560).disabled(session.saving || session.terminationPending)
+        }.scrollEdgeEffectStyle(.soft, for: .top).frame(minWidth: 620, minHeight: 560).disabled(session.saving || session.terminationPending)
             .alert("放弃本窗口未保存修改并重新加载？", isPresented: $confirmReload) {
                 Button("取消", role: .cancel) {}
                 Button("重新加载", role: .destructive) { Task { await session.reload() } }

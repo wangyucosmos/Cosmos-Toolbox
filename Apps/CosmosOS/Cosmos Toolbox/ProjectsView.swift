@@ -20,7 +20,7 @@ struct ProjectsView: View {
                         Text("全部状态").tag(ProjectsStatus?.none)
                         ForEach(ProjectsStatus.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
                     }.frame(maxWidth: 160)
-                    CosmosSegmentedControl(title: "项目范围", options: [(false, "当前"), (true, "归档")], selection: $archived)
+                    Picker("项目范围", selection: $archived) { Text("当前").tag(false); Text("归档").tag(true) }.pickerStyle(.segmented).accessibilityLabel("项目范围")
                 }
                 if let error = store.error { Text(error.localizedDescription).foregroundStyle(.orange).textSelection(.enabled) }
                 if store.loading || (!store.loaded && store.error == nil) { CosmosLoadingSkeleton(title: "读取项目…") }
@@ -38,19 +38,19 @@ struct ProjectsView: View {
                                 Label(project.nextStep.isEmpty ? "填写下一步，让项目继续推进" : project.nextStep, systemImage: "arrow.right.circle").font(CosmosDesign.font(.body)).lineLimit(2)
                                 Text(project.progress.max(by: { $0.recordedAt < $1.recordedAt }).map { "最近进展：" + CosmosDate.timestamp($0.recordedAt) } ?? "尚无进展记录 · 更新 " + CosmosDate.timestamp(project.updatedAt))
                                     .font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
-                            }.cosmosEntrance(index)
+                            }.cosmosScrollReveal()
                         }
                         }
                     }
                 }
                 Text("文件和链接仅保存引用；备份不包含实体文件。归档保留历史。").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
-        }.background(Color(nsColor: .windowBackgroundColor))
+        }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .windowBackgroundColor))
             .animation(preferences.reducesMotion(system: systemMotion) ? nil : CosmosDesign.pageAnimation(reduced: false), value: store.loaded)
-            .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
-                Button("新建项目", systemImage: "plus") { ProjectsWindowManager.shared.open(store: store, project: nil) }.disabled(!store.canSave)
-                Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving)
-            }.labelStyle(.iconOnly) } }
+            .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+                Button("新建项目", systemImage: "plus") { ProjectsWindowManager.shared.open(store: store, project: nil) }.disabled(!store.canSave).help("新建项目").labelStyle(.iconOnly)
+                Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving).help("刷新").labelStyle(.iconOnly)
+            } }
             .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload() } }
     }
     private var starters: some View {
@@ -63,7 +63,7 @@ struct ProjectsView: View {
                     CosmosCard(icon: starter.icon, title: starter.title, action: {
                         ProjectsWindowManager.shared.open(store: store, project: nil, prefill: starter.draft)
                     }) { Text(starter.draft.goal).font(CosmosDesign.font(.body)).foregroundStyle(.secondary); Text("预填草稿 · 保存后才创建").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary) }
-                        .disabled(!store.canSave).cosmosEntrance(index)
+                        .disabled(!store.canSave).cosmosScrollReveal()
                 }
             }
         }

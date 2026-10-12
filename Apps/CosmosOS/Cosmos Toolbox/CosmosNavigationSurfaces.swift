@@ -10,15 +10,14 @@ struct CosmosKnowledgeDestinationView: View {
     @Environment(\.cosmosNavigator) private var navigator
     @Environment(\.cosmosPreferences) private var preferences
     @Environment(\.accessibilityReduceMotion) private var systemMotion
-    @Namespace private var segment
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                HStack(spacing: 4) {
-                    sectionButton("个人笔记", .notes)
-                    sectionButton("卓望知识与资产", .assets)
-                    sectionButton("我的知识库", .sources)
-                }.padding(4).glassEffect(.regular, in: Capsule())
+                Picker("知识库分区", selection: Binding(get: { navigator.knowledgeSection }, set: { navigator.knowledgeSection = $0 })) {
+                    Text("个人笔记").tag(CosmosKnowledgeSection.notes)
+                    Text("卓望知识与资产").tag(CosmosKnowledgeSection.assets)
+                    Text("我的知识库").tag(CosmosKnowledgeSection.sources)
+                }.pickerStyle(.segmented).accessibilityLabel("知识库分区")
                 Spacer()
             }.padding(.horizontal, 24).padding(.vertical, 10)
             Divider()
@@ -29,17 +28,5 @@ struct CosmosKnowledgeDestinationView: View {
                     suggestedFolder: configuration.isIsolatedForUI || knowledgeSourcesLocation.root == nil ? nil : KnowledgeSourcesRootView.defaultSuggestion())
             }
         }
-    }
-    private func sectionButton(_ title: String, _ section: CosmosKnowledgeSection) -> some View {
-        Button { navigator.knowledgeSection = section } label: {
-            Text(title).font(CosmosDesign.font(.body)).padding(.horizontal, 14).padding(.vertical, 7)
-                .background {
-                    if navigator.knowledgeSection == section {
-                        Capsule().fill(Color.accentColor.opacity(0.14)).matchedGeometryEffect(id: "selection", in: segment)
-                    }
-                }
-        }.buttonStyle(.plain)
-            .accessibilityAddTraits(navigator.knowledgeSection == section ? .isSelected : [])
-            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: navigator.knowledgeSection)
     }
 }

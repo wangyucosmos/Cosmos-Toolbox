@@ -160,7 +160,7 @@ struct CampaignUITimeline: View {
                     select: { selection = item.id },
                     act: { onAction(item.id) }
                 )
-                .campaignUIEntrance(index)
+                .cosmosScrollReveal()
             }
         }
     }
@@ -194,7 +194,7 @@ private struct CampaignUITimelineRow: View {
                 Image(systemName: item.statusIcon)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(item.tone.color)
-                    .contentTransition(.symbolEffect(.replace))
+                    .cosmosSymbolReplacement()
             }
             .overlay {
                 if isSelected {
@@ -245,7 +245,7 @@ private struct CampaignUITimelineRow: View {
                     Spacer(minLength: 0)
                     if let title = item.actionTitle {
                         Button(title, action: act)
-                            .buttonStyle(.glass)
+                            .buttonStyle(.bordered)
                             .controlSize(.small)
                             .disabled(!item.actionEnabled)
                     }

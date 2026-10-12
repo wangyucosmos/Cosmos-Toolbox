@@ -130,3 +130,98 @@
 - 正式文档只更新Current Status与本日志，保留历史失败记录并消除当前阻塞描述。main/origin/main仍fee48c5，不移动、不推送、不删除分支/worktree。本轮可工程收口，等待用户体验验收。
 
 - 正式收尾：用户已体验验收体验打磨轮并接受声明范围；开工polish/ui-round4 @bb722d2、干净、main/origin/main fee48c5且唯一正式worktree；main快进至bb722d2并正常推送，ls-remote一致、0/0、干净，git branch -d安全删除polish/ui-round4；未触碰两个指定WIP分支。下一步Mac版原生化改造（依据Claude Code原生化审计报告），之后卓望分类内容接入。此次只更新Current Status与本日志并以“docs: 记录体验打磨轮验收与合并”提交推送，不重新构建、部署或测试。
+
+
+## Mac 原生化第一批 1.1–1.6（Codex 主开发 / 唯一部署负责人）
+
+- 开工基线：main / 本地 origin/main / HEAD = 515c7955b76c56f200e4de75ff09ea9b297f1b4c，干净、唯一正式 worktree。保留本地 Word WIP 与远端 PDF WIP。创建 native/batch1；Git .git 写操作需要沙箱外权限，本轮不 push / merge / prune。未修改 Claude 窗口工厂文件或其 worktree。
+- 审计入库：找到 /private/tmp/CosmosNativeAudit-report.md，原样复制到 Docs/Reviews/2026-10-12_Mac原生化审计.md，只加来源路径 / e9ef4f3 头；正文逐字节核对相同。实施以 515c795 实际代码为准，统筹 1.6 对系统动效的最新决定优先于旧审计的不使用 scrollTransition 建议。
+- 1.1：删除 CosmosGlassToolbarGroup（源码与 benchmark 12 处定义 / 使用）；10 页相关动作改 ToolbarItem / ToolbarItemGroup，仪表盘主操作与刷新用 ToolbarSpacer 分组。设置、仪表盘、来源页、卓望原在内容中的动作移到系统 toolbar，其他页拆除嵌套组；系统默认按钮材质，不再叠加玻璃。外壳下传 cosmosPageToolbarVisible = selection == .zhuowang，保留工作区身份与 ZStack；共享 cosmosGlassNamespace / pageGlass 无其他使用者，一并删。
+- 1.2：59 个显式玻璃按钮样式（19文件；含原工具栏 3 处）：内容改 bordered / borderedProminent，原工具栏用默认样式；11 个黑白字色覆盖及 2 个 primary 强制覆盖删除。实际逐文件数量见下表。显式玻璃白名单仅 KnowledgeSourcesRootView 底部 toast：真实浮在内容上方的只读消息，不加可点击 interactive；置于 GlassEffectContainer，以 glassEffectID / matchedGeometry 形变，减少动效用 identity；工具栏由系统提供玻璃，不写 glassEffect。
+- 1.3：五套自绘分段（AI 工作台、Projects、知识库分区、卓望工作分类、活动详情标签）换 Picker(.segmented)。保留原 Binding / 选项值、分类选择清理 assetDestination、isEditing 禁用、UI 偏好键及持久化逻辑；活动详情标签仍在内容区，挪入窗口 toolbar 留第三批。删除 CosmosSegmentedControl / CampaignUISegmentedTabs / sectionButton / tab 绘制实现，CampaignUITabItem 作为数据项保留。
+- 1.4：CosmosEmptyState 保留签名，以 ContentUnavailableView label / description / actions 薄包装；KnowledgeHubView 搜索命中 PersonalNotesTests.swift:715 的实际渲染测试，因此按提示词保留，未伪称无引用。
+- 1.5：CosmosDesign.surface=controlBackgroundColor、surfaceRadius=14；卡片样式、交互卡片、CosmosContentPanel、campaignUICardSurface 共用语义填充，去装饰描边 / 阴影 / 悬停缩放位移（键盘焦点轮廓保留）。删除 CosmosEntrance / campaignUIEntrance 两套实现与 28 次调用、entranceDelay / interval / limit、sidebarPulse 与 bounce；保留图表、时间线、进度环、产物与状态组件及轻背景 hover。没有修改业务 Store、schema、路径、恢复 / 采用 / 交付算法或渲染器 / 安全策略。
+- 1.6：33 个 ScrollView 的 soft top edge；31 个网格 / 卡片 / 行挂载系统 scrollTransition（opacity 0.82、scale 0.98、y 4，仅非 identity，减少动效全为原样）；共享指标数字使用 numericText 与已存在的 value 动画，覆盖仪表盘 / 卓望工作台；4 处图标替换调用（笔记收藏、任务准备完成、省份启停、Workflow 状态）遵循减少动效；仪表盘 / Mac 正在刷新 rotate、AI 正在检测 pulse，静止时关闭。暂无头图 / 大色块，不加 backgroundExtensionEffect；五套选择已全部原生，没有剩余自绘滑块需要 matchedGeometry。未使用 macOS 不可用 API。
+- 集中验证：沙箱外 Xcode27、macOS27SDK；原工程 / Cosmos Toolbox scheme、Debug、CODE_SIGNING_ALLOWED=NO、独立 DerivedData /private/tmp/CosmosDD-batch1-dd1104c9-718e-4771-b72f-bbef521fda33、Bundle ID com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch1。首轮 parse 失败（设置 toolbar 的 help 接在 if 块外），唯一集中修复移到 Button 上，并清理无关业务文件尾空行。受影响复建 build-for-testing 成功 /private/tmp/CosmosNativeBatch1-repair-build.log。全量 test-without-building 仅一次，641 唯一测试全部通过，0失败，/private/tmp/CosmosNativeBatch1-tests.xcresult、tests.log；不按重复输出累加。
+- 隔离：生成 xctestrun 注入随机 suite 与 workspace-files / prompt / learning / handoff / projects / notes / sources / restore / assets 九个 UUID 临时根，C0失败关闭；不运行真实 Provider / Harness，不从 XCTest 访问正式 Documents / 业务域，不按同名 App 使用 System Events。保留隔离配置 /private/tmp/CosmosNativeBatch1-isolation.json。
+- 72 对有向页面互切一次：1 fade_begin、1 fade_commit、0 host_remount、0 workspace_second_selection；原生 NSHostingController sceneBridgingOptions 只加在矩阵夹具，不改生产 10 个窗口创建点。NSToolbar 实际项名检查：卓望选中有且仅有1个“管理工作区”，其他页面0。/private/tmp/CosmosNativeBatch1-matrix/matrix.csv。
+- 新增 / 调整测试只涉及空状态映射渲染、系统 segmented 实际 NSSegmentedControl action 更新知识库 Binding、减少动效及工具栏显隐；既有 preference roundtrip / 数据保护测试本轮沿用全量执行。未改 Prompt init / StateObject 身份和检索焦点逻辑。
+- 静态 rg：CosmosGlassToolbarGroup=0；CosmosEntrance / entranceDelay=0；symbolEffect(.bounce)=0；CosmosSegmentedControl / CampaignUISegmentedTabs / sectionButton / tab=0；buttonStyle(.glass…)=0；foregroundStyle/foregroundColor 强制 white / black / primary=0。白名单显式 glassEffect 仅知识库 toast。证据 /private/tmp/CosmosNativeBatch1-static.json；git diff --check 通过。没有新建窗口工厂文件。
+- 离屏截图：本轮既有隔离夹具输出中选取仪表盘、卓望省份概览、提示词库、设置数据页、活动详情概览各浅 / 深1张，共10张，亲自逐张查看，正文可读、系统按钮与分段可见。/private/tmp/CosmosNativeBatch1-screenshots/{dashboard,workspace,prompts,settings,campaign-detail}-{light,dark}.png；manifest含来源 / 本轮mtime / SHA-256。同步提示词夹具“data”图仍为loading，使用现有 async 夹具内容就绪图；不重复测试。设置 TabView 标签胶囊离屏显示纯黑 / 白，toolbar与标题栏、玻璃、动效不在截图验收范围，不据此判断实机缺陷。指标卡采用系统填充后浅色分界较轻，实机观感由用户验收。
+- 正式数据仅 shell 读取：Workspace14文件路径 / size / st_mtime_ns 与 defaults export 正式域的5个现存业务主键 Data精确字节SHA-256，before / after-tests 完全一致。直接读取磁盘plist和偏好服务导出不同，权威闸门沿用历史 defaults export，不把差异归因于本轮数据变更。证据 /private/tmp/CosmosNativeBatch1-{before,after-tests}.json；不输出正文 / 凭据。
+- 部署：准备在已提交、工作区干净的 native/batch1 执行原 /usr/bin/python3 scripts/deploy-macos.py；实际结果 / 回退名将在下一条追加记录。无强杀、推送或合并授权。
+- 后续：用户实机逐页检查工具栏默认玻璃 / 分组、滚动边缘与滚动入场、指标变化、图标形变、忙碌效果、减少动效开关与深浅色。第二批窗口与sheet原生化另定范围；KnowledgeHubView仍有测试引用、离屏设置标签缺口与既有Swift6隔离警告列非阻塞待办，不扩大修复。
+- 可复用：原生工具栏需条件显隐适配保留实例；NSSegmentedControl action 可验证真实绑定；defaults export 而非磁盘plist用于业务指纹；截图挑选异步内容就绪夹具；用户偏好保持“原生 + 精选华丽”。
+
+### 本轮显式玻璃按钮替换数量（原工具栏回到默认，内容回到 bordered）
+
+| 文件 | 原数量 | 新显式 glass 数量 |
+|---|---:|---:|
+| AIWorkspaceTaskPreparationView.swift | 3 | 0 |
+| ArtifactReviewWorkspace.swift | 2 | 0 |
+| ArtifactVersionCompareWorkspace.swift | 1 | 0 |
+| CampaignReferencesView.swift | 6 | 0 |
+| CosmosDesignComponents.swift | 1 | 0 |
+| DashboardHomeView.swift | 1 | 0 |
+| KnowledgeSourceReaderView.swift | 1 | 0 |
+| KnowledgeSourceViews.swift | 3 | 0 |
+| UnifiedSearchView.swift | 3 | 0 |
+| ZhuowangAIExecutionResultView.swift | 10 | 0 |
+| ZhuowangArtifactDeliveryPackageView.swift | 3 | 0 |
+| ZhuowangAssetCenterView.swift | 1 | 0 |
+| ZhuowangCampaignDetailView.swift | 14 | 0 |
+| ZhuowangCampaignView.swift | 1 | 0 |
+| ZhuowangProvinceManagementView.swift | 1 | 0 |
+| ZhuowangTaskPackagePreviewView.swift | 4 | 0 |
+| ZhuowangWorkflowUITimeline.swift | 1 | 0 |
+| ZhuowangWorkflowView.swift | 1 | 0 |
+| ZhuowangWorkspaceUI.swift | 2 | 0 |
+
+### 本轮全部修改文件（UI与测试）
+
+- `Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceHandoffHistoryView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceTaskPreparationView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceTaskReferencesView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/AIWorkspaceView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactReviewWorkspace.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ArtifactVersionCompareWorkspace.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CampaignReferencesView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CoreBackupSettingsView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CoreRestoreStartupView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CosmosDesignComponents.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CosmosDesignSystem.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CosmosNavigationSurfaces.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CosmosPageMotion.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/CosmosSettingsView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/DashboardHomeView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/DashboardView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/KnowledgeSourceReaderView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/KnowledgeSourceViews.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/LearningCenterView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/MacEnvironmentView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/PersonalNotesEditor.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/PersonalNotesView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ProjectsEditor.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ProjectsView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/PromptVaultView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/UnifiedSearchView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAIExecutionResultView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangArtifactDeliveryPackageView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAssetCenterView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangAssetDetailView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignDetailUIComponents.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignDetailView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangCampaignWorkbenchView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangMonthlyChecklistView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangProvinceManagementView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangTaskPackagePreviewView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowUITimeline.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkflowView.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkspaceUI.swift`
+- `Apps/CosmosOS/Cosmos Toolbox/ZhuowangWorkspaceView.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/CosmosExperiencePolishTests.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/CosmosLegacyPromptBenchmark.swift`
+- `Apps/CosmosOS/Cosmos ToolboxTests/CosmosStep2ATests.swift`
+
+文档：`Docs/Reviews/2026-10-12_Mac原生化审计.md`、`Docs/07_Cosmos_OS_Current_Status.md`、本当日日志；按 §23 不重复维护 PROJECT_BRIEF / PAGE_MAP / DATA_MAP / CHANGELOG。

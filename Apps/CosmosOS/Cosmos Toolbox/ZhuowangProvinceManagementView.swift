@@ -56,7 +56,7 @@ struct ZhuowangProvinceManagementSection: View {
                 TextField("中文名称，例如：湖北", text: $newName)
                     .accessibilityIdentifier("province-new-name")
                 TextField("English Name, e.g. Hubei", text: $newEnglishName)
-                Button { add() } label: { Label("添加省份", systemImage: "plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.buttonStyle(.glass)
+                Button { add() } label: { Label("添加省份", systemImage: "plus") }.buttonStyle(.bordered)
                     .disabled(
                         newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || !canMutate
@@ -106,7 +106,7 @@ struct ZhuowangProvinceManagementSection: View {
                     .foregroundStyle(.secondary)
             } else {
                 HStack {
-                    Image(systemName: province.isEnabled ? "mappin.and.ellipse" : "archivebox").foregroundStyle(Color.accentColor)
+                    Image(systemName: province.isEnabled ? "mappin.and.ellipse" : "archivebox").cosmosSymbolReplacement().foregroundStyle(Color.accentColor)
                     Text(province.name).font(.headline)
                         .foregroundStyle(province.isEnabled ? .primary : .secondary)
                     if !province.isEnabled {

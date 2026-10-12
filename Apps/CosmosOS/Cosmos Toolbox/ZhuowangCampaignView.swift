@@ -82,8 +82,8 @@ struct ZhuowangCampaignView: View {
 
     private var header: some View {
         CosmosPageHeader("活动", subtitle: scopeDescription) {
-            Button { showCreateSheet = true } label: { Label("新建活动", systemImage: "plus").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
-                .buttonStyle(.glass).disabled(!store.persistenceState.allowsMutations || !canCreateCampaign || !canCreate())
+            Button { showCreateSheet = true } label: { Label("新建活动", systemImage: "plus") }
+                .buttonStyle(.bordered).disabled(!store.persistenceState.allowsMutations || !canCreateCampaign || !canCreate())
         }
         .sheet(isPresented: $showCreateSheet) {
             ZhuowangCampaignCreateView(
@@ -217,7 +217,7 @@ struct ZhuowangCampaignView: View {
             ForEach(Array(progress.enumerated()), id: \.element.id) { index, row in
                 ZhuowangCampaignCardUI(row: row) { openCampaignWindow(row.campaign) }
                     .contextMenu { Button("打开活动详情") { openCampaignWindow(row.campaign) } }
-                    .cosmosEntrance(index)
+                    .cosmosScrollReveal()
             }
         }
     }

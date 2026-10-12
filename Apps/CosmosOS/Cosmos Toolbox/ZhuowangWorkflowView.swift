@@ -546,7 +546,7 @@ struct ZhuowangWorkflowContent: View {
                             "arrow.right.circle"
                     )
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.borderedProminent)
                 .disabled(
                     !canPrepareTask(
                         workflowID: workflow.id,

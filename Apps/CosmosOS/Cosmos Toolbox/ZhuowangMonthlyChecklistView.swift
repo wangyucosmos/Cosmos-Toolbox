@@ -22,16 +22,16 @@ struct ZhuowangMonthlyChecklistView: View {
             let workflow = workflowStore.workflow(forCampaignID: campaign.id)
             VStack(alignment: .leading, spacing: CosmosDesign.spacingL) {
                 header(campaign, plan)
-                    .campaignUIEntrance(0)
+                    .cosmosScrollReveal()
                 if !message.isEmpty {
                     CampaignUINotice(text: message, icon: "exclamationmark.triangle", tone: .warning)
                 }
                 periodAndReference(campaign, plan)
-                    .campaignUIEntrance(1)
+                    .cosmosScrollReveal()
                 inputsSection(plan)
-                    .campaignUIEntrance(2)
+                    .cosmosScrollReveal()
                 outputsSection(campaign, plan, workflow)
-                    .campaignUIEntrance(3)
+                    .cosmosScrollReveal()
                 HStack(spacing: 6) {
                     Label("登记不是采用，也不进交付包。", systemImage: "info.circle")
                         .font(.caption)

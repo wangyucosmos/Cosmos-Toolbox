@@ -65,15 +65,15 @@ struct ZhuowangScopeOverviewUI: View {
                 Text("活动 · \(visible.count)").font(.headline)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 250))], spacing: 12) {
                     ForEach(Array(visible.enumerated()), id: \.element.id) { index, row in
-                        ZhuowangCampaignCardUI(row: row) { open(row) }.cosmosEntrance(index)
+                        ZhuowangCampaignCardUI(row: row) { open(row) }.cosmosScrollReveal()
                     }
                 }
             }
             HStack {
-                Button(action: create) { Label("在此新建活动", systemImage: "plus").foregroundStyle(Color.primary) }
-                    .buttonStyle(.glass).disabled(!canCreate)
+                Button(action: create) { Label("在此新建活动", systemImage: "plus") }
+                    .buttonStyle(.bordered).disabled(!canCreate)
                 Spacer()
-                Button(action: assets) { Label("查看该范围资料", systemImage: "archivebox").foregroundStyle(Color.primary) }.buttonStyle(.glass)
+                Button(action: assets) { Label("查看该范围资料", systemImage: "archivebox") }.buttonStyle(.bordered)
             }
         }
     }

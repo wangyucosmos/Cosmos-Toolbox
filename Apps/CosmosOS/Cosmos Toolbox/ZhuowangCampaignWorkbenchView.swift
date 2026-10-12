@@ -211,7 +211,7 @@ struct ZhuowangCampaignWorkbenchView: View {
             VStack(spacing: 18) {
 
                 ForEach(Array(groups.enumerated()), id: \.element.0) { index, group in
-                    actionGroup(group.0, rows: group.1).cosmosEntrance(index)
+                    actionGroup(group.0, rows: group.1).cosmosScrollReveal()
                 }
             }
         }

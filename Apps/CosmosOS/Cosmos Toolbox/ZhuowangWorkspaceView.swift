@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 
 struct ZhuowangWorkspaceView: View {
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.cosmosPageToolbarVisible) private var toolbarVisible
 
     @Environment(\.cosmosNavigator) private var navigator
     @Environment(\.cosmosPreferences) private var preferences
@@ -79,15 +79,6 @@ struct ZhuowangWorkspaceView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Label("卓望工作", systemImage: "briefcase").font(.headline)
-                Spacer()
-                CosmosGlassToolbarGroup {
-                    Button { showManager = true } label: { Label("管理工作区", systemImage: "slider.horizontal.3").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }
-                        .disabled(!store.persistenceState.allowsMutations)
-                }
-            }.padding(.horizontal, 20).padding(.vertical, 10)
-            Divider()
             if let message = store.persistenceState.userMessage {
                 ContentUnavailableView("工作区暂不可编辑", systemImage: "lock.trianglebadge.exclamationmark", description: Text(message))
             } else {
@@ -104,6 +95,15 @@ struct ZhuowangWorkspaceView: View {
                 }
             }
         }.background(Color(nsColor: .windowBackgroundColor))
+            .toolbar {
+                if toolbarVisible {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("管理工作区", systemImage: "slider.horizontal.3") { showManager = true }.help("管理工作区").labelStyle(.iconOnly)
+                            .disabled(!store.persistenceState.allowsMutations)
+                            .help("管理卓望工作区").accessibilityIdentifier("zhuowang-manage-workspace")
+                    }
+                }
+            }
             .onChange(of: selectedNavigation) { _, value in
 #if DEBUG
                 CosmosExperienceTrace.shared.mark("workspace.selection." + String(describing: value))
@@ -161,7 +161,7 @@ struct ZhuowangWorkspaceView: View {
                     CosmosWorkspaceNavigationRow(icon: "text.quote", title: "提示词库", action: openPromptVault)
                 }
             }.padding(12)
-        }.background(Color(nsColor: .controlBackgroundColor))
+        }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .controlBackgroundColor))
     }
     private func section<Content: View>(_ name: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -205,22 +205,16 @@ struct ZhuowangWorkspaceView: View {
                 }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .top)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
     }
     private var categoryNavigation: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                tab("概览", id: "overview")
-                tab("活动", id: "campaign")
-                ForEach(store.categories.filter { $0.id != "overview" && $0.id != "campaign" }) { tab($0.name + (ZhuowangCategoryRoute(categoryID: $0.id) == .unsupported ? " · 未接入" : ""), id: $0.id) }
-            }.padding(4).background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
-    private func tab(_ name: String, id: String) -> some View {
-        Button(name) { assetDestination = nil; selectedCategoryID = id }
-            .buttonStyle(.plain).padding(.horizontal, 12).padding(.vertical, 7)
-            .background(selectedCategoryID == id ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
-            .accessibilityAddTraits(selectedCategoryID == id ? .isSelected : [])
+        Picker("工作分类", selection: Binding(get: { selectedCategoryID }, set: { assetDestination = nil; selectedCategoryID = $0 })) {
+            Text("概览").tag("overview")
+            Text("活动").tag("campaign")
+            ForEach(store.categories.filter { $0.id != "overview" && $0.id != "campaign" }) {
+                Text($0.name + (ZhuowangCategoryRoute(categoryID: $0.id) == .unsupported ? " · 未接入" : "")).tag($0.id)
+            }
+        }.pickerStyle(.segmented).accessibilityLabel("工作分类")
     }
     private func select(_ navigation: ZhuowangNavigationItem) {
         guard publicResources || selectedNavigation != navigation else { return }

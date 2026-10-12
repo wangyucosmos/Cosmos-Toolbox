@@ -63,7 +63,7 @@ struct ZhuowangAssetCenterView: View {
         VStack(alignment: .leading, spacing: 16) {
             CosmosPageHeader("知识与资产", subtitle: "已管理的工作产物 · 只读检索与复用",
                 info: "仅检索现有元数据和受支持文本正文；不扫描、恢复、导入或修改采用版本。单份正文读取上限仍为 2 MiB。") {
-                Button { model.refresh() } label: { Label("刷新", systemImage: "arrow.clockwise").foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.buttonStyle(.glass)
+                Button { model.refresh() } label: { Label("刷新", systemImage: "arrow.clockwise") }.buttonStyle(.bordered)
             }
             TextField("搜索产物名称、活动名或 Markdown / 纯文本正文", text: $model.filter.query)
                 .textFieldStyle(.roundedBorder)

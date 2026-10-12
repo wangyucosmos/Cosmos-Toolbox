@@ -37,10 +37,10 @@ struct LearningCenterView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
-            Button("新建主题", systemImage: "plus") { LearningEditorWindowManager.shared.openTopic(store: store, topic: nil) }.disabled(!store.canSave).accessibilityIdentifier("learning-new-topic")
-            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-        }.labelStyle(.iconOnly) } }
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+            Button("新建主题", systemImage: "plus") { LearningEditorWindowManager.shared.openTopic(store: store, topic: nil) }.disabled(!store.canSave).accessibilityIdentifier("learning-new-topic").help("新建主题").labelStyle(.iconOnly)
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving).help("刷新").labelStyle(.iconOnly)
+        } }
         .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload(); model.reconcileSelection(store.topics) } }
         .onChange(of: store.topics) { _, topics in model.reconcileSelection(topics) }
     }
@@ -144,7 +144,7 @@ struct LearningTopicDetailView: View {
                     LearningEntryRow(entry: entry, topic: topic, store: store)
                 }
             }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
     }
 
     private func section(_ title: String, _ text: String, empty: String) -> some View {

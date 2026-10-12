@@ -51,17 +51,19 @@ struct AIWorkspaceView: View {
                     info: "选择活动与步骤，填写本次目标，预览后手动复制。草稿仅在页面内存中。CLI 检测只证明本机入口与 --version 可运行，不证明登录、额度、网络或模型可用；不会安装、更新、读取密钥或调用 AI 服务。")
                 usageGuide
                 toolStatus
-                CosmosSegmentedControl(title: "工作台", options: [(false, "准备任务"), (true, "交接记录")], selection: $showsHistory)
+                Picker("工作台", selection: $showsHistory) { Text("准备任务").tag(false); Text("交接记录").tag(true) }.pickerStyle(.segmented).accessibilityLabel("工作台")
                     .accessibilityIdentifier("ai-workspace-section")
-                if showsHistory { AIWorkspaceHandoffHistoryView(history: history, preparation: preparation).cosmosEntrance(1) }
-                else { AIWorkspaceTaskPreparationView(model: preparation, history: history, initialStage: initialStage).cosmosEntrance(1) }
+                if showsHistory { AIWorkspaceHandoffHistoryView(history: history, preparation: preparation).cosmosScrollReveal() }
+                else { AIWorkspaceTaskPreparationView(model: preparation, history: history, initialStage: initialStage).cosmosScrollReveal() }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
-        }.background(Color(nsColor: .windowBackgroundColor))
-            .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
+        }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .windowBackgroundColor))
+            .toolbar { ToolbarItemGroup(placement: .primaryAction) {
                 Button(model.isDetecting ? "正在检测…" : "开始检测", systemImage: "terminal") { model.refresh() }
                     .disabled(model.isDetecting).accessibilityIdentifier("ai-workspace-detect")
-                Button("刷新活动上下文", systemImage: "arrow.clockwise") { preparation.refresh() }
-            }.labelStyle(.iconOnly) } }
+                    .help("检测本机 AI 工具").labelStyle(.iconOnly)
+                    .symbolEffect(.pulse, isActive: model.isDetecting && !preferences.reducesMotion(system: systemMotion))
+                Button("刷新活动上下文", systemImage: "arrow.clockwise") { preparation.refresh() }.help("刷新活动上下文").labelStyle(.iconOnly)
+            } }
             .task {
                 guard await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) else { return }
                 preparation.refresh(); await history.reload()
@@ -109,7 +111,7 @@ struct AIWorkspaceView: View {
                         }.padding(.horizontal, 12).padding(.vertical, 8).background(.quaternary, in: Capsule())
                     }
                 }
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
             .mask {
                 HStack(spacing: 0) {
                     Color.black

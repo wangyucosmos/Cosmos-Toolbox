@@ -114,7 +114,7 @@ struct AIWorkspaceHandoffDetailView: View {
             ScrollView {
                 Text(record.prompt).font(.body.monospaced()).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(16)
-            }.background(Color(nsColor: .controlBackgroundColor))
+            }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .controlBackgroundColor))
                 .accessibilityIdentifier("ai-handoff-snapshot")
             HStack {
                 Text("手动记录不证明已发送、执行或完成；历史快照不会重新生成。").font(.caption).foregroundStyle(.secondary)

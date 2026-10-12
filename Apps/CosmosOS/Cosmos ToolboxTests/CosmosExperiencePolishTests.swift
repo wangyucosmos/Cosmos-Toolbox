@@ -91,14 +91,17 @@ final class CosmosExperiencePolishTests: XCTestCase {
         func increment() { value += 1 }
     }
     private func host<V: View>(_ view: V, width: Int, height: Int, dark: Bool,
-                               nav: CosmosNavigator, prefs: CosmosUIPreferences, defaults: UserDefaults) -> (NSWindow, NSHostingView<AnyView>) {
+                               nav: CosmosNavigator, prefs: CosmosUIPreferences, defaults: UserDefaults, bridgedToolbar: Bool = false) -> (NSWindow, NSHostingView<AnyView>) {
         let content = AnyView(view.environment(\.cosmosNavigator, nav).environment(\.cosmosPreferences, prefs)
             .environment(\.colorScheme, dark ? .dark : .light).environment(\.locale, Locale(identifier: "zh_Hans_CN"))
             .defaultAppStorage(defaults).frame(width: CGFloat(width), height: CGFloat(height))
             .background(Color(nsColor: .windowBackgroundColor)))
-        let host = NSHostingView(rootView: content); host.frame = NSRect(x: 0, y: 0, width: width, height: height)
+        let controller = NSHostingController(rootView: content)
+        if bridgedToolbar { controller.sceneBridgingOptions = [.toolbars] }
+        let host = controller.view as! NSHostingView<AnyView>; host.frame = NSRect(x: 0, y: 0, width: width, height: height)
         host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: host.frame, styleMask: bridgedToolbar ? [.titled, .closable, .resizable] : [.borderless], backing: .buffered, defer: false)
+        if bridgedToolbar { window.contentViewController = controller }
         window.isReleasedWhenClosed = false; window.appearance = host.appearance; window.contentView = host
         return (window, host)
     }
@@ -195,14 +198,14 @@ final class CosmosExperiencePolishTests: XCTestCase {
         let baseline = data.storage
         let pages = SidebarItem.allCases.filter { $0 != .settings }
         nav.selection = .dashboard; prefs.motion = .system
-        let (window, host) = self.host(DashboardView(storePersistenceConfiguration: config), width: 900, height: 620, dark: false, nav: nav, prefs: prefs, defaults: defaults)
+        let (window, host) = self.host(DashboardView(storePersistenceConfiguration: config), width: 900, height: 620, dark: false, nav: nav, prefs: prefs, defaults: defaults, bridgedToolbar: true)
         defer { window.contentView = nil; window.close() }
         try await Task.sleep(for: .milliseconds(500)); host.layoutSubtreeIfNeeded()
         // Visit the retained workspace before measuring reentry; fixture stores may initialize once.
         nav.selection = .zhuowang; try await Task.sleep(for: .milliseconds(500))
-        let out = URL(fileURLWithPath: "/private/tmp/CosmosCloseAcceptance-matrix")
+        let out = URL(fileURLWithPath: "/private/tmp/CosmosNativeBatch1-matrix")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        var rows = ["from,to,fade_begin,fade_commit,host_remount,workspace_second_selection"]
+        var rows = ["from,to,fade_begin,fade_commit,host_remount,workspace_second_selection,workspace_toolbar_items"]
         for from in pages {
             nav.selection = from; try await Task.sleep(for: .milliseconds(450))
             for to in pages where from != to {
@@ -217,7 +220,13 @@ final class CosmosExperiencePolishTests: XCTestCase {
                 XCTAssertEqual(begins, 1, "\(from) → \(to)"); XCTAssertEqual(ends, 1)
                 XCTAssertEqual(remounts, 0); XCTAssertEqual(selections, 0); XCTAssertEqual(nav.selection, to)
                 XCTAssertFalse(events.contains { $0.0.hasPrefix("workspace.appear.") })
-                rows.append("\(from.rawValue),\(to.rawValue),\(begins),\(ends),\(remounts),\(selections)")
+                func toolbarLabels(_ item: NSToolbarItem) -> [String] {
+                    [item.label] + ((item as? NSToolbarItemGroup)?.subitems.flatMap(toolbarLabels) ?? [])
+                }
+                let labels = window.toolbar?.items.flatMap(toolbarLabels) ?? []
+                let workspaceItems = labels.filter { $0 == "管理工作区" }.count
+                XCTAssertEqual(workspaceItems, to == .zhuowang ? 1 : 0, "Toolbar: \(from) → \(to), \(labels)")
+                rows.append("\(from.rawValue),\(to.rawValue),\(begins),\(ends),\(remounts),\(selections),\(workspaceItems)")
                 if to == .projects || to == .unifiedSearch {
                     let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
                     host.cacheDisplay(in: host.bounds, to: bitmap)

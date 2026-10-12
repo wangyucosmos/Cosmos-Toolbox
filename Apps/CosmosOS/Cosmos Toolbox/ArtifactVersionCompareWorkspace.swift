@@ -241,7 +241,7 @@ struct ArtifactVersionCompareWorkspace: View {
             } label: {
                 Label("关闭", systemImage: "xmark")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingS)

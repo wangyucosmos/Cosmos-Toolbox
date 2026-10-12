@@ -75,13 +75,13 @@ struct PersonalNotesView: View {
             }
             .padding(.horizontal, CosmosDesign.pagePadding).padding(.vertical, CosmosDesign.spacingXXL)
             .frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
         .background(Color(nsColor: .windowBackgroundColor))
-        .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup {
-            Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }.disabled(!store.canSave).accessibilityIdentifier("notes-new")
-            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("notes-export-batch")
-            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving)
-        }.labelStyle(.iconOnly) } }
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
+            Button("新建笔记", systemImage: "plus") { PersonalNoteWindowManager.shared.open(store: store, note: nil) }.disabled(!store.canSave).accessibilityIdentifier("notes-new").help("新建笔记").labelStyle(.iconOnly)
+            Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("notes-export-batch").help("批量导出…").labelStyle(.iconOnly)
+            Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.loading || store.saving).help("刷新").labelStyle(.iconOnly)
+        } }
         .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { await store.reload() } }
         .sheet(isPresented: $showExport) {
             ContentExportBatchSheet(libraries: ContentExportLibraries(notesLocation: store.location, promptLocation: promptLocation),
@@ -113,12 +113,12 @@ struct PersonalNotesView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                     }.buttonStyle(CosmosInteractiveCardStyle()).accessibilityIdentifier("note-row-" + note.id.uuidString)
                     Button { Task { await store.setFavorite(note) } } label: {
-                        Image(systemName: note.isFavorite ? "star.fill" : "star").foregroundStyle(note.isFavorite ? .yellow : .secondary)
+                        Image(systemName: note.isFavorite ? "star.fill" : "star").cosmosSymbolReplacement().foregroundStyle(note.isFavorite ? .yellow : .secondary)
                     }.buttonStyle(.plain).help(note.isFavorite ? "取消收藏" : "收藏").disabled(!store.canSave)
                         .accessibilityIdentifier("note-favorite-" + note.id.uuidString)
                     Button(note.isArchived ? "恢复" : "归档") { Task { await store.setArchived(note) } }
                         .disabled(!store.canSave).accessibilityIdentifier("note-archive-" + note.id.uuidString)
-                }.padding(.vertical, 4).cosmosEntrance(index)
+                }.padding(.vertical, 4).cosmosScrollReveal()
             }
         }
     }

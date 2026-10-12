@@ -294,12 +294,12 @@ struct ZhuowangCampaignDetailView: View {
                         Button("取消") {
                             cancelEditing()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.bordered)
 
                         Button("保存") {
                             saveChanges()
                         }
-                        .buttonStyle(.glassProminent)
+                        .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
                         .disabled(
                             name
@@ -370,7 +370,7 @@ struct ZhuowangCampaignDetailView: View {
                                 systemImage: "pencil"
                             )
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.bordered)
                         .disabled(
                             !store.persistenceState
                                 .allowsMutations
@@ -412,11 +412,9 @@ struct ZhuowangCampaignDetailView: View {
     private var toolbarStrip: some View {
         HStack(spacing: CosmosDesign.spacingM) {
 
-            CampaignUISegmentedTabs(
-                items: tabItems,
-                selection: tabSelection,
-                isDisabled: isEditing
-            )
+            Picker("活动详情标签", selection: tabSelection) {
+                ForEach(tabItems) { Label($0.title, systemImage: $0.icon).tag($0.id) }
+            }.pickerStyle(.segmented).disabled(isEditing).accessibilityLabel("活动详情标签")
 
             Spacer(minLength: 8)
 
@@ -429,7 +427,7 @@ struct ZhuowangCampaignDetailView: View {
                         systemImage: "archivebox"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
                 .transition(.opacity)
             }
         }
@@ -500,7 +498,7 @@ struct ZhuowangCampaignDetailView: View {
                 .padding(.vertical, CosmosDesign.spacingXL)
                 .frame(maxWidth: 1080)
                 .frame(maxWidth: .infinity)
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
             .onChange(of: selectedTab) {
                 if selectedTab != .workflow {
                     workflowFocus = nil
@@ -523,22 +521,22 @@ struct ZhuowangCampaignDetailView: View {
         ) {
 
             workflowSummaryCard
-                .campaignUIEntrance(0)
+                .cosmosScrollReveal()
 
             twoColumn(
                 adoptedArtifactsCard,
                 workspaceCard
             )
-            .campaignUIEntrance(1)
+            .cosmosScrollReveal()
 
             basicInfoCard(campaign)
-                .campaignUIEntrance(2)
+                .cosmosScrollReveal()
 
             CampaignReferencesView(
                 store: store,
                 campaignID: campaignID
             )
-            .campaignUIEntrance(3)
+            .cosmosScrollReveal()
         }
     }
 
@@ -593,7 +591,7 @@ struct ZhuowangCampaignDetailView: View {
                         systemImage: "arrow.right"
                     )
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.borderedProminent)
                 .disabled(isEditing)
             }
         ) {
@@ -793,7 +791,7 @@ struct ZhuowangCampaignDetailView: View {
                         systemImage: "folder.badge.plus"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Button {
                     openWorkspaceInFinder()
@@ -803,7 +801,7 @@ struct ZhuowangCampaignDetailView: View {
                         systemImage: "folder"
                     )
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.borderedProminent)
             }
         }
     }
@@ -1169,7 +1167,7 @@ struct ZhuowangCampaignDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .campaignUIEntrance(index)
+                    .cosmosScrollReveal()
                 }
             }
         }
@@ -1322,7 +1320,7 @@ struct ZhuowangCampaignDetailView: View {
             Button("关闭") {
                 dismiss()
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
         }
         .frame(
             maxWidth: .infinity,
@@ -1716,7 +1714,7 @@ private struct ZhuowangArtifactDetailView: View {
                     maxWidth: 940
                 )
                 .frame(maxWidth: .infinity)
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
 
             Divider()
             footer
@@ -1754,7 +1752,7 @@ private struct ZhuowangArtifactDetailView: View {
                             "checkmark.seal"
                     )
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.borderedProminent)
             }
         }
     }
@@ -1855,7 +1853,7 @@ private struct ZhuowangArtifactDetailView: View {
                         systemImage: "rectangle.split.2x1"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
                 .disabled(!canCompareVersions)
             }
         ) {
@@ -2026,7 +2024,7 @@ private struct ZhuowangArtifactDetailView: View {
                     systemImage: "arrow.up.right.square"
                 )
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .disabled(artifact == nil)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
@@ -2150,7 +2148,7 @@ private struct ZhuowangArtifactDetailView: View {
                         systemImage: "folder"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
 
                 Button {
                     openLocalFile()
@@ -2161,7 +2159,7 @@ private struct ZhuowangArtifactDetailView: View {
                             "arrow.up.right.square"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
             }
 
             Button {
@@ -2178,7 +2176,7 @@ private struct ZhuowangArtifactDetailView: View {
                         : "doc.on.doc"
                 )
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .disabled(cleanContent.isEmpty)
         }
         .padding(

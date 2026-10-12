@@ -15,7 +15,6 @@ extension CosmosDesign {
         return .system(size: size * CosmosUIPreferences.shared.textSize.scale, weight: weight)
     }
     static let motion = Animation.spring(response: 0.3, dampingFraction: 0.86)
-    static let panelShadow: CGFloat = 8
 }
 
 struct CosmosInfoButton: View {
@@ -54,21 +53,21 @@ extension CosmosPageHeader where Actions == EmptyView {
 struct CosmosInteractiveCardStyle: ButtonStyle {
     var selected = false
     var focused = false
-    @Environment(\.accessibilityReduceMotion) private var systemMotion
-    @Environment(\.cosmosPreferences) private var preferences
     @State private var hovering = false
     func makeBody(configuration: Configuration) -> some View {
-        let reduced = preferences.reducesMotion(system: systemMotion)
         configuration.label
             .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-            .background(selected ? Color.accentColor.opacity(0.10) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
-            .overlay { RoundedRectangle(cornerRadius: 14).stroke(selected || focused ? Color.accentColor : Color.primary.opacity(hovering ? 0.17 : 0.06), lineWidth: focused ? 2 : 1) }
-            .shadow(color: .black.opacity(hovering ? 0.07 : 0.02), radius: hovering ? CosmosDesign.panelShadow : 3, y: hovering ? 3 : 1)
-            .scaleEffect(reduced ? 1 : configuration.isPressed ? 0.99 : hovering ? 1.008 : 1)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
+            .background(CosmosDesign.surface, in: RoundedRectangle(cornerRadius: CosmosDesign.surfaceRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: CosmosDesign.surfaceRadius)
+                    .fill(Color.accentColor.opacity(selected ? 0.10 : hovering || configuration.isPressed ? 0.05 : 0))
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                if focused { RoundedRectangle(cornerRadius: CosmosDesign.surfaceRadius).stroke(Color.accentColor, lineWidth: 2) }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: CosmosDesign.surfaceRadius))
             .onHover { hovering = $0 }
-            .animation(reduced ? nil : CosmosDesign.motion, value: hovering)
-            .animation(reduced ? nil : CosmosDesign.motion, value: configuration.isPressed)
     }
 }
 
@@ -112,7 +111,7 @@ struct CosmosMetricTile: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack { CosmosSquareIcon(symbol: icon, identity: icon, filled: false); Spacer(); if selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor) } }
                 if loading { ProgressView().frame(height: 35) }
-                else { Text(value.map(String.init) ?? "—").font(CosmosDesign.font(.metric)).monospacedDigit().contentTransition(.numericText()) }
+                else { Text(value.map(String.init) ?? "—").font(CosmosDesign.font(.metric)).monospacedDigit().contentTransition(preferences.reducesMotion(system: systemMotion) ? .identity : .numericText()) }
                 Text(title).font(CosmosDesign.font(.body)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 if let detail { Text(detail).font(CosmosDesign.font(.caption)).foregroundStyle(value == nil ? Color.orange : Color.secondary).lineLimit(3) }
             }.frame(maxWidth: .infinity, minHeight: 103, alignment: .leading)
@@ -124,19 +123,19 @@ struct CosmosMetricTile: View {
 }
 
 struct CosmosEmptyState: View {
-    @Environment(\.colorScheme) private var colorScheme
     let icon: String
     let title: String
     var detail: String? = nil
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon).font(.system(size: 26)).foregroundStyle(.secondary)
-            Text(title).font(CosmosDesign.font(.section))
-            if let detail { Text(detail).font(CosmosDesign.font(.body)).foregroundStyle(.secondary).multilineTextAlignment(.center) }
-            if let actionTitle, let action { Button(action: action) { Text(actionTitle).foregroundStyle(colorScheme == .dark ? Color.white : Color.black) }.buttonStyle(.glass) }
-        }.frame(maxWidth: .infinity, minHeight: 130).padding(12)
+        ContentUnavailableView {
+            Label(title, systemImage: icon)
+        } description: {
+            if let detail { Text(detail) }
+        } actions: {
+            if let actionTitle, let action { Button(actionTitle, action: action).buttonStyle(.bordered) }
+        }.frame(maxWidth: .infinity, minHeight: 130)
     }
 }
 
@@ -156,22 +155,6 @@ struct CosmosChartCard<Content: View>: View {
             else if empty { CosmosEmptyState(icon: icon, title: "尚无数据", detail: "从对应模块添加第一条记录", actionTitle: "前往添加", action: action) }
             else { content }
             }.frame(height: 225)
-        }
-    }
-}
-
-struct CosmosGlassToolbarGroup<Content: View>: View {
-    @ViewBuilder let content: Content
-    var id = "page-actions"
-    @Namespace private var localGlass
-    @Environment(\.cosmosGlassNamespace) private var sharedGlass
-    var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 10) { content }.buttonStyle(.borderless).foregroundStyle(.primary)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
-                .glassEffectID(id, in: sharedGlass ?? localGlass)
-                .glassEffectTransition(.matchedGeometry)
         }
     }
 }

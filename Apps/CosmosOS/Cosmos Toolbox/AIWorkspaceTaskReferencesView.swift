@@ -43,7 +43,7 @@ struct AIWorkspaceTaskReferencesView: View {
                             ScrollView {
                                 Text(text).font(.body.monospaced()).textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                            }.frame(height: 220).background(Color(nsColor: .controlBackgroundColor))
+                            }.scrollEdgeEffectStyle(.soft, for: .top).frame(height: 220).background(Color(nsColor: .controlBackgroundColor))
                                 .accessibilityIdentifier("ai-reference-body-\(selected.id)")
                         }
                     } else if selected.error == nil { ProgressView("正在读取所选版本…") }

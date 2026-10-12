@@ -52,7 +52,7 @@ struct ZhuowangArtifactDeliveryPackageView: View {
                     statusArea
                 }
                 .padding(CosmosDesign.spacingL)
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
 
             Divider()
             footer
@@ -83,7 +83,7 @@ struct ZhuowangArtifactDeliveryPackageView: View {
             Button("关闭") {
                 dismiss()
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .disabled(isExporting)
         }
     }
@@ -326,7 +326,7 @@ struct ZhuowangArtifactDeliveryPackageView: View {
                             [completedArchiveURL]
                         )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
             }
             .padding(CosmosDesign.spacingM)
             .background(
@@ -360,7 +360,7 @@ struct ZhuowangArtifactDeliveryPackageView: View {
             Button("选择位置并导出") {
                 chooseDestinationAndExport()
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .disabled(
                 selectedGroupKeys.isEmpty
                     || isExporting

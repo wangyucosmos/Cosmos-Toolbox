@@ -72,7 +72,7 @@ struct CoreBackupSettingsView: View {
                     }
                 }
             }.padding(28).frame(maxWidth: .infinity, alignment: .leading)
-        }.accessibilityIdentifier("core-backup-settings")
+        }.scrollEdgeEffectStyle(.soft, for: .top).accessibilityIdentifier("core-backup-settings")
     }
     private func chooseExport() {
         let panel = NSSavePanel()

@@ -60,11 +60,11 @@ struct CosmosLegacyPromptView: View {
             }
         }
         .padding(24)
-        .toolbar { ToolbarItem { CosmosGlassToolbarGroup {
+        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
             Button("新建模板", systemImage: "plus") { PromptTemplateWindowManager.shared.open(store: store, template: nil) }.disabled(!store.canSave).accessibilityIdentifier("prompt-new")
             Button("批量导出…", systemImage: "square.and.arrow.up") { showExport = true }.accessibilityIdentifier("prompt-export-batch")
             Button("刷新", systemImage: "arrow.clockwise") { Task { await store.reload() } }.disabled(store.saving)
-        } } }
+        } }
         .task { if await legacyDelay() { await store.reload(); model.reconcile(store.templates) } }
         .onChange(of: store.templates) { _, templates in model.reconcile(templates) }
         .onDisappear { model.clearSession() }
@@ -84,7 +84,7 @@ struct CosmosLegacyPromptView: View {
                     }) {
                         Text(starter.draft.body).font(CosmosDesign.font(.body)).foregroundStyle(.secondary).lineLimit(4)
                         Text("预填编辑器 · 保存后才创建").font(CosmosDesign.font(.caption)).foregroundStyle(.secondary)
-                    }.disabled(!store.canSave).cosmosEntrance(index)
+                    }.disabled(!store.canSave).cosmosScrollReveal()
                 }
             }
         }.padding(.vertical, 12)

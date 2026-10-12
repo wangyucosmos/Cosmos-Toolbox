@@ -37,27 +37,6 @@ private struct CampaignUIAnimationModifier<Value: Equatable>: ViewModifier {
     }
 }
 
-private struct CampaignUIEntranceModifier: ViewModifier {
-    let index: Int
-    @State private var shown = false
-    @Environment(\.accessibilityReduceMotion) private var system
-    @Environment(\.cosmosPreferences) private var preferences
-
-    func body(content: Content) -> some View {
-        let reduced = preferences.reducesMotion(system: system)
-        content
-            .opacity(shown || reduced ? 1 : 0)
-            .offset(y: shown || reduced ? 0 : 8)
-            .onAppear {
-                guard !shown, !reduced else { return }
-                withAnimation(
-                    .smooth(duration: CosmosDesign.animationNormal)
-                        .delay(CosmosDesign.entranceDelay(index: index, reduced: reduced))
-                ) { shown = true }
-            }
-    }
-}
-
 extension View {
     /// Applies `animation` for `value` changes unless motion is reduced (system or Cosmos preference).
     func campaignUIAnimation<Value: Equatable>(
@@ -67,25 +46,10 @@ extension View {
         modifier(CampaignUIAnimationModifier(animation: animation, value: value))
     }
 
-    /// Staggered fade / lift on first appearance; instant when motion is reduced.
-    func campaignUIEntrance(_ index: Int = 0) -> some View {
-        modifier(CampaignUIEntranceModifier(index: index))
-    }
-
-    /// Standard card surface: system control background, hairline stroke, soft shadow.
-    func campaignUICardSurface(
-        padding: CGFloat = CosmosDesign.cardPadding,
-        stroke: Color = Color.primary.opacity(0.065),
-        fill: Color = Color(nsColor: .controlBackgroundColor)
-    ) -> some View {
-        self.padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(fill, in: RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusLarge, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusLarge, style: .continuous)
-                    .stroke(stroke, lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(0.025), radius: 6, y: 2)
+    /// Content surfaces share the system semantic fill.
+    func campaignUICardSurface(padding: CGFloat = CosmosDesign.cardPadding) -> some View {
+        self.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
+            .background(CosmosDesign.surface, in: RoundedRectangle(cornerRadius: CosmosDesign.surfaceRadius))
     }
 }
 
@@ -436,50 +400,4 @@ struct CampaignUITabItem<ID: Hashable>: Identifiable {
     let id: ID
     let title: String
     let icon: String
-}
-
-/// Window-level segmented control. The selected pill slides between segments
-/// (matched geometry) and the container is the only Liquid Glass surface.
-struct CampaignUISegmentedTabs<ID: Hashable>: View {
-    let items: [CampaignUITabItem<ID>]
-    @Binding var selection: ID
-    var isDisabled = false
-    @Namespace private var indicator
-    @Environment(\.accessibilityReduceMotion) private var system
-    @Environment(\.cosmosPreferences) private var preferences
-
-    var body: some View {
-        let reduced = preferences.reducesMotion(system: system)
-        HStack(spacing: 2) {
-            ForEach(items) { item in
-                let selected = item.id == selection
-                Button {
-                    guard !isDisabled, !selected else { return }
-                    if reduced { selection = item.id }
-                    else { withAnimation(CosmosDesign.motion) { selection = item.id } }
-                } label: {
-                    Label(item.title, systemImage: item.icon)
-                        .labelStyle(.titleAndIcon)
-                        .font(.system(size: 13, weight: selected ? .semibold : .medium))
-                        .foregroundStyle(selected ? Color.accentColor : Color.primary.opacity(0.78))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background {
-                            if selected {
-                                Capsule()
-                                    .fill(Color.accentColor.opacity(0.14))
-                                    .matchedGeometryEffect(id: "campaign-ui-tab-indicator", in: indicator)
-                            }
-                        }
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .opacity(isDisabled && !selected ? 0.45 : 1)
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-        }
-        .padding(3)
-        .glassEffect(.regular, in: Capsule())
-        .disabled(isDisabled)
-    }
 }

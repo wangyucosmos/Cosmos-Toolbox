@@ -3,8 +3,6 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(\.cosmosNavigator) private var navigator
     @Environment(\.cosmosPreferences) private var preferences
-    @Namespace private var pageGlass
-    @State private var sidebarPulse: [SidebarItem: Int] = [:]
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     @Environment(\.openSettings) private var openSettings
     @State private var didRestoreNavigation = false
@@ -264,6 +262,7 @@ struct DashboardView: View {
                     ZhuowangWorkspaceView(persistenceConfiguration: storePersistenceConfiguration,
                         isolatedAssetRoot: isolatedAssetRoot, openPromptVault: { selection = .promptVault },
                         initialNavigation: navigator.workspaceNavigation, initialCategoryID: navigator.workspaceCategory)
+                        .environment(\.cosmosPageToolbarVisible, selection == .zhuowang)
                         .opacity(selection == .zhuowang ? 1 : 0)
                         .animation(nil, value: selection)
                         .allowsHitTesting(selection == .zhuowang).accessibilityHidden(selection != .zhuowang)
@@ -281,7 +280,6 @@ struct DashboardView: View {
         .background(CosmosMainWindowPolicy())
         .toolbar(removing: .title)
         .environment(\.locale, Locale(identifier: "zh_Hans_CN"))
-        .environment(\.cosmosGlassNamespace, pageGlass)
         .modifier(CosmosMotionPolicy())
         .task { restoreNavigationOnce() }
         .onChange(of: selection) { _, value in
@@ -303,7 +301,7 @@ struct DashboardView: View {
                 CosmosExperienceTrace.shared.mark("shell.fade.commit." + (value?.rawValue ?? "nil"))
 #endif
             }
-            if let value, value != .settings { preferences.lastPage = value.rawValue; sidebarPulse[value, default: 0] += 1 }
+            if let value, value != .settings { preferences.lastPage = value.rawValue }
         }
         .onChange(of: navigator.settingsRequest) { _, _ in openSettings() }
         .onChange(of: navigator.newRecordRequest) { _, source in
@@ -443,7 +441,6 @@ struct DashboardView: View {
         } icon: {
 
             Image(systemName: item.icon)
-                .symbolEffect(.bounce, options: .nonRepeating, value: sidebarPulse[item, default: 0])
                 .symbolEffectsRemoved(preferences.reducesMotion(system: systemMotion))
         }
         .frame(minHeight: 30)

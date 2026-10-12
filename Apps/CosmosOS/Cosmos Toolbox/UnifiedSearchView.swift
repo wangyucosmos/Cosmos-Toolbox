@@ -53,7 +53,7 @@ struct UnifiedSearchView: View {
                         sourceButton("全部", nil)
                         ForEach(UnifiedSearchSource.allCases) { sourceButton($0.title, $0) }
                     }
-                }
+                }.scrollEdgeEffectStyle(.soft, for: .top)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .mask {
                     HStack(spacing: 0) {
@@ -81,7 +81,7 @@ struct UnifiedSearchView: View {
             if query.keyword.isEmpty {
                 CosmosEmptyState(icon: "magnifyingglass", title: "输入关键词开始检索", detail: "活动 · Artifact · 引用 · 项目 · 提示词 · 学习 · 个人笔记 · 知识库文档（标题、路径、标签；不检索正文）")
                 if !appNavigator.lastSearchText.isEmpty {
-                    Button("上次检索：" + appNavigator.lastSearchText) { query.text = appNavigator.lastSearchText }.buttonStyle(.glass)
+                    Button("上次检索：" + appNavigator.lastSearchText) { query.text = appNavigator.lastSearchText }.buttonStyle(.bordered)
                 }
                 Spacer()
             } else if model.loading {
@@ -105,8 +105,8 @@ struct UnifiedSearchView: View {
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) { Button("聚焦搜索", systemImage: "magnifyingglass") { appNavigator.requestSearchFocus() }.keyboardShortcut("f", modifiers: .command).labelStyle(.iconOnly).help("聚焦搜索").buttonStyle(.glass) }
-                ToolbarItem(placement: .primaryAction) { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.labelStyle(.iconOnly).help("刷新").buttonStyle(.glass).disabled(query.keyword.isEmpty) }
+                ToolbarItem(placement: .primaryAction) { Button("聚焦搜索", systemImage: "magnifyingglass") { appNavigator.requestSearchFocus() }.keyboardShortcut("f", modifiers: .command).labelStyle(.iconOnly).help("聚焦搜索") }
+                ToolbarItem(placement: .primaryAction) { Button("刷新", systemImage: "arrow.clockwise") { model.search(query, refresh: true) }.labelStyle(.iconOnly).help("刷新").disabled(query.keyword.isEmpty) }
             }
             .task {
                 searchFocused = followsNavigation && appNavigator.searchFocusRequested
@@ -186,7 +186,7 @@ struct UnifiedSearchView: View {
                 Text(CosmosDate.timestamp(ref.recordedAt))
                 if let corrected = ref.correctsReferenceID { Text("更正对象 ID：" + corrected.uuidString).font(.caption) }
                 if !ref.location.isEmpty { Text(ref.location).textSelection(.enabled) }
-                if !ref.notes.isEmpty { ScrollView { Text(ref.notes).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }.frame(maxHeight: 220) }
+                if !ref.notes.isEmpty { ScrollView { Text(ref.notes).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }.scrollEdgeEffectStyle(.soft, for: .top).frame(maxHeight: 220) }
                 Text("这是位置登记，不是 Artifact 或已采用成果；备份不包含文件实体。打开失败仍保留原记录，不修复路径。")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {

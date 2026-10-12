@@ -182,7 +182,7 @@ struct ArtifactReviewWorkspace: View {
                             : "arrow.up.left.and.arrow.down.right"
                     )
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
             }
 
             Button {
@@ -190,7 +190,7 @@ struct ArtifactReviewWorkspace: View {
             } label: {
                 Label("关闭", systemImage: "xmark")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
         }
         .padding(.horizontal, CosmosDesign.spacingL)
         .padding(.vertical, CosmosDesign.spacingS)
@@ -258,7 +258,7 @@ struct ArtifactReviewPane: View {
                     minWidth: proxy.size.width,
                     minHeight: proxy.size.height
                 )
-            }
+            }.scrollEdgeEffectStyle(.soft, for: .top)
             .background(Color.primary.opacity(0.035))
         }
     }
@@ -274,7 +274,7 @@ struct ArtifactReviewPane: View {
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(CosmosDesign.spacingL)
-        }
+        }.scrollEdgeEffectStyle(.soft, for: .top)
         .background(Color.primary.opacity(0.018))
     }
 

@@ -15,7 +15,7 @@ struct MacEnvironmentView: View {
                         panel("系统", icon: "desktopcomputer", info: "ProcessInfo / sysctl：硬件型号、处理器名称与硬件架构。") {
                             row("系统版本", snapshot.systemVersion) { $0 }; row("硬件型号", snapshot.hardwareModel) { $0 }
                             row("芯片 / 处理器", snapshot.processor) { $0 }; row("硬件架构", snapshot.architecture) { $0 }
-                        }.cosmosEntrance(0)
+                        }.cosmosScrollReveal()
                         panel("磁盘", icon: "internaldrive", info: "用户主目录所在卷；可用容量不含可清除空间估算。十进制单位（1 GB = 10⁹ 字节），不是目录大小。") {
                             if case .value(let disk) = snapshot.disk, disk.totalBytes > 0, disk.availableBytes >= 0, disk.availableBytes <= disk.totalBytes {
                                 Gauge(value: Double(disk.availableBytes), in: 0...Double(disk.totalBytes)) { Text("可用容量") }
@@ -24,11 +24,11 @@ struct MacEnvironmentView: View {
                                     .gaugeStyle(.accessoryLinearCapacity).tint(Color.accentColor)
                                 Text("总容量 " + MacEnvironmentFormat.decimalBytes(disk.totalBytes)).font(CosmosDesign.font(.body)).foregroundStyle(.secondary)
                             } else { row("卷容量", snapshot.disk) { "总量 \(MacEnvironmentFormat.decimalBytes($0.totalBytes)) · 可用 \(MacEnvironmentFormat.decimalBytes($0.availableBytes))" } }
-                        }.cosmosEntrance(1)
+                        }.cosmosScrollReveal()
                         panel("内存", icon: "memorychip", info: "物理内存总量为 ProcessInfo.physicalMemory。二进制单位（1 GiB = 2³⁰ 字节）；未读取应用占用，不推算使用率。") {
                             row("物理内存", snapshot.physicalMemory) { MacEnvironmentFormat.binaryBytes($0) }
                             row("系统内存压力", snapshot.memoryPressure) { $0 }
-                        }.cosmosEntrance(2)
+                        }.cosmosScrollReveal()
                         panel("电池", icon: "battery.100", info: "IOKit Power Sources：只读内置电池。电量为当前容量 / 满充容量，未读取循环次数或健康最大容量。") {
                             if case .value(let battery) = snapshot.battery {
                                 if case .value(let percentage) = battery.percentage {
@@ -37,13 +37,13 @@ struct MacEnvironmentView: View {
                                 } else { row("电量", battery.percentage) { String(format: "%.1f%%", $0) } }
                                 row("供电", battery.power) { $0 }; row("充电", battery.charging) { $0 ? "正在充电" : "未充电" }
                             } else { row("内置电池", snapshot.battery) { _ in "" } }
-                        }.cosmosEntrance(3)
+                        }.cosmosScrollReveal()
                     }
                 } else if model.isReading { CosmosLoadingSkeleton(title: "正在读取系统信息…") }
                 else { CosmosEmptyState(icon: "desktopcomputer", title: "正在准备环境概览", detail: "只读本机信息，不进行清理或修改。") }
             }.padding(24).frame(maxWidth: CosmosDesign.contentMaxWidth, alignment: .leading).frame(maxWidth: .infinity)
-        }.background(Color(nsColor: .windowBackgroundColor))
-            .toolbar { ToolbarItem(placement: .primaryAction) { CosmosGlassToolbarGroup { Button(model.isReading ? "正在读取…" : "刷新", systemImage: "arrow.clockwise") { model.refresh() }.disabled(model.isReading) } } }
+        }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .windowBackgroundColor))
+            .toolbar { ToolbarItemGroup(placement: .primaryAction) { Button(model.isReading ? "正在读取…" : "刷新", systemImage: "arrow.clockwise") { model.refresh() }.disabled(model.isReading).symbolEffect(.rotate, isActive: model.isReading && !preferences.reducesMotion(system: systemMotion)) } }
             .task { if await CosmosDesign.beginPageLoad(reduced: preferences.reducesMotion(system: systemMotion)) { model.loadIfNeeded() } }
             .onDisappear { model.cancel() }
     }
