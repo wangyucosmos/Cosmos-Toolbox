@@ -246,3 +246,16 @@
 - 当前 Current Status 体积 <40KB；§1 / §3 / §6 / §9 / §12已更新。正式数据没有变更。仅提交本轮分支，不推送、不快进main；main / origin/main仍515c795；Word与PDF WIP分支保留。Claude此时已建立 /Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox-window-factory（native/window-factory），未触碰。
 - 阶段结论：工程实现、自动验证与部署可收尾，用户实机观感待验收。实机逐页建议：仪表盘（工具栏玻璃分组、滚动边缘 / 入场、指标数字）；卓望（管理项随页面显隐、分类segmented、指标 / 活动卡片）；Prompt（工具栏、正文系统按钮、滚动）；设置（TabView / toolbar、减少动效、深浅色）；活动详情（原位segmented、正文按钮 / 滚动、Workflow状态图标）；补看个人笔记收藏、Mac刷新与AI检测中效果；AI检测不代表Provider任务，不需执行真实Provider。全局减少动效开启后检查原生效果降级。
 - 非阻塞：离屏设置TabView标签绘制缺口、真实玻璃 / 动效未验收、KnowledgeHubView测试引用未清理、既有Swift6隔离警告、窗口与sheet原生化留第二批；不增加本轮修复或测试。
+
+
+## Mac 原生化第一批用户验收与 main 收尾（仅 Git / 文档）
+
+- 用户已实机体验 native/batch1 部署版 00671aa，接受声明的验收范围，授权快进 main、两份文档提交、正常推送 main 与安全删除 native/batch1。本次不构建、不测试、不部署、不改代码，沿用上一轮已经完成的验证证据；部署 / 回退副本保持 00671aa / Cosmos Toolbox-20261012-105302-6472e5de.app。
+- 基线实测：正式目录 native/batch1=78dcaf49385fc9cea8e27a25f3a97ebcc12f3b8d、工作区干净；main / origin/main=515c7955b76c56f200e4de75ff09ea9b297f1b4c，可快进。git ls-remote origin refs/heads/main 确认远端仍为515c795。沙箱内访问现有本地代理失败，只有只读远端检查在沙箱外重试；不修改代理配置，不把首次连接失败当成远端状态不一致。
+- git switch main 后 git merge --ff-only native/batch1 成功：main由515c795快进至78dcaf4，无合并提交。带入00671aa实现与78dcaf4部署文档；仅更新Current Status的§1/§3/§7/§9/§12和追加本日志，逐文件add，提交信息“docs: 记录Mac原生化第一批验收与合并”。不重复维护其他项目文档，不改变部署二进制。
+- 窗口工厂保留：/Users/rainiesmac-15/Documents/GitHub/Cosmos-Toolbox-window-factory，native/window-factory=0bfff23706f3cd8bab9fa47a81ab23cfdeb9a8e9。只读git show确认只新增CosmosWindowFactory.swift、CosmosWindowFactoryTests.swift、Docs/Reviews/2026-10-12_窗口原生化迁移清单.md三个文件；未合并、未修改、未删除、未prune。指定Word本地WIP与PDF远端WIP保留。
+- 本轮交接事件（用户提供，未在本次重跑或重新审计）：2026-10-12 Claude Code在native/window-factory首次全量测试误用正式Bundle ID；LearningPersistenceTests对cosmos.zhuowang.campaigns.v1做了临时写入并恢复，开工/测试后/结束三次指纹一致，无数据变化；隔离宿主守卫测试正确失败，暴露了宿主身份错误。不得把“写后恢复”当作允许测试访问正式数据的依据。
+- 新硬规则已写入Current Status §7：全量单测与任何会实例化业务Store的测试，必须使用com.wangyucosmos.cosmostoolbox.persistenceui.*前缀隔离测试宿主Bundle ID，不得使用正式Bundle ID；suite和文件根隔离不能替代宿主身份隔离。
+- 推送收尾协议：本次文档提交随main正常git push origin main，随后以git ls-remote确认远端HEAD等于本地main，核对origin/main领先/落后0/0及工作区干净；全部确认后才git branch -d native/batch1。禁止force/-D/reset/clean/stash/prune。最终实际HEAD、远端结果与分支/worktree清单在本次最终报告给出；任何一步失败即停止，不把计划当作成功证据。
+- 当前第一批现场玻璃/动效已验收；剩余非阻塞事项仅KnowledgeHubView仍有测试引用、设置离屏标签绘制缺口及既有明确待办。下一优先级第二批窗口与sheet原生化：开工先合并0bfff23，再按迁移清单接线；10个独立窗口现无autosave名，是否新增位置记忆由用户决定。本次不启动第二批。
+- 可复用：隔离测试宿主身份是业务Store测试的先决条件；Git收尾只沿用已接受的验证证据，先确认远端基线，再快进、文档提交、正常推送与安全删除已合入分支。
