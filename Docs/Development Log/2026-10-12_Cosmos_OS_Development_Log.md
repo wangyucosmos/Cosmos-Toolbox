@@ -259,3 +259,22 @@
 - 推送收尾协议：本次文档提交随main正常git push origin main，随后以git ls-remote确认远端HEAD等于本地main，核对origin/main领先/落后0/0及工作区干净；全部确认后才git branch -d native/batch1。禁止force/-D/reset/clean/stash/prune。最终实际HEAD、远端结果与分支/worktree清单在本次最终报告给出；任何一步失败即停止，不把计划当作成功证据。
 - 当前第一批现场玻璃/动效已验收；剩余非阻塞事项仅KnowledgeHubView仍有测试引用、设置离屏标签绘制缺口及既有明确待办。下一优先级第二批窗口与sheet原生化：开工先合并0bfff23，再按迁移清单接线；10个独立窗口现无autosave名，是否新增位置记忆由用户决定。本次不启动第二批。
 - 可复用：隔离测试宿主身份是业务Store测试的先决条件；Git收尾只沿用已接受的验证证据，先确认远端基线，再快进、文档提交、正常推送与安全删除已合入分支。
+
+
+## Mac 原生化第二批主线 A–C（窗口线未就绪，待集成）
+
+- 基线：正式目录 main / origin/main=8d4107fa0eda682f033e440bdbebb298d8ba5d58、干净；window-factory目录由Claude持有native/batch2-windows。本轮先创建native/batch2再修改代码。保留两个WIP分支，无push / main合并 / 删除 / prune。
+- A：新增ZhuowangCategoryBar.swift（含只负责呈现的ZhuowangCategoryBarItem），ZhuowangWorkspaceView.swift接线。概览/活动保留，其他分类按store.categories顺序与数量生成；名称与unsupported标记分离，circle.dashed + 次要色 + help“尚未接入”，不禁止点击。34pt高度、14pt字号、左右16pt、标签间10pt；横滚无滚动条，ScrollViewReader随selection滚入可见区。选中标签regular.tint(accentColor).interactive玻璃、GlassEffectContainer、glassEffectID / matchedGeometry，减少动效用identity与nil animation；其他标签轻背景hover。原Binding setter仍清assetDestination，省份/模块选择的回概览逻辑未改；无新偏好键。
+- B：ZhuowangArtifactDeliveryPackageView.swift、ZhuowangTaskPackagePreviewView.swift、ZhuowangAIExecutionResultView.swift（含ZhuowangAIRevisionRequestView）各包NavigationStack；标题用navigationTitle、副标题保留适用信息。header/footer重复操作删去，关闭/返回/取消在cancellationAction，导出/运行/采用/重试/提交在confirmationAction + glassProminent，复制/修改/重新生成在primaryAction，运行中状态在status。采用失败提示、成功dismiss次序、running关闭禁用、导出禁用、canContinue、修改意见trim/guard与onSubmit后dismiss保持。不改sheet调用点、不引入窗口、不运行Provider。
+- C：CosmosSettingsView.swift备份/关于改Form(.grouped)，Section / LabeledContent组织；导出/校验为Form中的文字按钮，busy禁用保留；原说明移footer（保留容量、兼容版本、事务/安全限制）。Settings scene与TabView结构不变；文件面板与CoreBackup/CoreRestore行为不改。逐函数对比14个业务/面板方法无变化（不计UI属性与动作位置迁移）。
+- A–C代码与测试提交：9ba998c（feat: 重做工作分类栏并原生化sheet与设置页，7文件）。自查git diff --check通过；代码仅改允许文件，未碰Claude八个窗口文件、工厂/位置记忆实现、活动/Artifact窗口Manager、Store/数据格式/路径/恢复/采用/交付算法。
+- D门槛：A–C提交后读取8d4107f..native/batch2-windows提交，HEAD4f61f25，只有工厂合并/位置记忆等提交，没有以[ready-for-integration]结尾的就绪提交。按原任务D节，只做A–C构建与受影响测试后停止，窗口线未就绪，待集成。没有merge提交；未接入campaignDetail/artifactDetail两个位置记忆，不部署。Claude的Docs/Reviews/2026-10-12_窗口原生化第二批接线记录.md待窗口线就绪后读取，不将未提交报告视为验证证据。
+- 本轮集中验证：Xcode27/macOS27SDK、沙箱外build-for-testing，原工程/原scheme、Debug、CODE_SIGNING_ALLOWED=NO、DerivedData=/private/tmp/CosmosDD-batch2-a49599cc-0224-42c3-acbf-d80ec9607a5d。构建成功，无集中修复。隔离宿主Bundle=com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch2，生成xctestrun注入随机Store suite与九个UUID临时根，C0 workspace-files隔离生效。XCTest不访问正式Documents，未使用System Events。
+- 受影响六类共53唯一测试，53通过/0失败：ZhuowangCategoryBarTests、ZhuowangCategoryPageTests、ZhuowangWorkspaceUITests、ZhuowangCampaignDetailUITests、ZhuowangArtifactDeliveryPackageTests、CosmosUIUpgradeTests。新增4项覆盖分类数量/顺序、unsupported由route ID决定、Binding setter清旧destination、900/1440浅深隔离工作区截图与数据不变。只跑一次受影响测试，未跑全量与72对互切（该要求属于合并后的E阶段）；第一批641测试/72对仅是历史基线，不冒充本轮实测。
+- 证据：/private/tmp/CosmosNativeBatch2-build.log，/private/tmp/CosmosNativeBatch2-AC-tests.log、/private/tmp/CosmosNativeBatch2-AC-tests.xcresult，隔离参数/private/tmp/CosmosNativeBatch2-isolation.json。
+- 目标12张本轮截图已逐张查看并集中到/private/tmp/CosmosNativeBatch2-screenshots：workspace-{900,1440}-{light,dark}.png（4）、delivery-{light,dark}.png（2）、execution-success-{light,dark}.png（2）、settings-{data,about}-{light,dark}.png（4）。manifest记录本轮mtime、来源与SHA-256。sheet其他状态、活动详情C0截图也随现有受影响夹具生成在/private/tmp/CosmosStep3B-screenshots，未测试Claude窗口线。
+- 图片实际发现/边界：分类栏整个玻璃容器在NSHostingView缓存中为黑块，无法从图核实文字/间距/玻璃；sheet原生标题栏和toolbar不在内容缓存中，不能据此确认按钮位置；设置两页Form分组与带文字操作可见，旧TabView黑/白标签胶囊缺口仍在。未将这些归因为已确认实机缺陷，不重复捕获或添加产品诊断开关；实机验收留集成部署后。Form内原数据位置/恢复组件标题存在重复层级，是非阻塞显示细节，不扩展本轮。
+- 正式数据shell指纹：/private/tmp/CosmosNativeBatch2-before.json、after-AC-tests.json；14个Workspaces文件path/size/mtime_ns + defaults export正式域的5个业务主键精确Data SHA-256完全一致，不输出业务正文、没有新增采用/恢复/Provider调用。
+- 本阶段部署：未执行，日常App仍第一批00671aa；回退副本Cosmos Toolbox-20261012-105302-6472e5de.app保持。Current Status记录真实局部进度，未将第二批或D–F声明完成。
+- 后续用户实机清单（集成部署后）：分类栏文字宽度/窄窗横滚/选中滚入/玻璃滑动/未接入标记；四类sheet按钮位置、running禁用与采用失败；设置Form滚动、标签、深浅色/减少动效；窗口线的重新打开记忆、同类第二窗口错开与toolbar等待D–F。
+- 可复用：分类名称与路由可用性分开呈现；迁移操作位置时逐函数比较业务方法；隔离宿主与UUID文件根一起注入；原生玻璃/toolbar离屏缓存缺口明确记录，绑定测试不代替实际观感验收。
