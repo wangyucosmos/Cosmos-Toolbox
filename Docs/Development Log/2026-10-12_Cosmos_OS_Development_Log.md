@@ -97,3 +97,20 @@
 - shell快照：/private/tmp/CosmosStep3Integration-acceptance-{before,after-tests,after-deploy}.json；14工作文件路径/大小/mtime_ns、5业务键逐键SHA-256完全一致。无数据格式变化。
 - 逐文件提交 fix: 统一页面切换与侧栏选中样式 @be4b6f69662cc8be67d43ca5535c9227a1c532ad（6文件）。原deploy-macos.py正常退出旧App、保留回退并启动新版Release dirty=false；回退 Cosmos Toolbox-20261012-012808-72175c3c.app；部署日志 /private/tmp/CosmosAcceptance-deploy.log。
 - 修改：DashboardView.swift、CosmosExperienceUI.swift、UnifiedSearchView.swift、AIWorkspaceView.swift、ZhuowangWorkspaceView.swift、CosmosExperiencePolishTests.swift；正式文档仅Current Status与本日志。代码与文档本地提交，等待用户体验验收；无额外worktree，无push。
+
+
+## 恢复原生选中与分栏：阶段部署及阻塞（5c37008）
+
+- 基线 polish/ui-round4 @b864e29，工作区干净。main/origin/main fee48c5未移动、不推送；未新增worktree。
+- A：删除CosmosSidebarSelection与额外行padding；List原生选择/焦点/AX行为恢复。导航内存新增显式搜索焦点请求，侧栏点击清除请求；⌘F、Dashboard search(空串)、携带关键词search申请焦点。占位提示“按⌘F开始搜索”。
+- B：卓望恢复HSplitView，二级名lineLimit(1)/tail；目标宽度220–360，默认260，cosmos.ui.workspace.sidebarWidth只存UI偏好。观察原生split resize保存，未替换SwiftUI委托或业务Store；GeometryReader明确约束实际宽度并为内容留最小320。初版原生分栏离屏仍溢出，同轮集中修复后900/1440/2560浅深图边界正常。真实满宽窗口“推进工作台”仍有省略，不能宣称所有名称完整显示；未完成真实拖动光标、宽度持久化复核。
+- 灰竖条根因：修复前真实AX树标识为scroll bar，截图可见圆角滑块；不是Divider。系统AppleShowScrollBars=Automatic，源码无强制常显。窄栏多行增高内容，滑块接近全高。保留系统策略，分隔线恢复原生thin（夹具dividerThickness<=1通过），不强制隐藏滚动条。
+- C：Projects空状态原CosmosEmptyState至少130pt并居中，加padding制造大片间距；改为紧凑Label、说明和模板，控件下紧接；只改呈现。
+- D：Prompt现有HSplit保留，分类/模板名称单行省略；学习列表原已单行，原生HSplit保留；我的知识库固定HStack/Divider改为HSplitView（窄窗两栏、宽窗三栏），有fixture截图。真实其它分栏拖动/光标仍未核实。
+- 页面切换修复未改。72有向互切复跑两次均1次fade begin/commit、0外壳额外挂载、0卓望二次选中；/private/tmp/CosmosNativeAcceptance-matrix/matrix.csv。
+- Debug构建通过；首轮108唯一测试通过，同轮分栏修复复验通过。138张离屏图 /private/tmp/CosmosNativeAcceptance-screenshots，重点浅/深图已查看。阶段逐文件提交 fix: 恢复原生侧栏选中并修复卓望二级栏宽度 @5c37008651c5c79696f8c53c8ae033ae865c0f46，11源码/测试文件。
+- 原脚本Release构建、正常退出旧App、安装启动成功。PID65938、唯一窗口31379（安装路径校验），回退 Cosmos Toolbox-20261012-093816-9fb0695e.app。真实截图 /private/tmp/CosmosNative-deployed-search-sidebar.png 与 -command.png；侧栏进入不聚焦、原生单层蓝色正确；⌘F first responder为检索框。
+- 阻塞：实机Dashboard快捷进入未成功聚焦。补充focus挂载时序尝试（Task.yield，未改切换），并把fixture窗口改为titled/key、加入native firstResponder断言。最后13项复验：UnifiedSearch12项通过；焦点测试1项失败（2断言）：事件247行出现了不期望的search.focus.true，251行请求后未收到新的focus.true；252行原生fieldEditor断言本身通过。带key的直接搜索宿主可能自动选首个textfield，夹具/真实入口时序需下一轮一起排查。停止继续修复/部署，未宣称完成。
+- 停止时未提交2文件：UnifiedSearchView.swift、CosmosExperiencePolishTests.swift。保留尝试，不重置、不清理；当前安装仍阶段5c37008，未部署这些尝试。
+- shell快照 /private/tmp/CosmosStep3Integration-native-{before,after-tests,stopped}.json：14工作文件path/size/mtime_ns及5业务键SHA-256完全一致。无格式/存储/Workflow/恢复算法变化；未运行Provider或Harness。
+- 修改文件：CosmosExperienceUI.swift、CosmosNavigator.swift、CosmosUIPreferences.swift、CosmosWorkspaceUI.swift、DashboardView.swift、KnowledgeSourceViews.swift、ProjectsView.swift、PromptVaultView.swift、UnifiedSearchView.swift、ZhuowangWorkspaceView.swift、CosmosExperiencePolishTests.swift；正式文档仅Current Status与本日志。未改工程、scheme、xcconfig或仓库测试宿主配置。
