@@ -235,3 +235,11 @@
 - Release日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-pw0m1uox/build.log；部署输出/private/tmp/CosmosNativeBatch33-deploy.log。既有Swift6 / Sendable警告与PID取消夹具时序风险非本期阻塞，未扩大修复。
 - Current Status最终37842字节（低于38,000）；只与本日日志一起逐文件提交部署结果。用户实机验收还需工具栏 / 搜索位置、单击回车 / 收藏 / 归档右键滑动、来源管理 / 排除popover、知识库⌘F / 统一检索⌘F、深浅与减少动效，不将代码核对当实际键盘验收。
 - 可复用：工具栏迁移后夹具必须从桥接的原生窗口工具栏查找控件，保留实际action与旧断言；笔记变更入口共享实时只读门控；正式文件不存在也须作为指纹状态保留。3.1–3.3实现完成，下一步由用户确定；3.4继续延后，不自动开工。
+
+## 第三批3.3用户实机验收与main收尾
+
+- 用户确认3.3实机验收通过并授权收尾。基线：功能分支759dfd2、工作区干净；main / origin/main=cfdba2a，只有正式目录一个worktree；日常App=5d38147、dirty=false。
+- git switch main与git merge --ff-only成功，main从cfdba2a快进到759dfd2；正常推送成功，ls-remote确认远端759dfd2。git branch -d成功删除native/batch3-knowledge-notes-20261013。
+- Mac原生化第三批（3.1–3.3）全部完成。Current Status记录验收与收尾结果；§12下一步：待用户确定下一模块（候选：3.4 统一检索 .searchable；卓望分类内容接入；卓望数据迁移到受保护文件存储）。不自动开工。
+- 非阻塞待办：PID取消夹具时序不稳定，文件创建与PID写入有窗口；开发阶段受影响重验通过，未扩大修复。沿用首轮692项690通过及两失败项重验2/2证据，不宣称首轮全量全通过。
+- 收尾前后正式14文件 / 5业务键指纹一致。本次只执行Git、两份文档与数据核对，不重新构建 / 部署 / 跑测试；日常App保持5d38147，回退副本保留，Word / PDF WIP不动。
