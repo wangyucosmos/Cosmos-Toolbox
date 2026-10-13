@@ -517,6 +517,7 @@ final class ZhuowangCampaignWindowManager:
         }
         routes[campaign.id] = route
 
+        let windowContext = ZhuowangDetailWindowContext()
         let rootView =
             ZhuowangCampaignDetailView(
                 store: store,
@@ -528,57 +529,22 @@ final class ZhuowangCampaignWindowManager:
                     province,
                 module:
                     module,
-                route: route
+                route: route,
+                windowContext: windowContext
             )
 
-        let hostingController =
-            NSHostingController(
-                rootView: rootView
-            )
-
-        let window =
-            NSWindow(
-                contentRect:
-                    NSRect(
-                        x: 0,
-                        y: 0,
-                        width: 980,
-                        height: 760
-                    ),
-                styleMask: [
-                    .titled,
-                    .closable,
-                    .miniaturizable,
-                    .resizable
-                ],
-                backing: .buffered,
-                defer: false
-            )
-
-        window.title =
-            campaign.name
-
-        window.titleVisibility =
-            .visible
-
-        window.titlebarAppearsTransparent =
-            false
-
-        window.minSize =
-            NSSize(
-                width: 760,
-                height: 620
-            )
-
-        window.contentViewController =
-            hostingController
-
-        window.delegate = self
-
-        window.identifier =
-            NSUserInterfaceItemIdentifier(
-                campaign.id.uuidString
-            )
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(
+                title: campaign.name,
+                contentSize: NSSize(width: 980, height: 760),
+                minSize: NSSize(width: 760, height: 620),
+                identifier: campaign.id.uuidString,
+                frameMemoryKey: "campaignDetail",
+                delegate: self
+            ),
+            rootView: rootView
+        )
+        windowContext.window = window
 
         let controller =
             NSWindowController(
@@ -587,8 +553,6 @@ final class ZhuowangCampaignWindowManager:
 
         controllers[campaign.id] =
             controller
-
-        CosmosWindowFrameMemory.attach(window, key: "campaignDetail")
 
         controller.showWindow(nil)
 

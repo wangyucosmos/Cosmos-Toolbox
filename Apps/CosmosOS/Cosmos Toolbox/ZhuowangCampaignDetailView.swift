@@ -1,6 +1,14 @@
 import SwiftUI
 import AppKit
 
+final class ZhuowangDetailWindowContext {
+    weak var window: NSWindow?
+
+    func close() {
+        window?.performClose(nil)
+    }
+}
+
 struct ZhuowangCampaignDetailView: View {
 
     @ObservedObject var store: ZhuowangCampaignStore
@@ -17,15 +25,9 @@ struct ZhuowangCampaignDetailView: View {
     /// Synthetic connection registry for tests / fixtures; `nil` = live registry.
     var workflowConnections: ZhuowangWorkflowConnections?
 
-    @Environment(\.dismiss)
-    private var dismiss
+    var windowContext = ZhuowangDetailWindowContext()
 
-    @Environment(\.accessibilityReduceMotion)
-    private var systemMotion
-
-    @Environment(\.cosmosPreferences)
-    private var preferences
-
+    @State private var didInitializeWorkspace = false
     @State private var isEditing = false
     @State private var showDeleteConfirmation = false
 
@@ -48,16 +50,8 @@ struct ZhuowangCampaignDetailView: View {
     @State private var status: ZhuowangCampaignStatus = .planning
     @State private var notes = ""
 
-    private var reducedMotion: Bool {
-        preferences.reducesMotion(system: systemMotion)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
-
-            header
-
-            Divider()
 
             if let message =
                 store.persistenceState.userMessage {
@@ -84,14 +78,20 @@ struct ZhuowangCampaignDetailView: View {
         )
         .background(Color(nsColor: .windowBackgroundColor))
         .modifier(CosmosMotionPolicy())
+        .navigationTitle(campaign?.name ?? "活动详情")
+        .navigationSubtitle(campaign.map { "\(scopeText) · \(ZhuowangWorkspaceUI.dates($0))" } ?? "")
+        .toolbar { windowToolbar }
         .onAppear {
-            loadDraft()
-            if let failure = workflowStore.workspaceFileManager.accessFailure {
-                workspaceMessage = failure
-                showWorkspaceAlert = true
+            if !didInitializeWorkspace {
+                didInitializeWorkspace = true
+                loadDraft()
+                if let failure = workflowStore.workspaceFileManager.accessFailure {
+                    workspaceMessage = failure
+                    showWorkspaceAlert = true
+                }
+                recoverLocalWorkflowIfNeeded()
+                migrateLegacyArtifactsIfNeeded()
             }
-            recoverLocalWorkflowIfNeeded()
-            migrateLegacyArtifactsIfNeeded()
             applyRoute()
         }
         .onChange(of: route.requestSerial) {
@@ -188,14 +188,9 @@ struct ZhuowangCampaignDetailView: View {
     }
 
     private func show(_ tab: ZhuowangCampaignDetailTab) {
-        if reducedMotion {
-            selectedTab = tab
-        } else {
-            withAnimation(CosmosDesign.motion) {
-                selectedTab = tab
-            }
-        }
+        selectedTab = tab
     }
+
 
     /// Jumps to the Workflow tab; the Workflow view selects `stepID`.
     private func openWorkflow(focusing stepID: UUID?) {
@@ -215,18 +210,12 @@ struct ZhuowangCampaignDetailView: View {
     }
 
 
-    // MARK: - Header
+    // MARK: - Window Toolbar
 
     private var visibleTabs: [ZhuowangCampaignDetailTab] {
         ZhuowangCampaignDetailTab.allCases.filter {
             $0 != .monthly
             || campaign?.isMonthlyMemberActivation == true
-        }
-    }
-
-    private var tabItems: [CampaignUITabItem<ZhuowangCampaignDetailTab>] {
-        visibleTabs.map {
-            CampaignUITabItem(id: $0, title: $0.title, icon: $0.systemImage)
         }
     }
 
@@ -242,198 +231,68 @@ struct ZhuowangCampaignDetailView: View {
         )
     }
 
-    private var header: some View {
-        VStack(spacing: 0) {
-
-            HStack(spacing: CosmosDesign.spacingL) {
-
-                headerLeading
-
-                VStack(
-                    alignment: .leading,
-                    spacing: 5
-                ) {
-
-                    Text(
-                        isEditing
-                        ? "编辑活动"
-                        : campaign?.name ?? "活动详情"
-                    )
-                    .font(.system(size: 24, weight: .semibold))
-                    .lineLimit(1)
-
-                    if let campaign, !isEditing {
-                        HStack(spacing: 8) {
-                            Text(scopeText)
-
-                            Text("·")
-                                .foregroundStyle(.tertiary)
-
-                            Text(ZhuowangWorkspaceUI.dates(campaign))
-                                .monospacedDigit()
-
-                            if campaign.isMonthlyMemberActivation {
-                                CampaignUIStatusPill(
-                                    text: "月度会员促活",
-                                    icon: "calendar.badge.clock",
-                                    tone: .info
-                                )
-                            }
-                        }
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    }
-                }
-
-                Spacer(minLength: 12)
-
-                if let campaign {
-                    if isEditing {
-
-                        Button("取消") {
-                            cancelEditing()
-                        }
-                        .buttonStyle(.bordered)
-
-                        Button("保存") {
-                            saveChanges()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(
-                            name
-                            .trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-                            .isEmpty
-                            || !store.persistenceState
-                                .allowsMutations
-                        )
-
-                    } else {
-
-                        ZhuowangCampaignStatusBadge(
-                            status: campaign.status
-                        )
-
-                        Menu {
-                            Button {
-                                beginEditing()
-                            } label: {
-                                Label(
-                                    "编辑活动",
-                                    systemImage: "pencil"
-                                )
-                            }
-
-                            Divider()
-
-                            Button(
-                                role: .destructive
-                            ) {
-                                showDeleteConfirmation = true
-                            } label: {
-                                Label(
-                                    "删除活动",
-                                    systemImage: "trash"
-                                )
-                            }
-
-                        } label: {
-                            Image(
-                                systemName: "ellipsis.circle"
-                            )
-                            .font(
-                                .system(
-                                    size: 16,
-                                    weight: .medium
-                                )
-                            )
-                            .frame(
-                                width: 30,
-                                height: 30
-                            )
-                        }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
-                        .disabled(
-                            !store.persistenceState
-                                .allowsMutations
-                        )
-
-                        Button {
-                            beginEditing()
-                        } label: {
-                            Label(
-                                "编辑",
-                                systemImage: "pencil"
-                            )
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(
-                            !store.persistenceState
-                                .allowsMutations
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, CosmosDesign.spacingXL)
-            .padding(.top, 16)
-            .padding(.bottom, campaign == nil ? 14 : 12)
-
-            if campaign != nil {
-                toolbarStrip
-            }
-        }
-        .background(.bar)
-    }
-
-    @ViewBuilder
-    private var headerLeading: some View {
-        if campaign != nil, !isEditing {
-            let progress = ZhuowangWorkflowUIModel.progress(of: workflowSteps)
-            CampaignUIProgressRing(
-                completed: progress.completed,
-                total: progress.total,
-                size: 52
-            )
-            .help("Workflow 进度：按已启用步骤计算")
-        } else {
-            Image(systemName: campaign == nil ? "exclamationmark.triangle" : "pencil.and.outline")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(campaign == nil ? Color.secondary : Color.accentColor)
-                .frame(width: 52, height: 52)
-                .background(Color.primary.opacity(0.05), in: Circle())
-        }
-    }
-
-    /// Window toolbar strip: segmented tabs on the left, tab actions on the right.
-    private var toolbarStrip: some View {
-        HStack(spacing: CosmosDesign.spacingM) {
-
+    @ToolbarContentBuilder
+    private var windowToolbar: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
             Picker("活动详情标签", selection: tabSelection) {
-                ForEach(tabItems) { Label($0.title, systemImage: $0.icon).tag($0.id) }
-            }.pickerStyle(.segmented).disabled(isEditing).accessibilityLabel("活动详情标签")
-
-            Spacer(minLength: 8)
-
-            if selectedTab == .artifacts, !isEditing {
-                Button {
-                    showArtifactDeliveryPackage = true
-                } label: {
-                    Label(
-                        "导出交付包",
-                        systemImage: "archivebox"
-                    )
+                ForEach(visibleTabs) { tab in
+                    Label(tab.title, systemImage: tab.systemImage).tag(tab)
                 }
-                .buttonStyle(.bordered)
-                .transition(.opacity)
+            }
+            .pickerStyle(.segmented)
+            .disabled(isEditing || campaign == nil)
+            .accessibilityLabel("活动详情标签")
+        }
+        if campaign != nil {
+            if isEditing {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消", action: cancelEditing)
+                        .disabled(campaign == nil)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存", action: saveChanges)
+                        .cosmosWindowPrimaryAction()
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            || !store.persistenceState.allowsMutations)
+                }
+            } else {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: beginEditing) {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    .disabled(!store.persistenceState.allowsMutations)
+                }
+                ToolbarItem {
+                    Menu {
+                        Button(action: beginEditing) {
+                            Label("编辑活动", systemImage: "pencil")
+                        }
+                        .disabled(!store.persistenceState.allowsMutations)
+                        Divider()
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("删除活动", systemImage: "trash")
+                        }
+                        .disabled(!store.persistenceState.allowsMutations)
+                    } label: {
+                        Label("更多操作", systemImage: "ellipsis.circle")
+                    }
+                    .disabled(!store.persistenceState.allowsMutations)
+                }
+                if selectedTab == .artifacts {
+                    ToolbarItem {
+                        Button {
+                            showArtifactDeliveryPackage = true
+                        } label: {
+                            Label("导出交付包", systemImage: "archivebox")
+                        }
+                        .disabled(workflowStore.workspaceFileManager.accessFailure != nil)
+                    }
+                }
             }
         }
-        .padding(.horizontal, CosmosDesign.spacingXL)
-        .padding(.bottom, 12)
-        .campaignUIAnimation(value: selectedTab)
     }
 
 
@@ -443,9 +302,7 @@ struct ZhuowangCampaignDetailView: View {
         _ campaign: ZhuowangCampaign
     ) -> some View {
 
-        let transition: AnyTransition = reducedMotion
-            ? .opacity
-            : .opacity.combined(with: .offset(y: 8))
+        let transition: AnyTransition = .identity
 
         return ScrollViewReader { proxy in
 
@@ -519,6 +376,17 @@ struct ZhuowangCampaignDetailView: View {
             alignment: .leading,
             spacing: CosmosDesign.spacingL
         ) {
+
+            HStack(spacing: CosmosDesign.spacingL) {
+                let progress = ZhuowangWorkflowUIModel.progress(of: workflowSteps)
+                CampaignUIProgressRing(completed: progress.completed, total: progress.total, size: 52)
+                    .help("Workflow 进度：按已启用步骤计算")
+                ZhuowangCampaignStatusBadge(status: campaign.status)
+                if campaign.isMonthlyMemberActivation {
+                    CampaignUIStatusPill(text: "月度会员促活", icon: "calendar.badge.clock", tone: .info)
+                }
+                Spacer()
+            }
 
             workflowSummaryCard
                 .cosmosScrollReveal()
@@ -1318,7 +1186,7 @@ struct ZhuowangCampaignDetailView: View {
             .foregroundStyle(.secondary)
 
             Button("关闭") {
-                dismiss()
+                windowContext.close()
             }
             .buttonStyle(.borderedProminent)
         }
@@ -1616,7 +1484,7 @@ struct ZhuowangCampaignDetailView: View {
             return
         }
 
-        dismiss()
+        windowContext.close()
     }
 }
 
@@ -1683,10 +1551,6 @@ private struct ZhuowangArtifactDetailView: View {
 
         VStack(spacing: 0) {
 
-            header
-                .background(.bar)
-            Divider()
-
             ScrollView {
 
                 VStack(
@@ -1726,33 +1590,17 @@ private struct ZhuowangArtifactDetailView: View {
         )
         .background(Color(nsColor: .windowBackgroundColor))
         .modifier(CosmosMotionPolicy())
-    }
-
-
-    private var header: some View {
-
-        CampaignUIHeader(
-            icon: CampaignUIFormat.artifactIcon(artifact?.type ?? .other),
-            title: artifact?.name ?? artifactName,
-            subtitle:
-                versions.count > 1
-                ? "共 \(versions.count) 个版本"
-                : "仅此版本"
-        ) {
-
-            if let artifact,
-               !artifact.isApprovedVersion {
-
-                Button {
-                    setSelectedAsCurrent()
-                } label: {
-                    Label(
-                        "设为当前版本",
-                        systemImage:
-                            "checkmark.seal"
-                    )
+        .navigationTitle(artifactName)
+        .navigationSubtitle(versions.count > 1 ? "共 \(versions.count) 个版本" : "仅此版本")
+        .toolbar {
+            if let artifact, !artifact.isApprovedVersion {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: setSelectedAsCurrent) {
+                        Label("设为当前版本", systemImage: "checkmark.seal")
+                    }
+                    .cosmosWindowPrimaryAction()
+                    .disabled(workflow == nil)
                 }
-                .buttonStyle(.borderedProminent)
             }
         }
     }
@@ -2563,54 +2411,17 @@ private final class ZhuowangArtifactWindowManager:
                     initialArtifactID
             )
 
-        let hostingController =
-            NSHostingController(
-                rootView: rootView
-            )
-
-        let window =
-            NSWindow(
-                contentRect:
-                    NSRect(
-                        x: 0,
-                        y: 0,
-                        width: 960,
-                        height: 780
-                    ),
-                styleMask: [
-                    .titled,
-                    .closable,
-                    .miniaturizable,
-                    .resizable
-                ],
-                backing: .buffered,
-                defer: false
-            )
-
-        window.title =
-            artifactName
-
-        window.titleVisibility =
-            .visible
-
-        window.titlebarAppearsTransparent =
-            false
-
-        window.minSize =
-            NSSize(
-                width: 760,
-                height: 620
-            )
-
-        window.contentViewController =
-            hostingController
-
-        window.delegate = self
-
-        window.identifier =
-            NSUserInterfaceItemIdentifier(
-                windowKey
-            )
+        let window = CosmosWindowFactory.makeWindow(
+            CosmosWindowConfiguration(
+                title: artifactName,
+                contentSize: NSSize(width: 960, height: 780),
+                minSize: NSSize(width: 760, height: 620),
+                identifier: windowKey,
+                frameMemoryKey: "artifactDetail",
+                delegate: self
+            ),
+            rootView: rootView
+        )
 
         let controller =
             NSWindowController(
@@ -2619,8 +2430,6 @@ private final class ZhuowangArtifactWindowManager:
 
         controllers[windowKey] =
             controller
-
-        CosmosWindowFrameMemory.attach(window, key: "artifactDetail")
 
         controller.showWindow(nil)
 

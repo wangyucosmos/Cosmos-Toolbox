@@ -392,12 +392,3 @@ struct CampaignUIArtifactCard: View {
         .accessibilityLabel("\(name)，\(typeTitle)，V\(version)")
     }
 }
-
-
-// MARK: - Segmented tabs
-
-struct CampaignUITabItem<ID: Hashable>: Identifiable {
-    let id: ID
-    let title: String
-    let icon: String
-}
