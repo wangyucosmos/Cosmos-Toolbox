@@ -83,3 +83,22 @@
 - 正式数据resume-before / after-recovery / full-progress / after-full / after-repair均一致（14文件path / size / mtime_ns + 5主业务键Data SHA-256）；不读业务正文到日志，不做正式数据回滚或迁移。
 - Liquid Glass / titlebar / 真实动效 / frame记忆与同类错开 / 编辑取消保存 / 删除对话框 / 导出保存面板 / Artifact真实采用与重开仍需实机验收。此次不以离屏缓存黑块判断缺陷，不新增截图；不要求用户逐步执行自动验证。
 - 3.2（含资产中心过滤进toolbar）、3.3（个人笔记+知识库）未实施；3.4.searchable继续延后；所有WIP和暂缓项不动。下一步按授权先复制217120f回退副本，再用既有脚本构建Universal Release并部署本分支clean提交；以下只在执行后补记实际结果。
+
+
+### 第三批3.1部署实际结果
+
+- 两份验证文档逐文件提交399f90043de1a4fc180a4a6c20859e20d01a007a（docs: 记录第三批详情原生化与恢复限定修复验证），工作区干净，部署从此提交构建，dirty=false。未合并 / 推送；main / origin/main保持a16dded。
+- 部署前shell指纹CosmosNativeBatch3-before-deploy.json与resume-before完全一致。用户指定先复制旧App：217120f已复制为Cosmos Toolbox-20261013-134238-prebatch3-bbdf9046.app，Info.plist原字节校验一致；不删除旧副本。
+- /usr/bin/python3 scripts/deploy-macos.py沙箱外执行成功（exit0），原工程Universal Release BUILD SUCCEEDED，arm64+x86_64由lipo校验，ad-hoc签名与codesign --verify --deep --strict通过。正常退出旧App（未强杀），安装启动~/Applications/Cosmos Toolbox.app，PID41660。
+- 部署脚本另保留第二批旧App为Cosmos Toolbox-20261013-134418-9b2b4420.app；该副本、预复制副本、原Cosmos Toolbox-20261012-213020-7e4b6733.app实际均存在。旧回退全部保留。
+- 实际安装Info.plist：正式Bundle=com.wangyucosmos.Cosmos-Toolbox，CosmosBuildCommit=399f90043de1a4fc180a4a6c20859e20d01a007a，CosmosBuildDirty=false，CosmosBuildConfiguration=Release。源代码与两项功能均包含；后续仅部署记录文档不重新构建。
+- 部署后CosmosNativeBatch3-after-deploy.json与resume-before / before-deploy等完全一致：14文件path / size / mtime_ns + 5业务Data键SHA-256。正式采用选择没有改动，没有执行数据回滚 / 迁移；不把UI窗口偏好变化算作业务数据变化。
+- Release日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-3y1u7vmf/build.log；部署输出/private/tmp/CosmosNativeBatch3-deploy.log；预复制路径记录/private/tmp/CosmosNativeBatch3-precopy-backup.txt。仅一次Release构建，既有脚本先构建校验后发布，不重复跑Release。
+- 本次Current Status合并第一 / 第二批清单行、压缩已收尾边界，下面保留原行；3.1已部署并待用户实机验收。恢复限定修复的产品规则稳定：已有登记不因文件存在而确认 / 采用；已确认的数据不回滚；元数据丢失仍能恢复。后续先验收再授权main收尾，不自行启动3.2 / 3.3 / 3.4。
+
+压缩前模块行：
+
+| 原生化第二批 | 分类栏 / sheet / 设置 / 八类窗口与详情记忆 | 已验收、已合入 main | 217120f；部署文档2617433 | 2026-10-12 / 13 开发日志 | 接受声明验收范围；身份/关闭保护与业务格式保持；离屏缺口保留§9 |
+| Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 已验收、已合入 main | 00671aa | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
+
+- 最终Current Status为37,841字节（低于38,000）；部署记录仅更新此文件与当日日志，逐文件提交。未覆盖项按上段实机边界，不追加验证；Git最终状态以提交后报告为准。
