@@ -188,28 +188,30 @@ final class ZhuowangWorkspaceFilesIsolationTests: XCTestCase {
     }
 
     func testPartialMetadataPreservesRegisteredDraftAndRecoversMissingGroup() throws {
-        let (root, store, campaign) = recoveryFixture()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let file = try store.workspaceFileManager.writeMarkdownArtifact(provinceName: nil, campaignName: campaign.name,
-            stepKind: .brief, artifactName: "需求整理", version: 1, content: "登记草稿")
-        var workflow = store.getOrCreateWorkflow(forCampaignID: campaign.id)
-        let briefIndex = try XCTUnwrap(workflow.steps.firstIndex { $0.kind == .brief })
-        workflow.steps[briefIndex].status = .needsRevision
-        let registered = ZhuowangArtifact(campaignID: campaign.id, stepID: workflow.steps[briefIndex].id,
-            name: "需求整理", type: .markdown, location: file.path, content: "登记草稿", version: 1, isApprovedVersion: false)
-        workflow.artifacts.append(registered)
-        store.updateWorkflow(workflow)
-        _ = try store.workspaceFileManager.writeMarkdownArtifact(provinceName: nil, campaignName: campaign.name,
-            stepKind: .idea, artifactName: "策划思路", version: 1, content: "缺失元数据正文")
-        let summary = store.recoverWorkflowFromLocalFiles(campaign: campaign, provinceName: nil)
-        let after = try XCTUnwrap(store.workflow(forCampaignID: campaign.id))
-        XCTAssertEqual(summary.importedArtifacts, 1)
-        XCTAssertEqual(summary.restoredSteps, 1)
-        XCTAssertTrue(summary.ambiguousArtifactNames.isEmpty)
-        XCTAssertEqual(after.artifacts.first { $0.id == registered.id }, registered)
-        XCTAssertEqual(after.steps[briefIndex], workflow.steps[briefIndex])
-        XCTAssertEqual(after.steps.first { $0.kind == .idea }?.status, .approved)
-        XCTAssertEqual(after.artifacts.first { $0.name == "策划思路" }?.isApprovedVersion, true)
+        for registeredStatus in [ZhuowangWorkflowStepStatus.needsRevision, .failed, .skipped, .notStarted] {
+            let (root, store, campaign) = recoveryFixture()
+            defer { try? FileManager.default.removeItem(at: root) }
+            let file = try store.workspaceFileManager.writeMarkdownArtifact(provinceName: nil, campaignName: campaign.name,
+                stepKind: .brief, artifactName: "需求整理", version: 1, content: "登记草稿")
+            var workflow = store.getOrCreateWorkflow(forCampaignID: campaign.id)
+            let briefIndex = try XCTUnwrap(workflow.steps.firstIndex { $0.kind == .brief })
+            workflow.steps[briefIndex].status = registeredStatus
+            let registered = ZhuowangArtifact(campaignID: campaign.id, stepID: workflow.steps[briefIndex].id,
+                name: "需求整理", type: .markdown, location: file.path, content: "登记草稿", version: 1, isApprovedVersion: false)
+            workflow.artifacts.append(registered)
+            store.updateWorkflow(workflow)
+            _ = try store.workspaceFileManager.writeMarkdownArtifact(provinceName: nil, campaignName: campaign.name,
+                stepKind: .idea, artifactName: "策划思路", version: 1, content: "缺失元数据正文")
+            let summary = store.recoverWorkflowFromLocalFiles(campaign: campaign, provinceName: nil)
+            let after = try XCTUnwrap(store.workflow(forCampaignID: campaign.id))
+            XCTAssertEqual(summary.importedArtifacts, 1)
+            XCTAssertEqual(summary.restoredSteps, 1)
+            XCTAssertTrue(summary.ambiguousArtifactNames.isEmpty)
+            XCTAssertEqual(after.artifacts.first { $0.id == registered.id }, registered)
+            XCTAssertEqual(after.steps[briefIndex], workflow.steps[briefIndex])
+            XCTAssertEqual(after.steps.first { $0.kind == .idea }?.status, .approved)
+            XCTAssertEqual(after.artifacts.first { $0.name == "策划思路" }?.isApprovedVersion, true)
+        }
     }
 
     func testCustomerServiceRecoveryDoesNotApproveOrAdopt() throws {

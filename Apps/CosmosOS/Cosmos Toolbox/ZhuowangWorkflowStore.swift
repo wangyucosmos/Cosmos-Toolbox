@@ -2352,7 +2352,9 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
             if !foundNextStep {
 
-                if status
+                if !artifactsAtRecoveryStart.contains(where: {
+                    $0.stepID == workflows[workflowIndex].steps[stepIndex].id
+                }), status
                     == .notStarted
                     || status
                     == .failed
