@@ -24,6 +24,66 @@ enum ZhuowangWorkspaceUI {
     }
 }
 
+/// List selection is UI-only; promptVault is an action and never a lasting selection.
+enum ZhuowangWorkspaceSidebarSelection: Hashable {
+    case workbench
+    case province(UUID)
+    case module(String)
+    case assets
+    case promptVault
+
+    init(navigation: ZhuowangNavigationItem, publicResources: Bool) {
+        if publicResources { self = .assets; return }
+        switch navigation {
+        case .workbench: self = .workbench
+        case .province(let id): self = .province(id)
+        case .module(let id): self = .module(id)
+        }
+    }
+
+    var navigation: ZhuowangNavigationItem? {
+        switch self {
+        case .workbench: return .workbench
+        case .province(let id): return .province(id)
+        case .module(let id): return .module(id)
+        case .assets, .promptVault: return nil
+        }
+    }
+
+    /// Returns whether the existing asset snapshot must refresh after navigation.
+    @discardableResult
+    func apply(navigation: inout ZhuowangNavigationItem, categoryID: inout String,
+               assetDestination: inout ZhuowangAssetFilter?, publicResources: inout Bool,
+               showStoppedProvinces: inout Bool, isStopped: (UUID) -> Bool,
+               openPromptVault: () -> Void) -> Bool {
+        if self == .promptVault { openPromptVault(); return false }
+        if self == .assets { publicResources = true; assetDestination = nil; return false }
+        guard let target = self.navigation, publicResources || navigation != target else { return false }
+        navigation = target; categoryID = "overview"; assetDestination = nil; publicResources = false
+        if case .province(let id) = target, isStopped(id) { showStoppedProvinces = true }
+        return true
+    }
+}
+
+struct ZhuowangCampaignTableRow: Identifiable {
+    let progress: ZhuowangCampaignProgress
+    var id: UUID { progress.id }
+    var name: String { progress.campaign.name }
+    var startDate: Date { progress.campaign.startDate }
+    var statusOrder: Int { ZhuowangCampaignStatus.allCases.firstIndex(of: progress.campaign.status) ?? 0 }
+
+    static func sorted(_ progress: [ZhuowangCampaignProgress],
+                       using order: [KeyPathComparator<Self>]) -> [Self] {
+        progress.map { Self(progress: $0) }.sorted { left, right in
+            for comparator in order {
+                let result = comparator.compare(left, right)
+                if result != .orderedSame { return result == .orderedAscending }
+            }
+            return left.id.uuidString < right.id.uuidString
+        }
+    }
+}
+
 struct ZhuowangCampaignCardUI: View {
     let row: ZhuowangCampaignProgress
     let action: () -> Void

@@ -129,52 +129,72 @@ struct ZhuowangWorkspaceView: View {
             }
     }
 
-    private var sidebar: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                section("总览") {
-                    CosmosWorkspaceNavigationRow(icon: "chart.bar.doc.horizontal", title: "推进工作台", count: rows.count,
-                        attention: rows.contains { $0.category == .needsAttention }, selected: !publicResources && selectedNavigation == .workbench) { select(.workbench) }
-                }
-                section("福利中心") {
-                    if store.provinces.isEmpty {
-                        Button("添加负责的省份", systemImage: "plus.circle") { showManager = true }.buttonStyle(.plain).foregroundStyle(.tint).padding(10)
-                    }
-                    ForEach(store.provinces.filter(\.isEnabled)) { provinceRow($0) }
-                    if store.provinces.contains(where: { !$0.isEnabled }) {
-                        DisclosureGroup("已停用省份", isExpanded: $showStoppedProvinces) {
-                            ForEach(store.provinces.filter { !$0.isEnabled }) { provinceRow($0) }
-                        }.font(.caption).padding(.horizontal, 10)
-                    }
-                }
-                section("其他工作") {
-                    ForEach(store.modules.filter { !$0.usesProvinces }) { item in
-                        let badge = ZhuowangWorkspaceUI.badge(rows, scope: .module(item.id))
-                        CosmosWorkspaceNavigationRow(icon: item.icon, title: item.name, count: badge.count, attention: badge.attention,
-                            selected: !publicResources && selectedNavigation == .module(item.id)) { select(.module(item.id)) }
-                    }
-                }
-                section("公共资料") {
-                    CosmosWorkspaceNavigationRow(icon: "archivebox", title: "知识与资产", selected: publicResources) {
-                        publicResources = true; assetDestination = nil
-                    }
-                    CosmosWorkspaceNavigationRow(icon: "text.quote", title: "提示词库", action: openPromptVault)
-                }
-            }.padding(12)
-        }.scrollEdgeEffectStyle(.soft, for: .top).background(Color(nsColor: .controlBackgroundColor))
+    private var sidebarSelection: Binding<ZhuowangWorkspaceSidebarSelection?> {
+        Binding(get: { ZhuowangWorkspaceSidebarSelection(navigation: selectedNavigation, publicResources: publicResources) },
+                set: { if let selection = $0 { applySidebarSelection(selection) } })
     }
-    private func section<Content: View>(_ name: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(name).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.horizontal, 14)
-            content()
+
+    private var sidebar: some View {
+        List(selection: sidebarSelection) {
+            Section("总览") {
+                sidebarLabel("推进工作台", icon: "chart.bar.doc.horizontal",
+                    attention: rows.contains { $0.category == .needsAttention })
+                    .badge(rows.count).tag(ZhuowangWorkspaceSidebarSelection.workbench)
+            }
+            Section("福利中心") {
+                if store.provinces.isEmpty {
+                    Button("添加负责的省份", systemImage: "plus.circle") { showManager = true }
+                        .buttonStyle(.plain).selectionDisabled()
+                }
+                ForEach(store.provinces.filter(\.isEnabled)) { provinceRow($0) }
+                if store.provinces.contains(where: { !$0.isEnabled }) {
+                    DisclosureGroup("已停用省份", isExpanded: $showStoppedProvinces) {
+                        ForEach(store.provinces.filter { !$0.isEnabled }) { provinceRow($0) }
+                    }
+                }
+            }
+            Section("其他工作") {
+                ForEach(store.modules.filter { !$0.usesProvinces }) { item in
+                    let badge = ZhuowangWorkspaceUI.badge(rows, scope: .module(item.id))
+                    sidebarLabel(item.name, icon: item.icon, attention: badge.attention)
+                        .badge(badge.count).tag(ZhuowangWorkspaceSidebarSelection.module(item.id))
+                }
+            }
+            Section("公共资料") {
+                Label("知识与资产", systemImage: "archivebox").tag(ZhuowangWorkspaceSidebarSelection.assets)
+                Button("提示词库", systemImage: "text.quote") { applySidebarSelection(.promptVault) }
+                    .buttonStyle(.plain).selectionDisabled()
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .accessibilityIdentifier("zhuowang-workspace-sidebar")
+    }
+
+    private func sidebarLabel(_ title: String, icon: String, attention: Bool) -> some View {
+        HStack {
+            Label(title, systemImage: icon).lineLimit(1)
+            if attention {
+                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                    .help("有活动需要关注").accessibilityLabel("有活动需要关注")
+            }
         }
     }
+
     private func provinceRow(_ item: ZhuowangProvince) -> some View {
         let badge = ZhuowangWorkspaceUI.badge(rows, scope: .province(item.id))
-        return CosmosWorkspaceNavigationRow(icon: "square", title: item.name, letter: CosmosIconPalette.letter(item.name),
-            iconIdentity: item.id.uuidString, subdued: !item.isEnabled,
-            subtitle: item.isEnabled ? "" : "已停用 · 历史保留", count: badge.count, attention: badge.attention,
-            selected: !publicResources && selectedNavigation == .province(item.id)) { select(.province(item.id)) }
+        return HStack(spacing: 10) {
+            CosmosSquareIcon(letter: CosmosIconPalette.letter(item.name), identity: item.id.uuidString, subdued: !item.isEnabled)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name).lineLimit(1)
+                if !item.isEnabled { Text("已停用 · 历史保留").font(.caption2).foregroundStyle(.secondary) }
+            }
+            if badge.attention {
+                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                    .help("有活动需要关注").accessibilityLabel("有活动需要关注")
+            }
+        }
+        .badge(badge.count).tag(ZhuowangWorkspaceSidebarSelection.province(item.id))
     }
 
     private var detail: some View {
@@ -212,10 +232,17 @@ struct ZhuowangWorkspaceView: View {
             selection: Binding(get: { selectedCategoryID }, set: { assetDestination = nil; selectedCategoryID = $0 }))
     }
     private func select(_ navigation: ZhuowangNavigationItem) {
-        guard publicResources || selectedNavigation != navigation else { return }
-        selectedNavigation = navigation; selectedCategoryID = "overview"; assetDestination = nil; publicResources = false
-        if province?.isEnabled == false { showStoppedProvinces = true }
-        assetModel.refresh()
+        applySidebarSelection(.init(navigation: navigation, publicResources: false))
+    }
+
+    private func applySidebarSelection(_ selection: ZhuowangWorkspaceSidebarSelection) {
+        if selection.apply(navigation: &selectedNavigation, categoryID: &selectedCategoryID,
+            assetDestination: &assetDestination, publicResources: &publicResources,
+            showStoppedProvinces: &showStoppedProvinces,
+            isStopped: { id in store.provinces.first { $0.id == id }?.isEnabled == false },
+            openPromptVault: openPromptVault) {
+            assetModel.refresh()
+        }
     }
     private func open(_ campaign: ZhuowangCampaign, province: ZhuowangProvince?, module: ZhuowangModule?) {
         ZhuowangCampaignWindowManager.shared.open(campaign: campaign, store: campaignStore, workflowStore: workflowStore,

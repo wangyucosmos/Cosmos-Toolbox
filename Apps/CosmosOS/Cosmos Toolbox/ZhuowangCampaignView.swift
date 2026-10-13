@@ -11,6 +11,8 @@ struct ZhuowangCampaignView: View {
     let province: ZhuowangProvince?
     let module: ZhuowangModule?
 
+    @State private var tableSelection: UUID?
+    @State private var tableSortOrder = [KeyPathComparator(\ZhuowangCampaignTableRow.name)]
     @State private var searchText = ""
     @State private var selectedStatus: ZhuowangCampaignStatus?
     @State private var showCreateSheet = false
@@ -106,39 +108,11 @@ struct ZhuowangCampaignView: View {
         ) {
 
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-
-                TextField(
-                    "搜索活动名称",
-                    text: $searchText
-                )
-                .textFieldStyle(.plain)
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("搜索活动名称", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
             .frame(maxWidth: 320)
-            .background(
-                Color.primary.opacity(0.035)
-            )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusSmall,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius:
-                        CosmosDesign.cornerRadiusSmall,
-                    style: .continuous
-                )
-                .stroke(
-                    Color.primary.opacity(0.06),
-                    lineWidth: 1
-                )
-            }
 
             Menu {
                 Button("全部状态") {
@@ -210,14 +184,48 @@ struct ZhuowangCampaignView: View {
 
     // MARK: - Campaign List
 
+    @ViewBuilder
     private var campaignList: some View {
         let progress = ZhuowangWorkspaceUI.rows(campaigns: filteredCampaigns, workflows: workflowStore.workflows,
             provinces: province.map { [$0] } ?? [], modules: module.map { [$0] } ?? [], manager: workflowStore.workspaceFileManager)
-        return LazyVGrid(columns: campaignLayout == "list" ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 250))], spacing: 12) {
-            ForEach(Array(progress.enumerated()), id: \.element.id) { index, row in
-                ZhuowangCampaignCardUI(row: row) { openCampaignWindow(row.campaign) }
-                    .contextMenu { Button("打开活动详情") { openCampaignWindow(row.campaign) } }
-                    .cosmosScrollReveal()
+        if campaignLayout == "list" {
+            let tableRows = ZhuowangCampaignTableRow.sorted(progress, using: tableSortOrder)
+            Table(tableRows, selection: $tableSelection, sortOrder: $tableSortOrder) {
+                TableColumn("活动名称", value: \.name) { row in
+                    Text(row.name).lineLimit(1).help(row.name)
+                }.width(min: 140, ideal: 220)
+                TableColumn("范围") { row in
+                    Text(row.progress.scopeName + (row.progress.province?.isEnabled == false ? " · 已停用" : ""))
+                }.width(min: 80, ideal: 110)
+                TableColumn("日期", value: \.startDate) { row in
+                    Text(ZhuowangWorkspaceUI.dates(row.progress.campaign)).monospacedDigit()
+                }.width(min: 140, ideal: 180)
+                TableColumn("状态", value: \.statusOrder) { row in
+                    ZhuowangCampaignStatusBadge(status: row.progress.campaign.status)
+                }.width(min: 80, ideal: 90)
+                TableColumn("Workflow 进度") { row in
+                    Text(row.progress.totalSteps == 0 ? "尚未开始" : "\(row.progress.completedSteps) / \(row.progress.totalSteps)")
+                        .monospacedDigit()
+                }.width(min: 100, ideal: 120)
+            }
+            .frame(height: min(480, max(180, CGFloat(tableRows.count) * 32 + 44)))
+            .contextMenu(forSelectionType: UUID.self) { selection in
+                if let id = selection.first, let row = tableRows.first(where: { $0.id == id }) {
+                    Button("打开活动详情") { openCampaignWindow(row.progress.campaign) }
+                }
+            } primaryAction: { selection in
+                if let id = selection.first, let row = tableRows.first(where: { $0.id == id }) {
+                    openCampaignWindow(row.progress.campaign)
+                }
+            }
+            .accessibilityIdentifier("zhuowang-campaign-table")
+        } else {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 250))], spacing: 12) {
+                ForEach(Array(progress.enumerated()), id: \.element.id) { index, row in
+                    ZhuowangCampaignCardUI(row: row) { openCampaignWindow(row.campaign) }
+                        .contextMenu { Button("打开活动详情") { openCampaignWindow(row.campaign) } }
+                        .cosmosScrollReveal()
+                }
             }
         }
     }

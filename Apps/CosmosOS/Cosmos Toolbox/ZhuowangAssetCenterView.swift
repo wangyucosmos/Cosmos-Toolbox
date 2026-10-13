@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct ZhuowangAssetCenterView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var fixedScope: ZhuowangAssetFilter? = nil
     @StateObject private var model: ZhuowangAssetCatalogViewModel
 
@@ -59,6 +57,64 @@ struct ZhuowangAssetCenterView: View {
         }
     }
 
+    private var filterBinding: Binding<ZhuowangAssetFilter> {
+        Binding(get: { model.filter }, set: { model.filter = ZhuowangAssetFilterControls.constrained($0, to: fixedScope) })
+    }
+
+    private var filterControls: some View {
+        HStack(spacing: 10) {
+            Menu {
+                Picker("版本", selection: filterBinding.allVersions) {
+                    Text("当前采用").tag(false)
+                    Text("全部版本").tag(true)
+                }.pickerStyle(.menu)
+                if fixedScope == nil {
+                    Picker("省份", selection: filterBinding.provinceID) {
+                        Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
+                        ForEach(model.provinces) { Text($0.isEnabled ? $0.name : $0.name + "（已停用）").tag(Optional($0.id)) }
+                    }.pickerStyle(.menu)
+                }
+                if fixedScope?.campaignID == nil {
+                    Picker("活动", selection: filterBinding.campaignID) {
+                        Text("全部活动").tag(Optional<UUID>.none)
+                        ForEach(model.campaigns.filter { campaign in
+                            fixedScope.map { scope in
+                                (scope.provinceID == nil || campaign.provinceID == scope.provinceID)
+                                && (scope.moduleID == nil || (campaign.provinceID == nil && campaign.moduleID == scope.moduleID))
+                            } ?? true
+                        }) { Text($0.name).tag(Optional($0.id)) }
+                    }.pickerStyle(.menu)
+                }
+                Picker("类型", selection: filterBinding.type) {
+                    Text("全部类型").tag(Optional<ZhuowangArtifactType>.none)
+                    ForEach(ZhuowangArtifactType.allCases) { Text($0.title).tag(Optional($0)) }
+                }.pickerStyle(.menu).disabled(fixedScope?.type != nil)
+            } label: {
+                Label("筛选", systemImage: "line.3.horizontal.decrease.circle")
+            }
+            .accessibilityIdentifier("asset-filter-menu")
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    if model.filter.allVersions { Label("全部版本", systemImage: "square.stack") }
+                    if let id = model.filter.provinceID {
+                        Label(model.provinces.first { $0.id == id }?.name ?? "指定省份", systemImage: "mappin")
+                    }
+                    if let id = model.filter.campaignID {
+                        Label(model.campaigns.first { $0.id == id }?.name ?? "指定活动", systemImage: "megaphone")
+                    }
+                    if let type = model.filter.type { Label(type.title, systemImage: assetIcon(type)) }
+                    if model.filter.moduleID != nil { Label("固定模块", systemImage: "building.2") }
+                    if model.filter.stepKind != nil { Label("固定步骤", systemImage: "list.number") }
+                    if !model.filter.query.isEmpty { Label("搜索条件", systemImage: "magnifyingglass") }
+                }.font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }.scrollIndicators(.hidden)
+            Button("清除筛选") { model.filter = ZhuowangAssetFilterControls.reset(fixedScope: fixedScope) }
+                .buttonStyle(.borderless)
+                .disabled(model.filter == ZhuowangAssetFilterControls.reset(fixedScope: fixedScope))
+                .accessibilityIdentifier("asset-filter-clear")
+        }
+    }
+
     private var catalogContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             CosmosPageHeader("知识与资产", subtitle: "已管理的工作产物 · 只读检索与复用",
@@ -68,31 +124,7 @@ struct ZhuowangAssetCenterView: View {
             TextField("搜索产物名称、活动名或 Markdown / 纯文本正文", text: $model.filter.query)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("asset-search")
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], alignment: .leading, spacing: 10) {
-                Picker("版本", selection: $model.filter.allVersions) {
-                    Text("当前采用").tag(false)
-                    Text("全部版本").tag(true)
-                }.frame(maxWidth: .infinity)
-                if fixedScope == nil {
-                    Picker("省份", selection: $model.filter.provinceID) {
-                    Text("全部省份 / 全国及其他").tag(Optional<UUID>.none)
-                    ForEach(model.provinces) { Text($0.isEnabled ? $0.name : $0.name + "（已停用）").tag(Optional($0.id)) }
-                }
-                }
-                Picker("活动", selection: $model.filter.campaignID) {
-                    Text("全部活动").tag(Optional<UUID>.none)
-                    ForEach(model.campaigns.filter { campaign in
-                        fixedScope.map { scope in
-                            (scope.provinceID == nil || campaign.provinceID == scope.provinceID)
-                            && (scope.moduleID == nil || (campaign.provinceID == nil && campaign.moduleID == scope.moduleID))
-                        } ?? true
-                    }) { Text($0.name).tag(Optional($0.id)) }
-                }
-                Picker("类型", selection: $model.filter.type) {
-                    Text("全部类型").tag(Optional<ZhuowangArtifactType>.none)
-                    ForEach(ZhuowangArtifactType.allCases) { Text($0.title).tag(Optional($0)) }
-                }.disabled(fixedScope?.type != nil)
-            }
+            filterControls
             if model.error == nil && !model.loading {
                 HStack {
                     let unadopted = Set(scopedEntries.filter { $0.adoptedCount == 0 }.map(\.groupID)).count
@@ -136,5 +168,23 @@ struct ZhuowangAssetCenterView: View {
         }
         .padding(24)
         .frame(minWidth: 440, minHeight: 420)
+    }
+}
+
+/// UI bindings preserve the caller's fixed dimensions without changing catalog filtering.
+enum ZhuowangAssetFilterControls {
+    static func constrained(_ candidate: ZhuowangAssetFilter, to scope: ZhuowangAssetFilter?) -> ZhuowangAssetFilter {
+        guard let scope else { return candidate }
+        var value = candidate
+        value.provinceID = scope.provinceID
+        value.moduleID = scope.moduleID
+        value.stepKind = scope.stepKind
+        if let type = scope.type { value.type = type }
+        if let campaignID = scope.campaignID { value.campaignID = campaignID }
+        return value
+    }
+
+    static func reset(fixedScope: ZhuowangAssetFilter?) -> ZhuowangAssetFilter {
+        fixedScope ?? ZhuowangAssetFilter()
     }
 }

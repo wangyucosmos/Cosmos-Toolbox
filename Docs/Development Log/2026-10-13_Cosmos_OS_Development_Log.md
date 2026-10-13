@@ -115,3 +115,46 @@
 - 仅更新Current Status与本日日志，逐文件add、中文文档提交到main后再正常push；文档提交 / 最终远端确认在最终报告给出，不自引用提交hash。Current Status为37859字节（低于38,000）。
 - WIP保留：本地wip/markdown-word-export-phase1-20260930=2d26b2a及远端PDF WIP未触碰；回退副本全部保留。正式目录仍唯一worktree。
 - 可复用：接受实机验收后只沿用受影响代码未变的验证；先快进 / 正常推送并实际核对远端，再安全删除已合并分支；文档补记结果后再推送核对。
+
+
+## Mac原生化第三批3.2：卓望原生侧栏、活动Table与资产筛选
+
+- 基线实测：main / origin/main / HEAD=bd4f67f，工作区干净、仅正式目录一个worktree；日常App=399f900、dirty=false，旧回退保留。shell指纹CosmosNativeBatch32-before.json为14文件path / size / mtime_ns与5主业务Data键SHA-256，和3.1收尾基线一致。按授权创建native/batch3-zhuowang-sidebar-20261013。
+- A：内部侧栏ScrollView/VStack换原生List(selection:)+sidebar样式，Section总览 / 福利中心 / 其他工作 / 公共资料，count用badge(Int)，关注用SF Symbol与辅助说明；保留彩色省份首字图标与停用副标题，空省份管理入口保留。无自绘选中 / 悬停。
+- UI选择枚举ZhuowangWorkspaceSidebarSelection映射原selectedNavigation + publicResources：workbench / province(UUID) / module(String)对应原导航，assets只设publicResources并清assetDestination，保持上次导航与分类；导航选择维持旧guard、overview重置、清assetDestination、退出publicResources、停用自动展开、assetModel.refresh时机。已有navigator同步与pendingWorkbenchMetric不动。提示词库是Button+selectionDisabled，调用promptVault动作分支只回调，不改变内容选择；枚举getter不会返回promptVault。
+- B：卡片分支保留原adaptive网格和卡片；list分支换5列Table（名称 / 范围 / 日期 / 状态 / Workflow进度）。排序与选择只@State，不新增持久化；名称 / 开始日期 / 状态阶段rank可正反排序，UUID作为并列项稳定兜底。primaryAction用于双击 / 回车，contextMenu只有原打开详情，接原openCampaignWindow。Table在现有外层ScrollView中采用180–480pt有界高度，行多时原生表格滚动，不改外壳。
+- C：活动页与推进工作台搜索改roundedBorder TextField加放大镜前缀，绑定 / 过滤逻辑不动；不加searchable。
+- D：资产过滤因四种复用场景（五个调用点）保留内容区；4个Picker网格换原生筛选Menu与系统Label条件摘要，可清除。固定scope的省份隐藏、固定类型禁用、固定活动隐藏；UI绑定还强制保护province / module / step及固定type / campaign，非固定维度可编辑；清除恢复fixedScope或默认Filter。版本与搜索仍可筛选。model.filter / includes / matches / 只读检索未改，未采用组查看全部与bordered刷新保留。
+- E：五个本轮源码内无残留内容glass/glassProminent或强制foregroundStyle(.primary)，无需额外机械改动。CosmosWorkspaceNavigationRow及其剩余使用方留3.3，不改不删。
+- 代码自查17项通过，证据/private/tmp/CosmosNativeBatch32-boundary-audit.json：sidebarMinimum与HSplitView / CosmosNativeSplitWidth / preferences.workspaceSidebarWidth、detail.id(contentIdentity)、toolbar显隐与navigator监听原样；没有新增toolbar / searchable；活动详情Manager及后续创建视图、推进工作台动作 / 时间线 / 进度不变；六个只读文件、三个Store、Asset模型与ViewModel逐字不变。参与实现者自查不是独立复审。
+- 资产调用方全部未改：Workspace公共资料与概览资产（2点）、ZhuowangCategoryContentView、CosmosNavigationSurfaces、PersonalNotesView（各1点），后两者共享知识库用途；四种复用场景、五调用点编译与原固定scope契约保持。没有新建生产卓望Store、schema / 路径 / 采用 / 导出 / 备份恢复变化。
+- 新增ZhuowangNativeSidebarTests八项：testSidebarMappingRoundTripsWorkbenchProvinceModuleAndAssets；testNavigationResetsCategoryAndAssetDestinationAndRequestsRefresh；testPromptVaultOnlyCallsActionAndPreservesContentSelection；testStoppedProvinceSelectionExpandsWithoutCollapsingOnLaterNavigation；testAssetsSelectionKeepsLastNavigationAndCategoryAndClearsDestination；testTableSortsNameDateStatusAndStableTiesInBothDirections；testFixedAssetDimensionsCannotEscapeAndResetPreservesScope；testUnfixedAssetDimensionsStayEditableAndResetRestoresDefaults。既有测试未删除 / 弱化 / 改写断言。
+- 第一次Debug build-for-testing唯一阻塞在新排序测试漏传必需now参数及其类型推断；一次集中修复补now和Array反序集合，并明确提示词Button不可选中。修复后增量测试构建成功；产品源码首轮已编译，无工程 / scheme / xcconfig改动。所有xcodebuild沙箱外执行。
+- 隔离宿主com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch32，实际Info.plist与xctestrun宿主核对；全套新UUID suite / 临时fixture roots注入，参数记录CosmosNativeBatch32-isolation.json。未运行真实Provider/Harness、未按同名App做UI自动化。正式after-build指纹与before一致。
+- 修改文件：ZhuowangWorkspaceView.swift、ZhuowangCampaignView.swift、ZhuowangCampaignWorkbenchView.swift、ZhuowangWorkspaceUI.swift、ZhuowangAssetCenterView.swift、新增ZhuowangNativeSidebarTests.swift、Current Status、当日日志。
+- 未覆盖：实机系统玻璃 / List选中与键盘 / VoiceOver、分栏拖动与重启宽度记忆、Table双击 / 回车 / 点击列头排序 / 横纵滚动、筛选Menu / 清除与深浅色 / 减少动效。离屏List/sidebar缓存不完整是既有边界，不以缓存黑块判缺陷；自动逻辑与用户实机证据分开。
+- 下一轮3.3：个人笔记List+searchable、知识库横条toolbar、CosmosWorkspaceNavigationRow剩余使用方；3.4统一检索继续延后，分类内容接入与三栏NavigationSplitView不做。WIP及暂缓项不动。
+
+
+### 3.2集中验证结果
+
+- 唯一一轮全量test-without-building，官方xcresult摘要686 total / 686 passed / 0 failed / 0 skipped；686=3.1基线678+新增8，不重复计入构建或历史测试。ZhuowangWorkspaceUITests、ZhuowangCategoryBarTests、ZhuowangCategoryPageTests、ZhuowangAssetCenterTests等既有测试全通过，断言未改。前置构建夹具修复后首次运行全量，无第二次全量或追加修复。
+- 本轮生成既有浅深 / 两宽夹具截图；只查看campaign-list-1180-light.png和assets-1180-light.png作参考，五列Table与内容区筛选可读。分类栏缓存黑块和List离屏表现不算实机缺陷证据，不反复截图。真实选择 / 键盘 / 菜单 / Table操作未自动覆盖。
+- 正式after-tests与before / after-build指纹完全一致。证据/private/tmp/CosmosNativeBatch32-{build,build-repair,tests}.log、tests.xcresult、summary.json、isolation.json与boundary-audit.json。既有Swift6 / Picker / WebKit / QoS警告保留，不扩大本轮。
+- 下面仅记录Current Status压缩前的已收尾段落，完整历史保留；本轮实现 / 测试与文档将逐文件提交后才进行Release部署。不得合并 / 推送或删除功能分支。
+
+## 1. 当前检查点
+
+- **日期 / 分支：** 2026-10-13，`main`。3.1用户实机验收通过；main由a16dded快进至228ee6f并正常推送，远端已确认；功能分支已用-d删除，仅正式目录一个worktree。本次只做Git / 文档收尾。
+- **第三批3.1：** 活动 / Artifact详情接窗口工厂，标签与操作进原生toolbar；身份与位置记忆键保持，关闭走performClose；视图单次初始化保护。恢复只对本次新导入产物恢复步骤 / 兜底采用，已登记草稿不自动确认 / 采用，Step06规则保持，已有数据不回滚。
+- **沿用实现验证：** Debug测试构建成功，隔离全量678/678（0失败 / 跳过）；一次集中修复后只重验受影响恢复 / Step06，23/23通过。采用选择与已登记四种步骤状态保持；正式指纹一致。
+- **部署：** Universal Release / 双架构 / 签名校验通过，399f900（dirty=false）已安装启动；正式14文件与5业务键前后全一致。新旧回退副本全部保留；用户实机验收通过。本次不构建 / 测试 / 部署，收尾前后正式指纹一致。
+- **历史基线：** 第一 / 第二批已接受声明范围并main收尾；历史隔离669/669、72对切页与构建 / 指纹证据不算本轮实测，未覆盖见§9。
+
+
+- **体验打磨轮：** 用户已接受声明的验收范围；后续若反馈问题，重点关注省份/模块重入与仪表盘筛选优先、Prompt冷/暖切换、短窗口设置与原生工具栏、超宽滚动条和深色控件。AppKit主侧栏在离屏缓存中未完整绘制，已改回完整原生List选中；侧栏与仪表盘快捷进入检索均不主动聚焦，页面提示按⌘F开始搜索；⌘F申请焦点，非空关键词跳转保留预填与既有焦点实现。取消快捷聚焦属于用户需求调整。真实拖动光标、重启宽度记忆未增加工具验证，用户接受该边界。Prompt外部修改须手动刷新显示快照；保存/恢复仍重读revision拒绝冲突。原生化的当前优先级统一见 §12。
+
+
+- **历史证据：** 3.1隔离678/678与修复后23/23、Universal Release及用户实机验收沿用，不计入本批唯一测试数；无数据回滚或业务格式变化。
+
+- **原生化第二批：** 用户已接受声明范围并完成main收尾；离屏分类玻璃、比较左窗格 / 资产外层黑块、设置TabView标签 / toolbar缓存及笔记历史 / 引用 / 导出面板缺口保留。设置标题略重复属非阻塞；完整验收边界见10月12 / 13日日志。

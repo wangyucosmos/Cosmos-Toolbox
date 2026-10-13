@@ -129,17 +129,9 @@ struct ZhuowangCampaignWorkbenchView: View {
     private var filterBar: some View {
         VStack(alignment: .leading, spacing: CosmosDesign.spacingM) {
             HStack(spacing: CosmosDesign.spacingS) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("搜索活动名称", text: $filter.query)
-                    .textFieldStyle(.plain)
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("搜索活动名称", text: $filter.query).textFieldStyle(.roundedBorder)
             }
-            .padding(.horizontal, CosmosDesign.spacingM)
-            .padding(.vertical, 7)
-            .background(
-                Color.primary.opacity(0.04),
-                in: RoundedRectangle(cornerRadius: CosmosDesign.cornerRadiusSmall, style: .continuous)
-            )
             .frame(maxWidth: 280)
 
             HStack(spacing: CosmosDesign.spacingM) {
