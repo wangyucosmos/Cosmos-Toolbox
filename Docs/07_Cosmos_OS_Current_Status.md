@@ -13,7 +13,7 @@
 - **日期 / 分支：** 2026-10-13，`native/batch3-knowledge-notes-20261013`；main / origin/main基线cfdba2a，3.1 / 3.2已用户实机验收并main收尾。本轮3.3未合并 / 推送。
 - **3.3实现：** 知识库分区进principal工具栏；笔记原生List / searchable / 筛选菜单，收藏 / 归档保留实时canSave门控；来源选择 / 管理进工具栏，计数 / 排除留内容区。KnowledgeHub、Store / 服务 / 渲染器保持，零引用的CosmosWorkspaceNavigationRow已删。
 - **本轮实测：** Debug构建成功；全量692项首轮690通过，1个旧分段夹具与1个PID读取失败。一次集中修复只调整原生工具栏夹具，两项重验2/2通过；692唯一用例均有通过证据，不重复计数。新增6项与28个边界核对通过。
-- **数据 / 部署：** 14工作文件 / 5业务键及笔记与来源主备份元数据一致，笔记库缺失状态保持。日常App暂仍51e32a7；本批Release部署待执行，旧回退保留，原生工具栏 / 搜索 / 右键滑动 / ⌘F待实机验收。
+- **数据 / 部署：** 5d38147（dirty=false）Universal Release已安装启动，双架构 / 签名校验通过；14文件 / 5业务键及笔记 / 来源主备份元数据前后全一致，笔记库缺失状态保持。回退全部保留；原生工具栏 / 搜索 / 右键滑动 / ⌘F待实机验收。
 - **兼容：** 无存储格式或业务变化；我的知识库搜索仍roundedBorder TextField，保留原⌘F聚焦，避免与统一检索冲突，3.4统一处理。
 
 ---
@@ -44,7 +44,7 @@
 | Mac原生化第一 / 第二批 | 控件 / sheet / 设置 / 八类窗口 / 详情记忆 | 已验收、已合入main | 00671aa / 217120f | 2026-10-12 / 13日志 | 业务边界保持；669唯一测试，离屏缺口见§9 |
 | 原生化第三批3.1 | 活动 / Artifact详情窗口 | 用户已验收、已合入main并推送 | 235ad62 / 4ae21c9 / 5f26645；部署399f900 | 2026-10-13日志 | 仅新导入恢复；不回滚数据；自动与用户实机证据分开 |
 | 原生化第三批3.2 | 卓望二级栏 / 活动列表 / 搜索 / 资产过滤 | 用户已验收、已合入main并推送 | 51e32a7 | 2026-10-13日志 | 过滤保留内容区；导航 / 宽度 / Store保持 |
-| 原生化第三批3.3 | 知识库分区 / 个人笔记 / 来源栏 | 自动验证完成，待部署 / 实机验收 | 本分支，待提交 | 2026-10-13日志 | 仅笔记searchable；来源⌘F保持，导航行已删 |
+| 原生化第三批3.3 | 知识库分区 / 个人笔记 / 来源栏 | 已部署，待实机验收 | 5d38147 | 2026-10-13日志 | 仅笔记searchable；来源⌘F保持，导航行已删 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
 | AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
@@ -149,7 +149,7 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261013-143937-7674edb0.app`（3.1部署399f900），另有部署前复制副本（名见当日日志）；旧副本全部保留。当前部署 `51e32a7`（Universal Release、dirty=false），无业务格式变化；schema降级风险按§5。
+- **最近一次回退副本：** `Cosmos Toolbox-20261013-154045-f2e2f566.app`（3.2部署51e32a7），另有部署前复制副本（名见当日日志）；旧副本全部保留。当前部署 `5d38147`（Universal Release、dirty=false），无业务格式变化；schema降级风险按§5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -253,6 +253,6 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 12. 下一优先级
 
-**当前：** 3.3实现与必要自动验证完成，待Release部署与用户实机验收；未获合并 / 推送授权。3.1–3.3完成后下一步待用户确定，3.4统一检索仍延后。
+**当前：** 3.3实现 / 必要自动验证 / 部署完成，等待用户实机验收；未获合并 / 推送授权。3.1–3.3完成后下一步待用户确定，3.4统一检索仍延后。
 
 我的知识库搜索不改searchable，保留其⌘F并避免统一检索冲突；资产筛选继续留内容区。分类接入 / 三栏方案及其它暂缓事项不自动恢复。

@@ -222,3 +222,16 @@
 - **第三批3.2：** 用户已实机验收并接受声明范围；自动与用户实机证据分开。离屏List / 分类栏缓存边界保留，不据黑块扩大修复；后续反馈另定范围。
 
 - **第三步详情呈现与验收：** 概览采用产物最多5项，可进入全列表；详情原生toolbar已在3.1完成并经用户实机验收。第一批已接受现场玻璃 / 动效声明范围；真实点击、复用 / 缩放、月度登记、保存面板、HTML Review渲染未覆盖。旧B标签已换原生segmented，不用旧截图判断。
+
+
+### 3.3提交与部署实际结果
+
+- 实现 / 测试 / 两份文档逐文件提交5d3814718e724bbb0bc1a4a9e9fae6cf7eab22e2（feat: 原生化知识库分区与笔记列表及来源工具栏），部署前工作区干净；main / origin/main=cfdba2a未动，功能分支保留，未合并 / 推送，WIP保持。
+- 部署前业务before-deploy与before一致，个人库metadata-before-deploy同样一致。按授权先复制旧51e32a7 App为Cosmos Toolbox-20261013-153827-prebatch33-50961446.app，Info.plist原字节相同；预复制路径/private/tmp/CosmosNativeBatch33-precopy-backup.txt。
+- 既有/usr/bin/python3 scripts/deploy-macos.py沙箱外成功（exit0）；只一次Universal Release BUILD SUCCEEDED，双架构arm64+x86_64、ad-hoc签名及codesign --verify --deep --strict通过；正常退出旧App（未强杀），发布启动~/Applications/Cosmos Toolbox.app，PID51695。
+- 部署脚本另保留旧51e32a7为Cosmos Toolbox-20261013-154045-f2e2f566.app；此副本、预复制副本与原Cosmos Toolbox-20261012-213020-7e4b6733.app实际均存在，旧回退全保留。
+- 实际安装Info.plist复核：正式Bundle=com.wangyucosmos.Cosmos-Toolbox，CosmosBuildCommit=5d3814718e724bbb0bc1a4a9e9fae6cf7eab22e2、CosmosBuildDirty=false、CosmosBuildConfiguration=Release。后续仅部署结果文档提交，不再构建 / 部署。
+- 正式业务after-deploy与before / after-build / after-tests / after-repair / before-deploy均一致（14文件path / size / mtime_ns + 5主业务Data键SHA-256）；额外四个笔记 / 来源主备份路径元数据也全一致，包括笔记主 / 备份缺失与来源备份缺失。真实笔记库未自动新建，来源登记未写，不回滚 / 迁移正式数据；未运行真实Harness / Provider。
+- Release日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-pw0m1uox/build.log；部署输出/private/tmp/CosmosNativeBatch33-deploy.log。既有Swift6 / Sendable警告与PID取消夹具时序风险非本期阻塞，未扩大修复。
+- Current Status最终37842字节（低于38,000）；只与本日日志一起逐文件提交部署结果。用户实机验收还需工具栏 / 搜索位置、单击回车 / 收藏 / 归档右键滑动、来源管理 / 排除popover、知识库⌘F / 统一检索⌘F、深浅与减少动效，不将代码核对当实际键盘验收。
+- 可复用：工具栏迁移后夹具必须从桥接的原生窗口工具栏查找控件，保留实际action与旧断言；笔记变更入口共享实时只读门控；正式文件不存在也须作为指纹状态保留。3.1–3.3实现完成，下一步由用户确定；3.4继续延后，不自动开工。
