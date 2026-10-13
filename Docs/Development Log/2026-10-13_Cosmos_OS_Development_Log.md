@@ -158,3 +158,16 @@
 - **历史证据：** 3.1隔离678/678与修复后23/23、Universal Release及用户实机验收沿用，不计入本批唯一测试数；无数据回滚或业务格式变化。
 
 - **原生化第二批：** 用户已接受声明范围并完成main收尾；离屏分类玻璃、比较左窗格 / 资产外层黑块、设置TabView标签 / toolbar缓存及笔记历史 / 引用 / 导出面板缺口保留。设置标题略重复属非阻塞；完整验收边界见10月12 / 13日日志。
+
+
+### 3.2提交与部署实际结果
+
+- 实现 / 测试 / 两份文档逐文件提交51e32a742942886a4309a30ce58518a0adfb277e（feat: 原生化卓望二级导航与活动表格及资产筛选），工作区干净；main / origin/main保持bd4f67f，未合并 / 推送 / 删除功能分支，WIP不动。
+- 部署前正式before-deploy指纹与before / after-build / after-tests一致。按用户要求先复制当前399f900程序为Cosmos Toolbox-20261013-143800-prebatch32-e6a515da.app，Info.plist字节一致；预复制路径/private/tmp/CosmosNativeBatch32-precopy-backup.txt。
+- /usr/bin/python3 scripts/deploy-macos.py沙箱外成功（exit0）；仅一次Universal Release构建，先构建 / 校验双架构arm64+x86_64及ad-hoc签名 / codesign --verify --deep --strict，再正常退出旧App（未强杀）、发布并启动~/Applications/Cosmos Toolbox.app，PID45956。
+- 部署脚本另保留旧399f900程序为Cosmos Toolbox-20261013-143937-7674edb0.app；预复制副本 / 此副本及原Cosmos Toolbox-20261012-213020-7e4b6733.app均实际存在，所有旧回退不清理。
+- 实际安装Info.plist复核：正式Bundle=com.wangyucosmos.Cosmos-Toolbox，CosmosBuildCommit=51e32a742942886a4309a30ce58518a0adfb277e，CosmosBuildDirty=false，CosmosBuildConfiguration=Release；本次部署代码已全部提交。后续仅补部署记录文档，不重新构建或部署。
+- 正式after-deploy与before及所有阶段指纹一致（14文件path / size / mtime_ns + 5现存主业务Data键SHA-256），未覆盖浙江活动测试的V1 / V3 / 客服V1采用选择、未运行真实Harness / Provider、不做数据回滚或迁移。不把UI偏好变化当业务数据变化。
+- 构建日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-_mr23pyq/build.log；部署输出/private/tmp/CosmosNativeBatch32-deploy.log。旧Swift6隔离 / Sendable等警告保留；无构建错误 / 单测失败 / 阻塞。
+- Current Status最终37869字节（低于38,000），只与本日日志一起补记部署结果并逐文件提交。用户实机验收边界按上述保留：List选中 / 键盘 / VoiceOver、Table主操作 / 列头排序、固定筛选菜单 / 清除、深浅 / 减少动效与重启宽度记忆。
+- 可复用：保留现导航副作用的统一UI选择投影，提示词不可选中动作行；Table排序用视图投影和@State，组件复用过滤留内容区并锁定固定scope；先真实数据指纹再clean提交 / 回退复制 / 既有部署脚本。本批不自动扩展3.3或3.4。

@@ -13,7 +13,7 @@
 - **日期 / 分支：** 2026-10-13，`native/batch3-zhuowang-sidebar-20261013`，main / origin/main基线bd4f67f；第三批3.1已用户实机验收、main推送及分支删除。本轮3.2未合并 / 推送。
 - **3.2实现：** 二级栏原生List.sidebar，选择映射原导航，提示词按钮不可选中；列表布局换五列Table，排序仅视图内存；两处搜索roundedBorder；资产筛选因复用保留内容区Menu，固定维度受保护，可清除。卡片、宽度记忆、外壳与Store保持。
 - **本轮实测：** Debug测试构建成功；隔离全量686/686（0失败 / 跳过），新增8项通过，既有断言未改。17项边界核对通过，正式14文件与5业务键指纹一致。一次修复仅新夹具必需now参数 / 集合类型与提示词按钮选择保护。
-- **部署状态：** 日常App暂仍399f900；旧回退全部保留。本批Release部署待执行；List玻璃 / 选中 / 键盘 / VoiceOver、Table交互、菜单与位置记忆待实机验收。
+- **部署：** 51e32a7（dirty=false）Universal Release已安装启动，双架构 / 签名校验通过，部署前后正式指纹一致。新旧回退保留；List / 键盘 / VoiceOver、Table与菜单交互待实机验收。
 - **历史证据：** 3.1构建 / 测试 / 用户验收沿用，不算本批实测；恢复规则与既有数据保持。
 
 ---
@@ -43,7 +43,7 @@
 | 体验打磨轮 | 图表 / 响应式 / 导航记忆 / Prompt性能 / 日期 / AI引导 / 占位 | 已验收、已合入 main | 1e09b1c修复；bb722d2快进合入 | 2026-10-12 开发日志 | 合成离屏计时不等于Release体感；原生List已恢复；用户接受声明范围；拖动光标与重启记忆未增加工具验证 |
 | Mac原生化第一 / 第二批 | 控件 / sheet / 设置 / 八类窗口 / 详情记忆 | 已验收、已合入main | 00671aa / 217120f | 2026-10-12 / 13日志 | 业务边界保持；669唯一测试，离屏缺口见§9 |
 | 原生化第三批3.1 | 活动 / Artifact详情窗口 | 用户已验收、已合入main并推送 | 235ad62 / 4ae21c9 / 5f26645；部署399f900 | 2026-10-13日志 | 仅新导入恢复；不回滚数据；自动与用户实机证据分开 |
-| 原生化第三批3.2 | 卓望二级栏 / 活动列表 / 搜索 / 资产过滤 | 自动验证完成，待部署 / 实机验收 | 本分支，待提交 | 2026-10-13日志 | 过滤保留内容区；导航 / 宽度 / Store保持 |
+| 原生化第三批3.2 | 卓望二级栏 / 活动列表 / 搜索 / 资产过滤 | 已部署，待实机验收 | 51e32a7 | 2026-10-13日志 | 过滤保留内容区；导航 / 宽度 / Store保持 |
 | 卓望 Workspace / Campaign / 六步 Workflow 01–06 | 卓望工作 | 在用 | 4536dbb、546faea、442e6fb、dc5c711 | §2–§4 | 数据在 UserDefaults；DeepSeek Harness 是唯一已接通 Provider |
 | Step 05 HTML 原型闭环 + Tool Adapter | 卓望工作 → 活动详情 | 在用 | 2b85a00、a72e61a、402ef24 | §6–§7 | 原型工具未绑定 Figma；Figma/Pixso 自动执行未实现 |
 | AI/工具配置持久化保护；Campaign/Workspace Store 保护 Phase 1 | 内部 | 在用 | 214975d、6b52af5 | §4 | 仅进程内锁 + UserDefaults 读回，无跨进程事务 |
@@ -148,7 +148,7 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 - 命令（仓库根目录）：`/usr/bin/python3 scripts/deploy-macos.py`。固定 Xcode 工程 / scheme，构建 **Universal Release（arm64 + x86_64）**，校验双架构与正式身份，注入元数据（commit、`CosmosBuildDirty`），本地 ad-hoc 签名并 `codesign --verify --deep --strict`；独立 flock。
 - Bundle ID：`com.wangyucosmos.Cosmos-Toolbox`。安装位置：`~/Applications/Cosmos Toolbox.app`。
 - 旧 App 通过 `NSRunningApplication.terminate` **正常退出**（不强杀、不绕过未保存保护；被阻止即停止并报告）；已有同身份 App 先移到**回退副本目录** `~/Applications/Cosmos OS Rollbacks/Cosmos Toolbox-<时间>-<唯一标识>.app`，再以 `RENAME_EXCL` 发布新版；启动失败保留安装与回退副本。
-- **最近一次回退副本：** `Cosmos Toolbox-20261013-134418-9b2b4420.app`（第二批217120f），另有部署前复制副本（名见当日日志）；旧副本全部保留。当前部署 `399f900`（Universal Release、dirty=false），无业务格式变化；schema降级风险按§5。
+- **最近一次回退副本：** `Cosmos Toolbox-20261013-143937-7674edb0.app`（3.1部署399f900），另有部署前复制副本（名见当日日志）；旧副本全部保留。当前部署 `51e32a7`（Universal Release、dirty=false），无业务格式变化；schema降级风险按§5。
 - 脚本不读写业务数据；正常启动沿用 App 既有行为，可能写窗口偏好。无公证、无自动更新、无安装器。
 
 ---
@@ -252,6 +252,6 @@ UI偏好包括 `cosmos.ui.workspace.sidebarWidth`（卓望二级分栏默认260p
 
 ## 12. 下一优先级
 
-**当前：** 3.2自动验证完成，待Release部署与用户实机验收；未获合并 / 推送授权。
+**当前：** 3.2自动验证与部署完成，等待用户实机验收；未获合并 / 推送授权。
 
 **下一轮3.3：** 个人笔记 `List` + `.searchable`、知识库横条进toolbar、`CosmosWorkspaceNavigationRow`剩余使用方；本批资产筛选因四种复用场景改内容区原生Menu，不进窗口toolbar。3.4统一检索继续延后；分类内容接入与三栏方案不做，暂缓事项保持暂缓。
