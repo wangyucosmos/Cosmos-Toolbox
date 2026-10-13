@@ -171,3 +171,16 @@
 - 构建日志/var/folders/fh/13jx00z13ln1d46vx35pgljc0000gn/T/CosmosOS-ReleaseDeploy-_mr23pyq/build.log；部署输出/private/tmp/CosmosNativeBatch32-deploy.log。旧Swift6隔离 / Sendable等警告保留；无构建错误 / 单测失败 / 阻塞。
 - Current Status最终37869字节（低于38,000），只与本日日志一起补记部署结果并逐文件提交。用户实机验收边界按上述保留：List选中 / 键盘 / VoiceOver、Table主操作 / 列头排序、固定筛选菜单 / 清除、深浅 / 减少动效与重启宽度记忆。
 - 可复用：保留现导航副作用的统一UI选择投影，提示词不可选中动作行；Table排序用视图投影和@State，组件复用过滤留内容区并锁定固定scope；先真实数据指纹再clean提交 / 回退复制 / 既有部署脚本。本批不自动扩展3.3或3.4。
+
+
+## 第三批3.2用户实机验收与main收尾
+
+- 用户明确宣布3.2实机验收通过，授权快进main、正常推送、用-d删除功能分支及两份文档提交 / 再推送，最后fetch核对。只做Git / 文档，不构建 / 测试 / 部署；沿用本阶段隔离686/686、Universal Release / 双架构 / 签名证据，用户实机证据与自动验证分开。
+- 基线实测：正式目录native/batch3-zhuowang-sidebar-20261013、HEAD=60d4f11603a6ecbfb74399313d200181928d4357，工作区干净；main / origin/main=bd4f67f，仅正式目录一个worktree。日常App实际Info.plist确认51e32a742942886a4309a30ce58518a0adfb277e、dirty=false，未部署新App。
+- git switch main成功；git merge --ff-only native/batch3-zhuowang-sidebar-20261013成功，main由bd4f67f快进至60d4f11，无新增merge提交。
+- git push origin main成功（bd4f67f→60d4f11），git ls-remote origin refs/heads/main实际返回60d4f11603a6ecbfb74399313d200181928d4357，与本地一致。确认后git branch -d native/batch3-zhuowang-sidebar-20261013成功（was60d4f11）。未使用force / -D / reset / clean / stash / prune / rebase。
+- shell正式指纹CosmosNativeBatch32-closeout-before / closeout-after.json完全一致：14文件path / size / mtime_ns + defaults export正式域5主业务Data键SHA-256，和3.2部署后基线一致；不输出正文、无数据回滚或迁移。
+- Current Status记录3.2用户验收 / main收尾，日常App保持51e32a7；§12下一步3.3个人笔记List+searchable、知识库横条toolbar、CosmosWorkspaceNavigationRow剩余使用方原生化，由Codex做；3.4继续延后。本次不启动3.3，资产过滤内容区决定与暂缓事项保持。
+- 本段仅随两份文档逐文件add、中文提交到main后再正常push；最后只fetch origin main核对最终main / origin/main / FETCH_HEAD，结果由最终报告给出，不自引用提交hash。Current Status为37870字节，低于38,000。
+- 本地Word WIP=2d26b2a与远端PDF WIP不动，旧回退副本全部保留，正式目录仍唯一worktree。
+- 可复用：用户接受范围后沿用代码未变化的实测；快进 / 正常推送确认后安全删除已合并分支；文档结果正常推送后只fetch目标main并核对一致。
