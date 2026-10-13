@@ -2036,6 +2036,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         }
 
         var importedArtifacts = 0
+        var importedArtifactIDs = Set<UUID>()
         var recoveredStepIDs = Set<UUID>()
         var changed = false
 
@@ -2122,7 +2123,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             // Step 06 requires explicit human adoption. A local Markdown file
             // may be recovered as an unadopted Artifact, but it must never
             // restore the step to approved by itself.
-            if item.stepKind != .customerService {
+            if !alreadyExists, item.stepKind != .customerService {
                 recoveredStepIDs.insert(
                     stepID
                 )
@@ -2164,6 +2165,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
                         artifact
                     )
 
+                importedArtifactIDs.insert(artifact.id)
                 importedArtifacts += 1
                 changed = true
             }
@@ -2227,7 +2229,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
         for (_, artifacts)
             in groupedArtifacts {
 
-            guard !artifacts.isEmpty else {
+            guard artifacts.contains(where: { importedArtifactIDs.contains($0.id) }) else {
                 continue
             }
 
@@ -2311,7 +2313,7 @@ final class ZhuowangWorkflowStore: ObservableObject {
             }
         }
 
-        // Rebuild the "next actionable step" after recovered progress.
+        // Only an actual import may rebuild progress; registered files are not approval.
         let enabledSortedIndices =
             workflows[workflowIndex]
                 .steps.indices
@@ -2334,6 +2336,8 @@ final class ZhuowangWorkflowStore: ObservableObject {
 
         for stepIndex
             in enabledSortedIndices {
+
+            guard importedArtifacts > 0 else { break }
 
             let status =
                 workflows[workflowIndex]
