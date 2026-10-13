@@ -102,3 +102,16 @@
 | Mac 原生化第一批（1.1–1.6） | 全局工具栏 / 内容按钮 / 分段 / 表面 / 系统动效 | 已验收、已合入 main | 00671aa | 2026-10-12 开发日志 | 641唯一测试与72对切页通过；独立窗口工具栏接入留第二批；KnowledgeHubView因测试引用保留 |
 
 - 最终Current Status为37,841字节（低于38,000）；部署记录仅更新此文件与当日日志，逐文件提交。未覆盖项按上段实机边界，不追加验证；Git最终状态以提交后报告为准。
+
+
+## 第三批3.1用户实机验收与main收尾
+
+- 用户明确宣布3.1实机验收通过，授权快进main、正常推送、用-d删除功能分支及两份文档提交 / 再推送。不修改代码、不重新构建 / 测试 / 部署，沿用本阶段隔离678/678、集中修复后23/23及Universal Release / 签名实测；用户实机验收与自动验证分开记录。
+- 开工实测：正式目录native/batch3-campaign-detail-20261013、HEAD=228ee6fd844324fa121dba8468bd2220d63e4e03，工作区干净；main / origin/main=a16dded，仅正式目录一个worktree。日常App Info.plist确认399f90043de1a4fc180a4a6c20859e20d01a007a、dirty=false，未重新部署。
+- git switch main成功；git merge --ff-only native/batch3-campaign-detail-20261013成功，main从a16dded快进至228ee6f，无新增merge提交。
+- git push origin main成功（a16dded→228ee6f）；git ls-remote origin refs/heads/main实际返回228ee6fd844324fa121dba8468bd2220d63e4e03，与本地一致。确认后git branch -d native/batch3-campaign-detail-20261013成功（was228ee6f），未使用force / -D / prune / reset / clean / stash / rebase。
+- 正式数据由shell记录closeout-before / closeout-after.json，14文件path / size / mtime_ns + defaults export的5主业务Data键SHA-256完全一致，和实现开工指纹一致；不输出正文，未回滚或迁移正式数据。
+- Current Status更新3.1已验收并main收尾、沿用验证口径、保持部署399f900；§12明确下一步3.2卓望二级栏List(.sidebar)（含资产中心过滤进toolbar），由Codex做；3.3个人笔记+知识库在3.2之后；3.4继续延后。本次不自动开工3.2。
+- 仅更新Current Status与本日日志，逐文件add、中文文档提交到main后再正常push；文档提交 / 最终远端确认在最终报告给出，不自引用提交hash。Current Status为37859字节（低于38,000）。
+- WIP保留：本地wip/markdown-word-export-phase1-20260930=2d26b2a及远端PDF WIP未触碰；回退副本全部保留。正式目录仍唯一worktree。
+- 可复用：接受实机验收后只沿用受影响代码未变的验证；先快进 / 正常推送并实际核对远端，再安全删除已合并分支；文档补记结果后再推送核对。
