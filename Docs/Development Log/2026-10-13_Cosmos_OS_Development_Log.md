@@ -184,3 +184,41 @@
 - 本段仅随两份文档逐文件add、中文提交到main后再正常push；最后只fetch origin main核对最终main / origin/main / FETCH_HEAD，结果由最终报告给出，不自引用提交hash。Current Status为37870字节，低于38,000。
 - 本地Word WIP=2d26b2a与远端PDF WIP不动，旧回退副本全部保留，正式目录仍唯一worktree。
 - 可复用：用户接受范围后沿用代码未变化的实测；快进 / 正常推送确认后安全删除已合并分支；文档结果正常推送后只fetch目标main并核对一致。
+
+
+## Mac原生化第三批3.3：知识库工具栏与个人笔记List
+
+- 基线实测：main / origin/main / HEAD=cfdba2a，工作区干净，只有正式目录一个worktree；日常App=51e32a742942886a4309a30ce58518a0adfb277e、dirty=false，回退全部保留。创建native/batch3-knowledge-notes-20261013，仅本工具修改。
+- shell正式基线CosmosNativeBatch33-before.json：14文件path / size / mtime_ns与defaults export的5主业务Data键SHA-256。额外记录PersonalNotes/notes.json与notes.backup.json、KnowledgeSources/sources.json与sources.backup.json的path / size / mtime_ns及缺失状态；笔记主备份均缺失，来源主文件310字节，来源备份缺失。只读元数据、不输出正文，不在XCTest访问真实库。
+- A：CosmosKnowledgeDestinationView删内容顶部HStack / Divider，分区Picker.segmented进ToolbarItem.principal，原accessibilityLabel保持。绑定仍写navigator.knowledgeSection，三个子页构造及参数不变；sectionBinding共享实际生产Binding供双向测试。
+- B：PersonalNotesView改原生List.inset；标题 / 归档标记、分类·版本·时间及240字符有界两行预览保持。行Button单击原Manager.open，List.primaryAction回车 / 双击原打开；favorite星标受cosmosSymbolReplacement减少动效控制；归档 / 恢复进List右键与swipeActions（禁fullSwipe），原note-row / note-favorite / note-archive UUID标识保持。无自制卡片 / cosmosScrollReveal入场。
+- 个人笔记searchable绑定原search，不加keyboardShortcut；notes-search保留在searchable容器。分类 / 收藏 / 当前归档进筛选Menu，活动筛选摘要 / 清除位于List顶部；过滤仍委托PersonalNotesQuery，四个原@State不迁移。计数含0条、错误 / 读取 / CosmosEmptyState / 底部说明保持。工具栏新建 / 导出 / 刷新及disabled条件保持，canSave=false禁新建 / 收藏 / 归档；共享实时UI门控只拒绝不可写请求，仍接原Store方法，不改Store或编辑器。
+- C：KnowledgeSourcesRootView来源Picker.menu与管理进toolbar，保持knowledge-source-picker及switchSource链路；添加!canSave / 重扫enabledSources.isEmpty原条件保持，来源在无启用者时禁用，管理只在原browser可出现状态显示。sourceInformation保留扫描 / 文档附件计数 / 排除popover与knowledge-exclusions / 截断提示，无背景横条。knowledge-search改roundedBorder，原FocusState / 清空 / 隐藏⌘F字节保持；文件夹树collapse改smooth系统动画受reduced控制。我的知识库不用searchable，保留⌘F，避免统一检索冲突，3.4再处理。
+- D：全仓Swift（含测试）确认CosmosWorkspaceNavigationRow只有定义无调用后删除；同文件其它类型逐字不变。KnowledgeHubView因旧测试引用保留，完全未改。
+- 28项源码边界核对通过，/private/tmp/CosmosNativeBatch33-boundary-audit.json：统一检索 / Dashboard / CosmosPageMotion / navigator、Notes Store / Models / FileStorage / Editor、Knowledge Store / FileStorage / Scanner / Search / Git / Reader / Markdown / Renderer及卓望文件无diff；KnowledgeSourceViews的Reader / Actions / OpenCenter / toast / 后续子视图逐字保持，隐藏⌘F行不变；searchable仅新增个人笔记，笔记不加⌘F。这是参与实现者自查，不称独立复审。
+- 新增CosmosKnowledgeNativeTests六项全部首轮通过：testNoteFilterCombinationsMatchExistingQuery（64组合）；testClearNoteFiltersRestoresCurrentUnfilteredDefaults；testBlockedNoteStoreCannotRequestCreateFavoriteOrArchive；testNoteActionsUseLiveSaveGateAndPreserveRequestedIdentity；testKnowledgeSectionBindingIsBidirectionalAndLeavesSearchFocusUntouched；testNativeNotesListAndToolbarMountPreserveTemporaryLibrary。全部临时根 / 随机suite或内存navigator，无真实Documents探测。
+- 首次Debug build-for-testing成功，无生产编译修复。唯一一轮全量官方摘要692 total / 690 passed / 2 failed / 0 skipped；未把日志3条失败断言当作3用例。失败1：CosmosStep2ATests.testNativeKnowledgeSegmentUpdatesBindingWithoutPreferenceWrites仍在NSHostingView内容区找三段控件，迁移后找不到；失败2：AIWorkspaceToolProbeTests.testRunnerCancellationTerminatesChild的PID字符串转Int32失败（临时脚本创建文件与写PID存在时序窗口），进程源码与测试均未改。
+- 一次集中修复仅同步CosmosStep2ATests原夹具：改CosmosWindowFactory桥接的独立隔离窗口，orderBack创建原生toolbar；从toolbar视图 / 标题栏或AppKit原生三项NSToolbarItemGroup取实际分段控件，仍发送原生action，保持原nav.sources与偏好motion不变断言，没有换成直接写binding或弱化断言。没有System Events / 同名App定位。框架两种原生表示的适配属于同一集中修复；增量测试构建成功。
+- 修复后只跑上述2失败用例，官方摘要2/2通过（CosmosNativeBatch33-repair-summary.json），取消测试未改源码。未重跑全量，692唯一用例均有通过证据（690+2），不宣称首轮全量全部通过。不扩展处理PID时序待办。
+- 测试宿主实际Info.plist与xctestrun确认com.wangyucosmos.cosmostoolbox.persistenceui.NativeBatch33，新UUID suite与全套临时fixture roots记录CosmosNativeBatch33-isolation.json；所有xcodebuild沙箱外。证据/private/tmp/CosmosNativeBatch33-{build,tests,repair-build,repair-final-build,repair-tests}.log及xcresult / summary；新增测试6不与重验2重复计数。
+- 正式after-build / after-tests / after-repair与before一致；额外笔记 / 来源主备份元数据（包括missing）同样一致。未运行真实Provider / Harness、未回滚或迁移任何正式数据。
+- 查看既有矩阵本轮生成的notes-light-1180x760.png仅作参考，原生列表正文 / 星标 / 底部说明可读，工具栏和searchable不在内容缓存里，不算缺陷，不反复截图。真实toolbar玻璃 / 搜索位置 / 行单击回车 / 收藏右键滑动 / 来源切换 / ⌘F / 深浅色与减少动效待用户实机验收。
+- 修改：CosmosNavigationSurfaces.swift、PersonalNotesView.swift、KnowledgeSourceViews.swift、CosmosWorkspaceUI.swift、新增CosmosKnowledgeNativeTests.swift、既有CosmosStep2ATests.swift夹具、Current Status、当日日志。其他文件未动，既有断言未删弱。
+- 下一步在3.3验收后由用户确定；3.4统一检索仍延后，编辑窗口 / 历史引用 / 资产中心 / 读取渲染 / 分类接入 / 三栏与所有WIP暂缓不动。下面保留Current Status压缩前已收尾细节。
+
+## 1. 当前检查点
+
+- **日期 / 分支：** 2026-10-13，`main`。3.2用户实机验收通过；main由bd4f67f快进至60d4f11并正常推送，远端已确认；功能分支已用-d删除，仅正式目录一个worktree。本次只做Git / 文档收尾。
+- **3.2实现：** 二级栏原生List.sidebar，选择映射原导航，提示词按钮不可选中；列表布局换五列Table，排序仅视图内存；两处搜索roundedBorder；资产筛选因复用保留内容区Menu，固定维度受保护，可清除。卡片、宽度记忆、外壳与Store保持。
+- **沿用实现验证：** Debug测试构建成功；隔离全量686/686（0失败 / 跳过），新增8项通过，既有断言未改。17项边界核对通过，正式14文件与5业务键指纹一致。一次修复仅新夹具必需now参数 / 集合类型与提示词按钮选择保护。
+- **部署：** 51e32a7（dirty=false）Universal Release已安装启动，双架构 / 签名校验通过，部署前后正式指纹一致。新旧回退保留；用户实机验收通过。本次不构建 / 测试 / 部署，收尾前后正式指纹一致。
+- **历史证据：** 3.1构建 / 测试 / 用户验收沿用，不算本批实测；恢复规则与既有数据保持。
+
+
+- **原生化第二批：** 已接受声明范围并main收尾；离屏玻璃 / toolbar、比较 / 资产缓存、笔记历史 / 引用 / 导出缺口与设置标题细节保留，完整边界见10月12 / 13日志。
+
+- **第一批：** 用户已接受声明范围；`KnowledgeHubView`因测试引用保留。恢复风险已按用户决定限定修复，见§1 / §12。
+
+- **第三批3.2：** 用户已实机验收并接受声明范围；自动与用户实机证据分开。离屏List / 分类栏缓存边界保留，不据黑块扩大修复；后续反馈另定范围。
+
+- **第三步详情呈现与验收：** 概览采用产物最多5项，可进入全列表；详情原生toolbar已在3.1完成并经用户实机验收。第一批已接受现场玻璃 / 动效声明范围；真实点击、复用 / 缩放、月度登记、保存面板、HTML Review渲染未覆盖。旧B标签已换原生segmented，不用旧截图判断。

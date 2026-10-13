@@ -51,16 +51,37 @@ final class CosmosStep2ATests: XCTestCase {
             promptLocation: .init(root: root.appendingPathComponent("prompts"), error: nil),
             knowledgeSourcesLocation: .init(root: root.appendingPathComponent("sources"), error: nil))
             .environment(\.cosmosNavigator, nav).environment(\.cosmosPreferences, prefs)
-        let host = NSHostingView(rootView: view); host.frame = NSRect(x: 0, y: 0, width: 1000, height: 700)
-        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false; window.contentView = host
-        defer { window.contentView = nil; window.close() }
-        try await Task.sleep(for: .milliseconds(150)); host.layoutSubtreeIfNeeded()
+        let window = CosmosWindowFactory.makeWindow(
+            .init(title: "知识库分区隔离测试 " + UUID().uuidString,
+                contentSize: NSSize(width: 1000, height: 700), minSize: NSSize(width: 800, height: 600)),
+            rootView: view)
+        defer { window.contentViewController = nil; window.close() }
+        // The Picker now belongs to the titlebar toolbar, so mount its bridged native window.
+        window.orderBack(nil)
+        try await Task.sleep(for: .milliseconds(150))
+        window.contentView?.superview?.layoutSubtreeIfNeeded()
         func segments(_ view: NSView) -> [NSSegmentedControl] {
             (view as? NSSegmentedControl).map { [$0] } ?? view.subviews.flatMap(segments)
         }
-        let control = try XCTUnwrap(segments(host).first { $0.segmentCount == 3 })
-        control.selectedSegment = 2; control.sendAction(control.action, to: control.target)
+        let toolbar = try XCTUnwrap(window.toolbar)
+        let controls = toolbar.items.flatMap { item -> [NSSegmentedControl] in
+            var found = item.view.map(segments) ?? []
+            if let group = item as? NSToolbarItemGroup {
+                found += group.subitems.flatMap { $0.view.map(segments) ?? [] }
+            }
+            return found
+        }
+        let titlebarControls = window.contentView?.superview.map(segments) ?? []
+        if let control = (controls + titlebarControls).first(where: { $0.segmentCount == 3 }) {
+            control.selectedSegment = 2; control.sendAction(control.action, to: control.target)
+        } else {
+            // AppKit may represent the segmented Picker as a selectable toolbar group.
+            let group = try XCTUnwrap(toolbar.items.compactMap { $0 as? NSToolbarItemGroup }.first { $0.subitems.count == 3 })
+            group.selectedIndex = 2
+            let actionItem: NSToolbarItem = group.action == nil ? group.subitems[2] : group
+            let action = try XCTUnwrap(actionItem.action)
+            NSApp.sendAction(action, to: actionItem.target, from: actionItem)
+        }
         try await Task.sleep(for: .milliseconds(50))
         XCTAssertEqual(nav.knowledgeSection, .sources); XCTAssertEqual(prefs.motion, before)
     }

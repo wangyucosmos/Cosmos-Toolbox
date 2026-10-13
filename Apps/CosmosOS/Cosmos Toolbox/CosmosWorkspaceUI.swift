@@ -1,40 +1,6 @@
 import SwiftUI
 import AppKit
 
-/// Company content and progress are supplied by the caller.
-struct CosmosWorkspaceNavigationRow: View {
-    let icon: String
-    let title: String
-    var letter: String? = nil
-    var iconIdentity: String? = nil
-    var subdued = false
-    var subtitle = ""
-    var count: Int? = nil
-    var attention = false
-    var selected = false
-    let action: () -> Void
-    @Environment(\.cosmosPreferences) private var preferences
-    @Environment(\.accessibilityReduceMotion) private var systemMotion
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                CosmosSquareIcon(letter: letter, symbol: icon, identity: iconIdentity ?? title, subdued: subdued)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(Font(CosmosWorkspaceSplitWidth.nameFont(scale: preferences.textSize.scale, selected: selected))).lineLimit(1).truncationMode(.tail)
-                    if !subtitle.isEmpty { Text(subtitle).font(.caption2).foregroundStyle(.secondary) }
-                }
-                Spacer(minLength: 4)
-                if attention { Circle().fill(.orange).frame(width: 6, height: 6).accessibilityLabel("有活动需要关注") }
-                if let count { Text(count.formatted()).font(Font(CosmosWorkspaceSplitWidth.countFont(scale: preferences.textSize.scale))).foregroundStyle(.secondary)
-                    .padding(.horizontal, 7).padding(.vertical, 3).background(.quaternary, in: Capsule()) }
-            }.padding(10).contentShape(RoundedRectangle(cornerRadius: 10))
-                .background(selected ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
-        }.buttonStyle(.plain).cosmosRowFeedback()
-            .animation(CosmosDesign.pageAnimation(reduced: preferences.reducesMotion(system: systemMotion)), value: selected)
-            .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
 struct CosmosWorkflowMiniProgress: View {
     let completed: Int
     let total: Int

@@ -75,13 +75,28 @@ struct KnowledgeSourcesRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
-        .toolbar { ToolbarItemGroup(placement: .primaryAction) {
-                    Button { pickFolder() } label: { Label("添加文件夹", systemImage: "folder.badge.plus") }.help("添加文件夹").labelStyle(.iconOnly)
-                        .disabled(!store.canSave).accessibilityIdentifier("knowledge-add-folder")
-                    Button { store.rescanAll() } label: { Label("重新扫描", systemImage: "arrow.clockwise") }.help("重新扫描").labelStyle(.iconOnly)
-                        .disabled(enabledSources.isEmpty).help("重新扫描已启用的来源")
-
-        } }
+        .toolbar {
+            if store.loaded && !store.sources.isEmpty {
+                ToolbarItem {
+                    Picker("来源", selection: Binding(get: { sourceID }, set: { switchSource($0) })) {
+                        ForEach(enabledSources) { Text($0.displayName).tag(Optional($0.id)) }
+                    }
+                    .pickerStyle(.menu).labelsHidden().frame(maxWidth: 220)
+                    .disabled(enabledSources.isEmpty)
+                    .accessibilityIdentifier("knowledge-source-picker")
+                }
+                ToolbarItem {
+                    Button("管理来源", systemImage: "slider.horizontal.3") { showManage = true }
+                        .disabled(!store.loaded).help("管理来源").labelStyle(.iconOnly)
+                }
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { pickFolder() } label: { Label("添加文件夹", systemImage: "folder.badge.plus") }.help("添加文件夹").labelStyle(.iconOnly)
+                    .disabled(!store.canSave).accessibilityIdentifier("knowledge-add-folder")
+                Button { store.rescanAll() } label: { Label("重新扫描", systemImage: "arrow.clockwise") }.help("重新扫描").labelStyle(.iconOnly)
+                    .disabled(enabledSources.isEmpty).help("重新扫描已启用的来源")
+            }
+        }
         .overlay(alignment: .bottom) { toastView }
         .background { Button("") { searchFocused = true }.keyboardShortcut("f", modifiers: .command).opacity(0).accessibilityHidden(true) }
         .task {
@@ -138,7 +153,7 @@ struct KnowledgeSourcesRootView: View {
 
     @ViewBuilder private var browser: some View {
         VStack(spacing: 0) {
-            sourceBar
+            sourceInformation
             if let source = currentSource, KnowledgeSourceGitService.isRepository(source.rootURL) {
                 KnowledgeGitPanelView(status: store.gitStatuses[source.id], activity: store.gitActivity[source.id] ?? .idle,
                     result: store.gitResults[source.id], onRefresh: { store.refreshGit(source.id) },
@@ -160,11 +175,8 @@ struct KnowledgeSourcesRootView: View {
         }
     }
 
-    private var sourceBar: some View {
+    private var sourceInformation: some View {
         HStack(spacing: 12) {
-            Picker("来源", selection: Binding(get: { sourceID }, set: { switchSource($0) })) {
-                ForEach(enabledSources) { Text($0.displayName).tag(Optional($0.id)) }
-            }.labelsHidden().frame(maxWidth: 220).accessibilityIdentifier("knowledge-source-picker")
             if let source = currentSource, store.scanStates[source.id] == .scanning { ProgressView().controlSize(.small) }
             if let index {
                 Text("\(index.documents.count) 篇文档 · \(index.attachments.count) 个附件").font(.caption).foregroundStyle(.secondary)
@@ -175,7 +187,6 @@ struct KnowledgeSourcesRootView: View {
                 if index.truncated { Label("条目过多，列表已截断", systemImage: "exclamationmark.circle").font(.caption).foregroundStyle(.orange) }
             }
             Spacer()
-            Button("管理来源", systemImage: "slider.horizontal.3") { showManage = true }.buttonStyle(.borderless).font(.caption)
         }.padding(.horizontal, CosmosDesign.pagePadding).padding(.vertical, 8)
     }
 
@@ -202,17 +213,15 @@ struct KnowledgeSourcesRootView: View {
             VStack(spacing: 8) {
                 HStack {
                     if showTree {
-                        Button("文件夹", systemImage: "sidebar.leading") { withAnimation(reduced ? nil : CosmosDesign.motion) { treeCollapsed.toggle() } }
+                        Button("文件夹", systemImage: "sidebar.leading") { withAnimation(reduced ? nil : .smooth(duration: 0.18)) { treeCollapsed.toggle() } }
                             .labelStyle(.iconOnly).buttonStyle(.borderless).help(treeCollapsed ? "展开文件夹树" : "收起文件夹树")
                     }
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField("搜索标题、路径、标签与正文", text: $query).textFieldStyle(.plain).focused($searchFocused)
+                        TextField("搜索标题、路径、标签与正文", text: $query).textFieldStyle(.roundedBorder).focused($searchFocused)
                             .accessibilityIdentifier("knowledge-search")
                         if !query.isEmpty { Button("清空", systemImage: "xmark.circle.fill") { query = "" }.labelStyle(.iconOnly).buttonStyle(.borderless).foregroundStyle(.secondary) }
-                    }.padding(.horizontal, 10).padding(.vertical, 7)
-                        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-                        .overlay { RoundedRectangle(cornerRadius: 10).stroke(searchFocused ? Color.accentColor.opacity(0.6) : Color.primary.opacity(0.1)) }
+                    }
                 }
                 HStack {
                     Picker("类型", selection: $listKind) {

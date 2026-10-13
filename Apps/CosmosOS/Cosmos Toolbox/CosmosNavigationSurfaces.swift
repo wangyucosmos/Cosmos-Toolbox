@@ -12,15 +12,6 @@ struct CosmosKnowledgeDestinationView: View {
     @Environment(\.accessibilityReduceMotion) private var systemMotion
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Picker("知识库分区", selection: Binding(get: { navigator.knowledgeSection }, set: { navigator.knowledgeSection = $0 })) {
-                    Text("个人笔记").tag(CosmosKnowledgeSection.notes)
-                    Text("卓望知识与资产").tag(CosmosKnowledgeSection.assets)
-                    Text("我的知识库").tag(CosmosKnowledgeSection.sources)
-                }.pickerStyle(.segmented).accessibilityLabel("知识库分区")
-                Spacer()
-            }.padding(.horizontal, 24).padding(.vertical, 10)
-            Divider()
             if navigator.knowledgeSection == .notes { PersonalNotesView(location: notesLocation, promptLocation: promptLocation) }
             else if navigator.knowledgeSection == .assets { ZhuowangAssetCenterView(configuration: configuration, isolatedRoot: isolatedRoot) }
             else {
@@ -28,5 +19,20 @@ struct CosmosKnowledgeDestinationView: View {
                     suggestedFolder: configuration.isIsolatedForUI || knowledgeSourcesLocation.root == nil ? nil : KnowledgeSourcesRootView.defaultSuggestion())
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("知识库分区", selection: Self.sectionBinding(navigator: navigator)) {
+                    Text("个人笔记").tag(CosmosKnowledgeSection.notes)
+                    Text("卓望知识与资产").tag(CosmosKnowledgeSection.assets)
+                    Text("我的知识库").tag(CosmosKnowledgeSection.sources)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel("知识库分区")
+            }
+        }
+    }
+
+    static func sectionBinding(navigator: CosmosNavigator) -> Binding<CosmosKnowledgeSection> {
+        Binding(get: { navigator.knowledgeSection }, set: { navigator.knowledgeSection = $0 })
     }
 }
